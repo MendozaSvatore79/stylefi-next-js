@@ -1,5 +1,38 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Registro con Neon y OTP
+
+El flujo de registro usa Neon como base de datos y envía el OTP por correo.
+
+### Variables de entorno
+
+Create a `.env.local` file with:
+
+```bash
+DATABASE_URL="postgresql://..."
+SMTP_HOST="smtp.tu-proveedor.com"
+SMTP_PORT="587"
+SMTP_USER="usuario@tu-dominio.com"
+SMTP_PASSWORD="tu-password"
+SMTP_FROM="STYLEHUB <no-reply@stylehub.com>"
+SMTP_SECURE="false"
+ADMIN_EMAIL="admin@stylehub.com"
+ADMIN_PASSWORD="tu-contrasena-segura"
+```
+
+### Esquema de Neon
+
+Ejecuta el contenido de `db/schema.sql` en tu proyecto de Neon para crear:
+
+- `stylehub_users`
+- `stylehub_otps`
+
+### Flujo
+
+1. Completa el registro en `/register`.
+2. El servidor guarda el usuario en Neon y envía un OTP al correo.
+3. Verifica el código en `/register/otp`.
+
 ## Getting Started
 
 First, run the development server:
@@ -34,3 +67,4 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# stylefi-next-js
