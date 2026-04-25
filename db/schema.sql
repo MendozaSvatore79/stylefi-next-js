@@ -46,3 +46,20 @@ CREATE TABLE IF NOT EXISTS stylehub_password_resets (
 
 CREATE INDEX IF NOT EXISTS idx_stylehub_password_resets_user_id ON stylehub_password_resets(user_id);
 CREATE INDEX IF NOT EXISTS idx_stylehub_password_resets_created_at ON stylehub_password_resets(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS stylehub_live_dashboard_modules (
+  module_key TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  path_prefix TEXT,
+  is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  is_maintenance BOOLEAN NOT NULL DEFAULT FALSE,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_live_dashboard_modules_enabled_order
+ON stylehub_live_dashboard_modules(is_enabled, display_order);
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_live_dashboard_modules_path_prefix
+ON stylehub_live_dashboard_modules(path_prefix);

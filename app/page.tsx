@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { LiveDashboardPanel } from "@/components/live-dashboard-panel";
+import { getLiveDashboardPayload } from "@/lib/live-dashboard";
+
 const techFeatures = [
   {
     titulo: "Agenda inteligente",
@@ -68,16 +71,24 @@ const metricas = [
   { valor: "4.9", etiqueta: "Calificación promedio" },
 ];
 
-const stackItems = [
-  { nombre: "Next.js 16", detalle: "Rutas, layouts y server components" },
-  { nombre: "Tailwind CSS", detalle: "UI rápida y escalable" },
-  { nombre: "App Router", detalle: "Estructura limpia por vistas" },
-  { nombre: "Gestión de citas", detalle: "Cliente · Negocio · Admin" },
-];
+export default async function Home() {
+  const liveDashboard = await getLiveDashboardPayload().catch(() => null);
+  const isMaintenanceMode = liveDashboard?.isMaintenanceMode ?? false;
 
-export default function Home() {
   return (
     <main className="min-h-screen w-full overflow-hidden bg-[#ececef] text-slate-900">
+      {isMaintenanceMode ? (
+        <section className="fixed inset-0 z-120 flex items-center justify-center bg-[#080d1f]/92 px-6 text-white backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-3xl border border-white/20 bg-white/10 p-8 text-center shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Plataforma temporalmente no disponible</p>
+            <h1 className="mt-3 text-3xl font-black sm:text-4xl">Estamos en mantenimiento</h1>
+            <p className="mt-4 text-sm text-white/80 sm:text-base">
+              Estamos ajustando módulos internos para mejorar la estabilidad del servicio. Vuelve a intentar en unos minutos.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
       <div className="fixed inset-0 -z-10 bg-[#ececef]" />
       <div className="fixed left-0 top-0 -z-10 h-128 w-lg rounded-full bg-blue-500/15 blur-3xl animate-drift" />
       <div className="fixed right-0 top-24 -z-10 h-120 w-120 rounded-full bg-red-500/12 blur-3xl animate-drift" />
@@ -171,46 +182,7 @@ export default function Home() {
 
           <div className="relative mx-auto w-full max-w-135">
             <div className="absolute -left-4 -top-4 h-full w-full rounded-4xl border border-white/10 bg-blue-500/10 blur-xl animate-float-slow" />
-            <div className="relative overflow-hidden rounded-4xl border border-white/15 bg-[#10162f] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Live dashboard</p>
-                  <p className="mt-1 text-xl font-black text-white">Panel inteligente</p>
-                </div>
-                <span className="rounded-full border border-blue-300/25 bg-blue-700/20 px-3 py-1 text-xs font-semibold text-blue-200">
-                  Online
-                </span>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {stackItems.map((item, index) => (
-                  <article
-                    key={item.nombre}
-                    className={`rounded-2xl border border-white/10 p-4 text-white ${index === 0 ? "bg-blue-700/35" : "bg-white/5"} ${index % 2 === 0 ? "animate-float-slow" : "animate-drift"}`}
-                  >
-                    <p className="text-sm font-bold">{item.nombre}</p>
-                    <p className="mt-1 text-xs leading-5 text-white/70">{item.detalle}</p>
-                  </article>
-                ))}
-              </div>
-
-              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between text-white">
-                  <span className="text-sm font-semibold">Actividad semanal</span>
-                  <span className="text-xs text-white/60">+38% reservas</span>
-                </div>
-                <div className="mt-4 flex h-24 items-end gap-2">
-                  {[34, 56, 78, 62, 90, 72, 98].map((height, index) => (
-                    <div key={index} className="flex-1 rounded-full bg-white/10">
-                      <div
-                        className={`w-full rounded-full ${index % 2 === 0 ? "bg-blue-600" : "bg-red-600"} shadow-[0_0_20px_rgba(59,130,246,0.20)] transition duration-500 hover:opacity-90`}
-                        style={{ height: `${height}%` }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <LiveDashboardPanel />
           </div>
         </div>
       </section>

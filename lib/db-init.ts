@@ -468,6 +468,35 @@ export function ensureStylehubSchema() {
       `;
 
       await db`
+        CREATE TABLE IF NOT EXISTS stylehub_live_dashboard_modules (
+          module_key TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          path_prefix TEXT,
+          is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+          is_maintenance BOOLEAN NOT NULL DEFAULT FALSE,
+          display_order INTEGER NOT NULL DEFAULT 0,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+
+      await db`
+        ALTER TABLE stylehub_live_dashboard_modules
+        ADD COLUMN IF NOT EXISTS path_prefix TEXT,
+        ADD COLUMN IF NOT EXISTS is_maintenance BOOLEAN NOT NULL DEFAULT FALSE;
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_live_dashboard_modules_enabled_order
+        ON stylehub_live_dashboard_modules(is_enabled, display_order);
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_live_dashboard_modules_path_prefix
+        ON stylehub_live_dashboard_modules(path_prefix);
+      `;
+
+      await db`
         CREATE TABLE IF NOT EXISTS stylehub_client_favorite_businesses (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,

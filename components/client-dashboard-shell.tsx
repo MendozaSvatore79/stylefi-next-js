@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { useLanguage } from "@/lib/language-context";
 
@@ -10,6 +10,17 @@ type MenuItem = {
   href: string;
   labelKey: string;
   icon: string;
+};
+
+type ModuleAccessResponse = {
+  module: {
+    key: string;
+    title: string;
+    isEnabled: boolean;
+    isMaintenance: boolean;
+  } | null;
+  blocked: boolean;
+  reason: "disabled" | "maintenance" | null;
 };
 
 const MENU_ITEMS: MenuItem[] = [
@@ -23,6 +34,7 @@ const MENU_ITEMS: MenuItem[] = [
 export default function ClientDashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moduleAccess, setModuleAccess] = useState<ModuleAccessResponse | null>(null);
   const { t } = useLanguage();
 
   const activeItem = useMemo(
@@ -30,11 +42,39 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
     [pathname],
   );
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadModuleAccess = async () => {
+      try {
+        const response = await fetch(`/api/live-dashboard/module-access?pathname=${encodeURIComponent(pathname)}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as ModuleAccessResponse;
+        setModuleAccess(payload);
+      } catch {
+        setModuleAccess(null);
+      }
+    };
+
+    void loadModuleAccess();
+
+    return () => controller.abort();
+  }, [pathname]);
+
+  const isBlocked = moduleAccess?.blocked ?? false;
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 text-slate-900">
+    <main className="min-h-screen bg-linear-to-br from-slate-50 via-slate-100 to-slate-50 text-slate-900">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[300px_1fr]">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-[300px] transform border-r border-slate-200 bg-gradient-to-b from-white via-white to-slate-50 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 w-75 transform border-r border-slate-200 bg-linear-to-b from-white via-white to-slate-50 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -127,7 +167,20 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
             </div>
           </header>
 
-          <section className="flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8 max-w-350 w-full mx-auto">
+          <section className="relative flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8 max-w-350 w-full mx-auto">
+            {isBlocked ? (
+              <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/90 px-6 backdrop-blur-sm">
+                <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Estado del módulo</p>
+                  <h2 className="mt-2 text-3xl font-black text-[#151138]">{moduleAccess?.module?.title || "Módulo"}</h2>
+                  <p className="mt-4 text-sm text-slate-600">
+                    {moduleAccess?.reason === "maintenance"
+                      ? "Este módulo está temporalmente en mantenimiento."
+                      : "Este módulo está desactivado por administración."}
+                  </p>
+                </div>
+              </div>
+            ) : null}
             {children}
           </section>
         </div>
