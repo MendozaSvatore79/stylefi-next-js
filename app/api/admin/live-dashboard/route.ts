@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+import { NextResponse, connection } from "next/server";
 
 import { getLiveDashboardPayload, updateLiveDashboardModule } from "@/lib/live-dashboard";
 
@@ -12,6 +13,8 @@ type UpdatePayload = {
 
 export async function GET() {
   try {
+    await connection();
+
     const dashboard = await getLiveDashboardPayload({ includeDisabled: true });
     return NextResponse.json(dashboard);
   } catch (error) {
@@ -22,6 +25,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
+    await connection();
+
     const payload = (await request.json()) as UpdatePayload;
     const moduleKey = payload.moduleKey?.trim();
 
@@ -37,6 +42,8 @@ export async function PATCH(request: Request) {
     if (!updated) {
       return NextResponse.json({ error: "No se encontró el módulo solicitado." }, { status: 404 });
     }
+
+    revalidatePath("/");
 
     const dashboard = await getLiveDashboardPayload({ includeDisabled: true });
     return NextResponse.json(dashboard);

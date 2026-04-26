@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, connection } from "next/server";
 
 import { getLiveDashboardPayload } from "@/lib/live-dashboard";
 
@@ -6,6 +6,8 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
+    await connection();
+
     const dashboard = await getLiveDashboardPayload();
     return NextResponse.json(dashboard);
   } catch (error) {

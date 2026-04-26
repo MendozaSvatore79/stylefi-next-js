@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 
 import { LiveDashboardPanel } from "@/components/live-dashboard-panel";
 import { getLiveDashboardPayload } from "@/lib/live-dashboard";
@@ -72,6 +73,8 @@ const metricas = [
 ];
 
 export default async function Home() {
+  await connection();
+
   const liveDashboard = await getLiveDashboardPayload().catch(() => null);
   const isMaintenanceMode = liveDashboard?.isMaintenanceMode ?? false;
 
@@ -135,7 +138,10 @@ export default async function Home() {
               Un home futurista para tu sistema de citas: clientes, negocios y admin en una interfaz visual, rápida y lista para escalar.
             </p>
 
-            <div className="mt-8 flex w-full max-w-4xl flex-col gap-3 rounded-3xl border border-blue-900/10 bg-white p-3 shadow-2xl shadow-black/10 sm:flex-row sm:p-4">
+            <div
+              suppressHydrationWarning
+              className="mt-8 flex w-full max-w-4xl flex-col gap-3 rounded-3xl border border-blue-900/10 bg-white p-3 shadow-2xl shadow-black/10 sm:flex-row sm:p-4"
+            >
               <div className="flex h-12 items-center rounded-full bg-slate-50 px-4 shadow-lg sm:flex-[1.45]">
                 <span aria-hidden className="mr-3 text-lg text-blue-900">⌕</span>
                 <input
@@ -238,23 +244,44 @@ export default async function Home() {
               </span>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-              {recomendaciones.map((item) => (
+            <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+              {recomendaciones.map((item, index) => (
                 <article
                   key={item.nombre}
-                  className="group relative overflow-hidden rounded-2xl bg-slate-200 shadow-sm ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  className="group relative isolate h-72 overflow-hidden rounded-2xl border border-white/30 bg-[#111b3f] shadow-[0_10px_22px_rgba(15,23,42,0.16)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(29,78,216,0.20)]"
                 >
                   <div
-                    className="h-56 w-full bg-cover bg-center transition duration-500 group-hover:scale-110"
+                    className="absolute inset-0 bg-cover bg-center transition duration-700 group-hover:scale-105"
                     style={{ backgroundImage: `url('${item.foto}')` }}
                   />
-                  <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/85 via-black/10 to-transparent" />
-                  <div className="absolute bottom-0 z-10 p-3 text-white">
-                    <p className="text-sm font-semibold">{item.nombre}</p>
-                    <p className="text-lg leading-5 text-white/95">{item.frase}</p>
-                    <p className="mt-1 text-xs font-semibold text-red-200">★ {item.rating}</p>
+                  <div
+                    className={`pointer-events-none absolute inset-0 bg-linear-to-t ${
+                      index % 2 === 0 ? "from-[#060a16]/92 via-[#070d1f]/58 to-[#0a1030]/25" : "from-[#14090b]/90 via-[#0f1226]/55 to-[#0d1334]/25"
+                    }`}
+                  />
+                  <div className="absolute right-2 top-2 z-10 rounded-full border border-white/25 bg-black/35 px-2 py-0.5 text-[10px] font-bold text-amber-200 backdrop-blur-md">
+                    ★ {item.rating}
                   </div>
-                  <span className="absolute bottom-2 left-2 z-10 h-8 w-8 rounded-full border-2 border-white bg-blue-500 shadow-[0_0_18px_rgba(59,130,246,0.45)]" />
+
+                  <div className="absolute bottom-0 z-10 w-full p-3 text-white">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">{item.nombre}</p>
+                    <p
+                      className="mt-1 max-w-[16ch] overflow-hidden text-[2rem] leading-[1.02] font-black text-white/95"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      {item.frase}
+                    </p>
+                    <div className="mt-2.5 flex items-center justify-between">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-blue-500 shadow-[0_0_16px_rgba(59,130,246,0.42)]" />
+                      <span className="rounded-full border border-white/25 bg-white/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/80">
+                        Ver perfil
+                      </span>
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>

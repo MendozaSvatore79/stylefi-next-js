@@ -344,6 +344,7 @@ async function resolveWeeklyActivity() {
 }
 
 function resolveOverallStatus(modules: LiveDashboardModule[]): ModuleStatus {
+  const hasDisabled = modules.some((module) => !module.isEnabled);
   const enabledModules = modules.filter((module) => module.isEnabled);
 
   if (enabledModules.length === 0) {
@@ -354,7 +355,7 @@ function resolveOverallStatus(modules: LiveDashboardModule[]): ModuleStatus {
   const hasOffline = enabledModules.some((module) => !module.isMaintenance && module.status === "offline");
   const hasDegraded = enabledModules.some((module) => !module.isMaintenance && module.status === "degraded");
 
-  if (hasMaintenance || hasOffline) {
+  if (hasDisabled || hasMaintenance || hasOffline) {
     return "degraded";
   }
 

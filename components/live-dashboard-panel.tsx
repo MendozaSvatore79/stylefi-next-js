@@ -34,21 +34,18 @@ const fallbackDashboard: LiveDashboardPayload = {
   },
 };
 
-const statusStyles: Record<ModuleStatus, { label: string; badge: string; dot: string }> = {
+const statusStyles: Record<ModuleStatus, { label: string; badge: string }> = {
   online: {
     label: "Online",
     badge: "border-emerald-300/30 bg-emerald-700/20 text-emerald-200",
-    dot: "bg-emerald-400",
   },
   degraded: {
-    label: "Degradado",
+    label: "Desactivado",
     badge: "border-amber-300/30 bg-amber-600/20 text-amber-100",
-    dot: "bg-amber-400",
   },
   offline: {
     label: "Offline",
     badge: "border-red-300/30 bg-red-700/20 text-red-100",
-    dot: "bg-red-400",
   },
 };
 
@@ -89,6 +86,27 @@ export function LiveDashboardPanel() {
   const activeModulesCount = dashboard.modules.length;
   const maintenanceModulesCount = dashboard.modules.filter((item) => item.isMaintenance).length;
   const onlineModulesCount = dashboard.modules.filter((item) => !item.isMaintenance && item.status === "online").length;
+  const statsModules = [...dashboard.modules]
+    .sort((moduleA, moduleB) => {
+      const getPriority = (module: LiveDashboardModule) => {
+        if (module.isMaintenance) {
+          return 0;
+        }
+
+        if (module.status === "online") {
+          return 3;
+        }
+
+        if (module.status === "degraded") {
+          return 2;
+        }
+
+        return 1;
+      };
+
+      return getPriority(moduleB) - getPriority(moduleA);
+    })
+    .slice(0, 4);
 
   return (
     <div className="relative overflow-hidden rounded-4xl border border-white/15 bg-[#10162f] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-6">
@@ -109,7 +127,7 @@ export function LiveDashboardPanel() {
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {dashboard.modules.map((item, index) => (
+          {statsModules.map((item, index) => (
             <article
               key={`${item.key}-stat`}
               className={`rounded-2xl border border-white/10 p-4 text-white ${index === 0 ? "bg-blue-700/35" : "bg-white/5"}`}
@@ -121,7 +139,7 @@ export function LiveDashboardPanel() {
             </article>
           ))}
 
-          {dashboard.modules.length === 0 ? (
+          {statsModules.length === 0 ? (
             <article className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white sm:col-span-2">
               <p className="text-sm font-semibold">{dashboard.isMaintenanceMode ? "Modo mantenimiento activo" : "No hay stats activos"}</p>
               <p className="mt-1 text-xs text-white/70">
@@ -134,38 +152,7 @@ export function LiveDashboardPanel() {
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <div className="flex items-center justify-between text-white">
-          <span className="text-sm font-semibold">Módulos oficiales</span>
-          <span className="text-xs text-white/60">Estado por módulo</span>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {dashboard.modules.map((item, index) => {
-          const status = statusStyles[item.status];
-          const moduleStatusText = item.isMaintenance ? "Mantenimiento" : status.label;
-          const moduleStatusDotClass = item.isMaintenance ? "bg-amber-400" : status.dot;
-
-          return (
-            <article
-              key={item.key}
-              className={`rounded-2xl border border-white/10 p-4 text-white ${index === 0 ? "bg-blue-700/35" : "bg-white/5"} ${index % 2 === 0 ? "animate-float-slow" : "animate-drift"}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-bold">{item.title}</p>
-                <span className="inline-flex items-center gap-1.5 text-[11px] text-white/70">
-                  <span className={`h-2 w-2 rounded-full ${moduleStatusDotClass}`} />
-                  {moduleStatusText}
-                </span>
-              </div>
-              <p className="mt-1 text-xs leading-5 text-white/70">{item.description}</p>
-            </article>
-          );
-        })}
-        </div>
-      </div>
-
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+      {/* <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
         <div className="flex items-center justify-between text-white">
           <span className="text-sm font-semibold">Actividad semanal</span>
           <span className="text-xs text-white/60">{dashboard.weeklyActivity.trendLabel}</span>
@@ -180,7 +167,7 @@ export function LiveDashboardPanel() {
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

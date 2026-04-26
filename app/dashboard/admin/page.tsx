@@ -67,7 +67,7 @@ type ModuleActionDialogState = {
 
 const statusLabel: Record<ModuleStatus, string> = {
   online: "Online",
-  degraded: "Degradado",
+  degraded: "Desactivado",
   offline: "Offline",
 };
 
