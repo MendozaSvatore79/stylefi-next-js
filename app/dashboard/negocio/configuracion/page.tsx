@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { Building2, CreditCard, ShieldCheck } from "lucide-react";
 
 import AccountSecurityPanel from "@/components/account-security-panel";
-import { IconBuilding, IconLock, IconCreditCard } from "@/components/icons";
 import { useToast } from "@/components/toast";
 
 type BusinessProfile = {
@@ -142,7 +142,7 @@ export default function NegocioConfiguracionPage() {
             }`}
           >
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
-              <IconBuilding />
+              <Building2 className="size-5" />
             </div>
             <p className={`mt-2 text-sm font-semibold transition ${
               activeSection === "profile" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
@@ -166,7 +166,7 @@ export default function NegocioConfiguracionPage() {
             }`}
           >
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
-              <IconLock />
+              <ShieldCheck className="size-5" />
             </div>
             <p className={`mt-2 text-sm font-semibold transition ${
               activeSection === "security" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
@@ -190,7 +190,7 @@ export default function NegocioConfiguracionPage() {
             }`}
           >
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
-              <IconCreditCard />
+              <CreditCard className="size-5" />
             </div>
             <p className={`mt-2 text-sm font-semibold transition ${
               activeSection === "billing" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
@@ -210,7 +210,7 @@ export default function NegocioConfiguracionPage() {
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4 mb-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-              <IconBuilding />
+              <Building2 className="size-8" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Perfil</p>
@@ -349,7 +349,7 @@ export default function NegocioConfiguracionPage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4 mb-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-              <IconLock />
+              <ShieldCheck className="size-8" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Seguridad</p>
@@ -367,7 +367,7 @@ export default function NegocioConfiguracionPage() {
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4 mb-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
-              <IconCreditCard />
+              <CreditCard className="size-8" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Facturación</p>

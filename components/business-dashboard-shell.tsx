@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { BarChart3, Building2, CalendarClock, ChevronRight, Menu, Rocket, Scissors, Settings2, Users, type LucideIcon } from "lucide-react";
 
 import {
   AlertDialog,
@@ -21,7 +22,7 @@ import { useLanguage } from "@/lib/language-context";
 type MenuItem = {
   href: string;
   labelKey: string;
-  icon: string;
+  icon: LucideIcon;
 };
 
 type ModuleAccessResponse = {
@@ -36,12 +37,12 @@ type ModuleAccessResponse = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-  { href: "/dashboard/negocio", labelKey: "nav.dashboard.business", icon: "📈" },
-  { href: "/dashboard/negocio/sucursales", labelKey: "nav.branches", icon: "🏬" },
-  { href: "/dashboard/negocio/servicios", labelKey: "nav.services", icon: "✂️" },
-  { href: "/dashboard/negocio/estilistas", labelKey: "nav.stylists", icon: "🧑‍🎨" },
-  { href: "/dashboard/negocio/citas", labelKey: "nav.appointments", icon: "📅" },
-  { href: "/dashboard/negocio/configuracion", labelKey: "nav.profile", icon: "🏪" },
+  { href: "/dashboard/negocio", labelKey: "nav.dashboard.business", icon: BarChart3 },
+  { href: "/dashboard/negocio/sucursales", labelKey: "nav.branches", icon: Building2 },
+  { href: "/dashboard/negocio/servicios", labelKey: "nav.services", icon: Scissors },
+  { href: "/dashboard/negocio/estilistas", labelKey: "nav.stylists", icon: Users },
+  { href: "/dashboard/negocio/citas", labelKey: "nav.appointments", icon: CalendarClock },
+  { href: "/dashboard/negocio/configuracion", labelKey: "nav.profile", icon: Settings2 },
 ];
 
 export default function BusinessDashboardShell({ children }: { children: ReactNode }) {
@@ -163,6 +164,7 @@ export default function BusinessDashboardShell({ children }: { children: ReactNo
             <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-6">
               {MENU_ITEMS.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const ItemIcon = item.icon;
                 return (
                   <Link
                     key={item.href}
@@ -174,11 +176,9 @@ export default function BusinessDashboardShell({ children }: { children: ReactNo
                         : "text-slate-700 hover:bg-blue-50"
                     }`}
                   >
-                    <span className={`text-lg transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-105"}`}>
-                      {item.icon}
-                    </span>
+                    <ItemIcon className={`size-5 transition-transform duration-200 ${active ? "scale-110 text-white" : "text-slate-500 group-hover:scale-105 group-hover:text-[#0d1b3d]"}`} />
                     <span>{t(item.labelKey)}</span>
-                    {active ? <span className="ml-auto text-lg">→</span> : null}
+                    {active ? <ChevronRight className="ml-auto size-4 text-white" /> : null}
                   </Link>
                 );
               })}
@@ -186,7 +186,7 @@ export default function BusinessDashboardShell({ children }: { children: ReactNo
 
             <div className="border-t border-slate-200 px-3 py-4">
               <div className="rounded-2xl border border-blue-200 bg-linear-to-br from-blue-50 to-red-50 p-4 text-sm">
-                <p className="font-bold text-[#0d1b3d]">🚀 {t("tip.business.title")}</p>
+                <p className="flex items-center gap-1 font-bold text-[#0d1b3d]"><Rocket className="size-4" /> {t("tip.business.title")}</p>
                 <p className="mt-2 text-slate-700">{t("tip.business.body")}</p>
               </div>
             </div>
@@ -211,7 +211,7 @@ export default function BusinessDashboardShell({ children }: { children: ReactNo
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-lg transition hover:bg-slate-50 lg:hidden"
                   aria-label="Abrir menú"
                 >
-                  ☰
+                  <Menu className="size-5" />
                 </button>
                 <div className="hidden sm:block">
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t("nav.dashboard")}</p>

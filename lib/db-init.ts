@@ -132,6 +132,68 @@ export function ensureStylehubSchema() {
       `;
 
       await db`
+        CREATE TABLE IF NOT EXISTS stylehub_user_two_factor_settings (
+          user_id UUID PRIMARY KEY REFERENCES stylehub_users(id) ON DELETE CASCADE,
+          enabled BOOLEAN NOT NULL DEFAULT FALSE,
+          preferred_method TEXT CHECK (preferred_method IN ('email', 'authenticator')),
+          totp_secret TEXT,
+          reverify_interval_minutes INTEGER NOT NULL DEFAULT 180,
+          last_verified_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+
+      await db`
+        ALTER TABLE stylehub_user_two_factor_settings
+        ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS preferred_method TEXT,
+        ADD COLUMN IF NOT EXISTS totp_secret TEXT,
+        ADD COLUMN IF NOT EXISTS reverify_interval_minutes INTEGER NOT NULL DEFAULT 180,
+        ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      `;
+
+      await db`
+        ALTER TABLE stylehub_user_two_factor_settings
+        DROP CONSTRAINT IF EXISTS stylehub_user_two_factor_settings_preferred_method_check;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_user_two_factor_settings
+        ADD CONSTRAINT stylehub_user_two_factor_settings_preferred_method_check
+        CHECK (preferred_method IN ('email', 'authenticator') OR preferred_method IS NULL);
+      `;
+
+      await db`
+        CREATE TABLE IF NOT EXISTS stylehub_user_two_factor_challenges (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,
+          method TEXT NOT NULL CHECK (method IN ('email', 'authenticator')),
+          purpose TEXT NOT NULL CHECK (purpose IN ('enable_email', 'enable_authenticator', 'verify_session', 'disable')),
+          challenge_token TEXT,
+          code_hash TEXT,
+          code_salt TEXT,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+          expires_at TIMESTAMPTZ NOT NULL,
+          used_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_two_factor_challenges_user
+        ON stylehub_user_two_factor_challenges(user_id, created_at DESC);
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_two_factor_challenges_expires
+        ON stylehub_user_two_factor_challenges(expires_at DESC);
+      `;
+
+      await db`
         CREATE TABLE IF NOT EXISTS stylehub_oauth_accounts (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,

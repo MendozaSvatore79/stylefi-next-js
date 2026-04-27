@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Bell, Eye, Settings2, ShieldCheck } from "lucide-react";
 
 import AccountSecurityPanel from "@/components/account-security-panel";
-import { IconBell, IconEye, IconGear, IconLock } from "@/components/icons";
 import { useLanguage } from "@/lib/language-context";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +13,10 @@ export default function ClienteConfiguracionPage() {
   const [activeSection, setActiveSection] = useState<"general" | "security" | "notifications" | "privacy">("general");
 
   const sections = [
-    { id: "general", label: t("settings.general"), icon: IconGear, description: t("settings.general.desc") },
-    { id: "security", label: t("settings.security"), icon: IconLock, description: t("settings.security.desc") },
-    { id: "notifications", label: t("settings.notifications"), icon: IconBell, description: t("settings.notifications.desc") },
-    { id: "privacy", label: t("settings.privacy"), icon: IconEye, description: t("settings.privacy.desc") },
+    { id: "general", label: t("settings.general"), icon: Settings2, description: t("settings.general.desc") },
+    { id: "security", label: t("settings.security"), icon: ShieldCheck, description: t("settings.security.desc") },
+    { id: "notifications", label: t("settings.notifications"), icon: Bell, description: t("settings.notifications.desc") },
+    { id: "privacy", label: t("settings.privacy"), icon: Eye, description: t("settings.privacy.desc") },
   ];
 
   return (
@@ -41,7 +41,7 @@ export default function ClienteConfiguracionPage() {
                 }`}
               >
                 <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-2xl ${activeSection === section.id ? "bg-indigo-600 text-white" : "bg-white text-slate-700"}`}>
-                  <SectionIcon />
+                  <SectionIcon className="size-5" />
                 </div>
                 <p className={`mt-2 text-sm font-semibold transition ${activeSection === section.id ? "text-indigo-700" : "text-slate-700 group-hover:text-slate-900"}`}>
                   {section.label}
@@ -59,7 +59,7 @@ export default function ClienteConfiguracionPage() {
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-indigo-600">
-              <IconGear />
+              <Settings2 className="size-8" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">General</p>
@@ -95,7 +95,7 @@ export default function ClienteConfiguracionPage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-start gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-              <IconLock />
+              <ShieldCheck className="size-8" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Seguridad</p>
@@ -111,7 +111,7 @@ export default function ClienteConfiguracionPage() {
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
-              <IconBell />
+              <Bell className="size-8" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Notificaciones</p>
@@ -152,7 +152,7 @@ export default function ClienteConfiguracionPage() {
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 text-green-600">
-              <IconEye />
+              <Eye className="size-8" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Privacidad</p>
