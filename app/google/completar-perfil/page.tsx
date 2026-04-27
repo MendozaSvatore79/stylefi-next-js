@@ -149,7 +149,7 @@ export default function GoogleCompleteProfilePage() {
     };
 
     void loadStatus();
-  }, [router, sessionStatus, showToast]);
+  }, [language, router, sessionStatus, showToast, text.loadErrorMsg, text.loadErrorTitle]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -201,8 +201,8 @@ export default function GoogleCompleteProfilePage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#ececef] px-4 py-10">
-      <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl">
+    <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-[#ececef] via-[#eef1ff] to-[#ececef] px-4 py-10">
+      <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_25px_70px_rgba(15,23,42,0.14)]">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{text.onboarding}</p>
         <h1 className="mt-2 text-3xl font-black text-[#151138]">{title}</h1>
         <p className="mt-2 text-sm text-slate-600">{text.subtitle}</p>
@@ -213,65 +213,78 @@ export default function GoogleCompleteProfilePage() {
             onClick={() => setAccountType("cliente")}
             className={`rounded-2xl border px-4 py-4 text-left transition ${
               accountType === "cliente"
-                ? "border-indigo-600 bg-indigo-50"
-                : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                ? "border-indigo-600 bg-indigo-50 shadow-sm"
+                : "border-slate-300 bg-white hover:bg-slate-50"
             }`}
           >
             <p className="font-bold text-[#151138]">{text.clientTitle}</p>
-            <p className="mt-1 text-sm text-slate-600">{text.clientDesc}</p>
+            <p className="mt-1 text-sm text-slate-700">{text.clientDesc}</p>
           </button>
           <button
             type="button"
             onClick={() => setAccountType("negocio")}
             className={`rounded-2xl border px-4 py-4 text-left transition ${
               accountType === "negocio"
-                ? "border-emerald-600 bg-emerald-50"
-                : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                ? "border-emerald-600 bg-emerald-50 shadow-sm"
+                : "border-slate-300 bg-white hover:bg-slate-50"
             }`}
           >
             <p className="font-bold text-[#151138]">{text.businessTitle}</p>
-            <p className="mt-1 text-sm text-slate-600">{text.businessDesc}</p>
+            <p className="mt-1 text-sm text-slate-700">{text.businessDesc}</p>
           </button>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <input
-            value={form.firstName}
-            onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
-            placeholder={text.name}
-            className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-          />
-          <input
-            value={form.lastName}
-            onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
-            placeholder={text.lastName}
-            className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-          />
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">{text.name}</label>
+            <input
+              value={form.firstName}
+              onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
+              placeholder={text.name}
+              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-0 transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">{text.lastName}</label>
+            <input
+              value={form.lastName}
+              onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
+              placeholder={text.lastName}
+              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-0 transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
         </div>
 
         {isBusiness ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <input
-              value={form.businessName}
-              onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
-              placeholder={text.businessName}
-              className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-            />
-            <input
-              value={form.rfc}
-              onChange={(event) => setForm((current) => ({ ...current, rfc: event.target.value }))}
-              placeholder={text.rfc}
-              className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-            />
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">{text.businessName}</label>
+              <input
+                value={form.businessName}
+                onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
+                placeholder={text.businessName}
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-0 transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">{text.rfc}</label>
+              <input
+                value={form.rfc}
+                onChange={(event) => setForm((current) => ({ ...current, rfc: event.target.value }))}
+                placeholder={text.rfc}
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-0 transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
           </div>
         ) : null}
 
         <div className="mt-4">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">{text.phone}</label>
           <input
             value={form.phone}
             onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
             placeholder={text.phone}
-            className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+            className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-0 transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
 

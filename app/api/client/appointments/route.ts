@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       scheduledAt?: string;
       totalAmount?: number;
       paymentMethodId?: string | null;
-      paymentProvider?: "cash" | "wallet";
+      paymentProvider?: "cash" | "wallet" | "card";
       notes?: string;
     };
 
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const scheduledAt = payload.scheduledAt ? new Date(payload.scheduledAt) : null;
     const totalAmount = Number(payload.totalAmount ?? 0);
     const paymentMethodId = payload.paymentMethodId?.trim() || null;
-    const paymentProvider = payload.paymentProvider === "wallet" ? "wallet" : "cash";
+    const paymentProvider = payload.paymentProvider === "wallet" || payload.paymentProvider === "card" ? payload.paymentProvider : "cash";
     const notes = payload.notes?.trim() || null;
 
     if (!businessUserId || !serviceName || !scheduledAt || Number.isNaN(scheduledAt.getTime())) {
@@ -118,23 +118,30 @@ export async function POST(request: Request) {
       );
     }
 
+    if (paymentProvider === "card" && !paymentMethodId) {
+      return NextResponse.json({ error: "Selecciona una tarjeta guardada para continuar." }, { status: 400 });
+    }
+
     if (paymentMethodId) {
       const methods = (await db`
-        SELECT id
+        SELECT id, provider
         FROM stylehub_client_payment_methods
         WHERE id = ${paymentMethodId}
         AND user_id = ${auth.userId}
         LIMIT 1
-      `) as Array<{ id: string }>;
+      `) as Array<{ id: string; provider: string }>;
 
       if (methods.length === 0) {
         return NextResponse.json({ error: "El método de pago seleccionado no te pertenece." }, { status: 400 });
       }
 
-      return NextResponse.json(
-        { error: "Para agendar desde el salón usa Efectivo o Saldo en cuenta." },
-        { status: 400 },
-      );
+      if (paymentProvider === "card" && methods[0].provider !== "card") {
+        return NextResponse.json({ error: "Debes seleccionar una tarjeta guardada válida." }, { status: 400 });
+      }
+
+      if (paymentProvider !== "card") {
+        return NextResponse.json({ error: "Las citas del salón solo aceptan efectivo, wallet o tarjeta guardada." }, { status: 400 });
+      }
     }
 
     if (paymentProvider === "wallet") {

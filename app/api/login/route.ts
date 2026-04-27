@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     await ensureStylehubSchema();
 
     const users = (await db`
-      SELECT id, email, password_hash, account_type, email_verified
+      SELECT id, email, password_hash, account_type, email_verified, is_banned
       FROM stylehub_users
       WHERE email = ${email}
       LIMIT 1
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
       password_hash: string;
       account_type: "cliente" | "negocio";
       email_verified: boolean;
+      is_banned: boolean;
     }>;
 
     if (users.length === 0) {
@@ -66,6 +67,10 @@ export async function POST(request: Request) {
 
     if (!user.email_verified) {
       return NextResponse.json({ error: "Primero verifica tu correo con el OTP." }, { status: 403 });
+    }
+
+    if (user.is_banned) {
+      return NextResponse.json({ error: "Tu cuenta está suspendida. Contacta al administrador." }, { status: 403 });
     }
 
     if (!verifyPassword(password, user.password_hash)) {

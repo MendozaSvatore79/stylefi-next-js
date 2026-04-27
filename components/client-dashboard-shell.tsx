@@ -2,8 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { signOut, useSession } from "next-auth/react";
 
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 
 type MenuItem = {
@@ -33,9 +46,15 @@ const MENU_ITEMS: MenuItem[] = [
 
 export default function ClientDashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moduleAccess, setModuleAccess] = useState<ModuleAccessResponse | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const avatarMenuRef = useRef<HTMLDivElement | null>(null);
   const { t } = useLanguage();
+  const { showToast } = useToast();
 
   const activeItem = useMemo(
     () => MENU_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`)) ?? MENU_ITEMS[0],
@@ -68,20 +87,70 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
     return () => controller.abort();
   }, [pathname]);
 
+  useEffect(() => {
+    setAvatarMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!avatarMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!avatarMenuRef.current) {
+        return;
+      }
+
+      const target = event.target as Node;
+      if (!avatarMenuRef.current.contains(target)) {
+        setAvatarMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAvatarMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [avatarMenuOpen]);
+
+  const authProvider = session?.user?.authProvider;
+  const isGoogleLogin = authProvider === "google";
+  const avatarImage = isGoogleLogin ? session?.user?.image : null;
+  const userDisplayName = session?.user?.name || session?.user?.email || "Usuario";
+  const userInitials = useMemo(() => {
+    const base = session?.user?.name || session?.user?.email || "U";
+    const parts = base.trim().split(/\s+/).filter(Boolean);
+
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+
+    return base.slice(0, 2).toUpperCase();
+  }, [session?.user?.name, session?.user?.email]);
+
   const isBlocked = moduleAccess?.blocked ?? false;
 
   return (
-    <main className="min-h-screen bg-linear-to-br from-slate-50 via-slate-100 to-slate-50 text-slate-900">
+    <main className="min-h-screen bg-linear-to-br from-[#eef2ff] via-[#f3f4f6] to-[#eef2ff] text-slate-900">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[300px_1fr]">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-75 transform border-r border-slate-200 bg-linear-to-b from-white via-white to-slate-50 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 w-75 transform border-r border-blue-950/10 bg-linear-to-b from-white via-white to-[#eef2ff] backdrop-blur-xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
           <div className="flex flex-col h-full">
             <div className="border-b border-slate-200 px-6 py-8">
               <Link href="/" className="flex items-center gap-2 group">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-indigo-600 to-purple-600 text-lg font-bold text-white group-hover:shadow-lg group-hover:shadow-indigo-600/40 transition-shadow">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-[#0d1b3d] to-blue-700 text-lg font-bold text-white transition-shadow group-hover:shadow-lg group-hover:shadow-blue-600/35">
                   S
                 </div>
                 <div>
@@ -101,8 +170,8 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
                     onClick={() => setSidebarOpen(false)}
                     className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
                       active
-                        ? "bg-linear-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30"
-                        : "text-slate-700 hover:bg-slate-100"
+                        ? "bg-linear-to-r from-[#0d1b3d] to-blue-700 text-white shadow-lg shadow-blue-700/25"
+                        : "text-slate-700 hover:bg-blue-50"
                     }`}
                   >
                     <span className={`text-lg transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-105"}`}>
@@ -116,9 +185,9 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
             </nav>
 
             <div className="border-t border-slate-200 px-3 py-4">
-              <div className="rounded-2xl bg-linear-to-br from-indigo-50 to-purple-50 border border-indigo-200 p-4 text-sm">
-                <p className="font-bold text-indigo-900">💡 {t("tip.client.title")}</p>
-                <p className="mt-2 text-indigo-800">{t("tip.client.body")}</p>
+              <div className="rounded-2xl border border-blue-200 bg-linear-to-br from-blue-50 to-red-50 p-4 text-sm">
+                <p className="font-bold text-[#0d1b3d]">💡 {t("tip.client.title")}</p>
+                <p className="mt-2 text-slate-700">{t("tip.client.body")}</p>
               </div>
             </div>
           </div>
@@ -133,7 +202,7 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
         ) : null}
 
         <div className="flex min-h-screen flex-col">
-          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
+          <header className="sticky top-0 z-20 border-b border-blue-950/10 bg-white/85 backdrop-blur-xl">
             <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
               <div className="flex items-center gap-4">
                 <button
@@ -151,21 +220,101 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
               </div>
 
               <div className="flex items-center gap-3">
-                <Link
-                  href="/"
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-100 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-                >
-                  {t("nav.home")}
-                </Link>
-                <Link
-                  href="/iniciar-sesion"
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
-                >
-                  {t("nav.logout")}
-                </Link>
+                <div className="relative" ref={avatarMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setAvatarMenuOpen((previous) => !previous)}
+                    className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-blue-950/15 bg-white text-sm font-bold text-[#0d1b3d] shadow-sm transition hover:shadow-md"
+                    aria-label="Abrir menú de usuario"
+                    aria-haspopup="menu"
+                    aria-expanded={avatarMenuOpen}
+                  >
+                    {avatarImage ? (
+                      <span
+                        className="h-full w-full bg-cover bg-center"
+                        aria-label={userDisplayName}
+                        style={{ backgroundImage: `url(${avatarImage})` }}
+                      />
+                    ) : (
+                      <span>{userInitials}</span>
+                    )}
+                  </button>
+
+                  {avatarMenuOpen ? (
+                    <div className="absolute right-0 top-13 z-50 w-56 rounded-2xl border border-blue-950/10 bg-white p-2 shadow-xl" role="menu">
+                      <div className="border-b border-slate-200 px-3 py-2">
+                        <p className="truncate text-sm font-semibold text-[#151138]">{userDisplayName}</p>
+                        <p className="text-xs text-slate-500">{isGoogleLogin ? "Google" : "Correo y contraseña"}</p>
+                      </div>
+
+                      <Link
+                        href="/"
+                        onClick={() => setAvatarMenuOpen(false)}
+                        className="mt-1 flex w-full items-center rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-blue-50"
+                        role="menuitem"
+                      >
+                        {t("nav.home")}
+                      </Link>
+                      <button
+                        type="button"
+                        disabled={loggingOut}
+                        onClick={() => {
+                          setAvatarMenuOpen(false);
+                          setLogoutDialogOpen(true);
+                        }}
+                        className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                        role="menuitem"
+                      >
+                        {loggingOut ? "Cerrando..." : t("nav.logout")}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </header>
+
+          <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Vas a salir del dashboard de cliente. ¿Deseas continuar?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  onClick={() => {
+                    showToast({
+                      type: "info",
+                      title: "Acción cancelada",
+                      message: "Tu sesión sigue activa.",
+                    });
+                  }}
+                >
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={loggingOut}
+                  onClick={async () => {
+                    try {
+                      setLoggingOut(true);
+                      showToast({
+                        type: "success",
+                        title: "Cerrando sesión",
+                        message: "Redirigiendo al inicio de sesión...",
+                      });
+                      await signOut({ callbackUrl: "/iniciar-sesion" });
+                    } finally {
+                      setLoggingOut(false);
+                    }
+                  }}
+                >
+                  {loggingOut ? "Cerrando..." : "Sí, cerrar sesión"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <section className="relative flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8 max-w-350 w-full mx-auto">
             {isBlocked ? (

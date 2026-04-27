@@ -22,11 +22,21 @@ async function ensureAuthCriticalTables() {
       password_hash TEXT,
       profile_image_name TEXT,
       email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+      banned_at TIMESTAMPTZ,
+      ban_reason TEXT,
       onboarding_seen BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       verified_at TIMESTAMPTZ
     );
+  `;
+
+  await db`
+    ALTER TABLE stylehub_users
+    ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS banned_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS ban_reason TEXT;
   `;
 
   await db`
@@ -50,6 +60,7 @@ declare module "next-auth" {
     user: {
       id: string;
       accountType: string;
+      authProvider?: "google" | "credentials";
     } & DefaultSession["user"];
   }
 }
@@ -58,6 +69,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     accountType?: string;
+    authProvider?: string;
   }
 }
 
@@ -82,7 +94,7 @@ export const authConfig = {
         const db = getDb();
 
         const users = (await db`
-          SELECT id, email, account_type, password_hash, email_verified, first_name, business_name
+          SELECT id, email, account_type, password_hash, email_verified, first_name, business_name, is_banned
           FROM stylehub_users
           WHERE email = ${email}
           LIMIT 1
@@ -94,6 +106,7 @@ export const authConfig = {
           email_verified: boolean;
           first_name: string | null;
           business_name: string | null;
+          is_banned: boolean;
         }>;
 
         if (users.length === 0) {
@@ -107,6 +120,10 @@ export const authConfig = {
         }
 
         if (!foundUser.email_verified) {
+          return null;
+        }
+
+        if (foundUser.is_banned) {
           return null;
         }
 
@@ -148,15 +165,15 @@ export const authConfig = {
         }
 
         // Buscar usuario existente
-        let existingUsers: Array<{ id: string; email_verified: boolean; account_type: "cliente" | "negocio" }> = [];
+        let existingUsers: Array<{ id: string; email_verified: boolean; account_type: "cliente" | "negocio"; is_banned: boolean }> = [];
 
         try {
           existingUsers = (await db`
-            SELECT id, email_verified, account_type
+            SELECT id, email_verified, account_type, is_banned
             FROM stylehub_users
             WHERE email = ${email}
             LIMIT 1
-          `) as Array<{ id: string; email_verified: boolean; account_type: "cliente" | "negocio" }>;
+          `) as Array<{ id: string; email_verified: boolean; account_type: "cliente" | "negocio"; is_banned: boolean }>;
         } catch (lookupError) {
           const errorWithCode = lookupError as { code?: string };
 
@@ -164,11 +181,11 @@ export const authConfig = {
             await ensureAuthCriticalTables();
 
             existingUsers = (await db`
-              SELECT id, email_verified, account_type
+              SELECT id, email_verified, account_type, is_banned
               FROM stylehub_users
               WHERE email = ${email}
               LIMIT 1
-            `) as Array<{ id: string; email_verified: boolean; account_type: "cliente" | "negocio" }>;
+            `) as Array<{ id: string; email_verified: boolean; account_type: "cliente" | "negocio"; is_banned: boolean }>;
           } else {
             throw lookupError;
           }
@@ -176,6 +193,10 @@ export const authConfig = {
 
         if (existingUsers.length > 0) {
           const existingUser = existingUsers[0];
+
+          if (existingUser.is_banned) {
+            return false;
+          }
 
           const userId = existingUser.id;
 
@@ -225,6 +246,10 @@ export const authConfig = {
       }
     },
     async jwt({ token, user, account }) {
+      if (account?.provider) {
+        token.authProvider = account.provider;
+      }
+
       if (account?.provider === "credentials" && user) {
         const credentialsUser = user as { id?: string; accountType?: string; email?: string | null };
         token.id = credentialsUser.id ?? token.id;
@@ -257,11 +282,13 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id ?? "";
         session.user.accountType = token.accountType ?? "cliente";
+        session.user.authProvider = token.authProvider === "google" ? "google" : token.authProvider === "credentials" ? "credentials" : undefined;
       }
       return session;
     },
   },
   pages: {
     signIn: "/iniciar-sesion",
+    error: "/auth/error",
   },
 } satisfies NextAuthOptions;

@@ -12,10 +12,15 @@ CREATE TABLE IF NOT EXISTS stylehub_users (
   password_hash TEXT NOT NULL,
   profile_image_name TEXT,
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+  banned_at TIMESTAMPTZ,
+  ban_reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   verified_at TIMESTAMPTZ
 );
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_users_is_banned ON stylehub_users(is_banned);
 
 CREATE TABLE IF NOT EXISTS stylehub_otps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -63,3 +68,43 @@ ON stylehub_live_dashboard_modules(is_enabled, display_order);
 
 CREATE INDEX IF NOT EXISTS idx_stylehub_live_dashboard_modules_path_prefix
 ON stylehub_live_dashboard_modules(path_prefix);
+
+CREATE TABLE IF NOT EXISTS stylehub_support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_user_id UUID REFERENCES stylehub_users(id) ON DELETE SET NULL,
+  account_type TEXT CHECK (account_type IN ('cliente', 'negocio')),
+  contact_name TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  contact_phone TEXT,
+  source_route TEXT,
+  subject TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'waiting_admin', 'in_progress', 'escalated', 'resolved', 'closed')),
+  escalated_to_admin BOOLEAN NOT NULL DEFAULT FALSE,
+  escalation_reason TEXT,
+  oracle_summary TEXT,
+  oracle_confidence NUMERIC(4, 2),
+  assigned_admin_email TEXT,
+  last_message_at TIMESTAMPTZ,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_support_tickets_status_updated
+ON stylehub_support_tickets(status, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_support_tickets_requester
+ON stylehub_support_tickets(requester_user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS stylehub_support_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES stylehub_support_tickets(id) ON DELETE CASCADE,
+  sender_role TEXT NOT NULL CHECK (sender_role IN ('user', 'oracle', 'admin', 'system')),
+  sender_name TEXT,
+  message TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_support_messages_ticket_created
+ON stylehub_support_messages(ticket_id, created_at ASC);

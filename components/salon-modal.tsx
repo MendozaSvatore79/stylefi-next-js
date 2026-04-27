@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
+import TimeSlotPicker from "@/components/time-slot-picker";
 
 type BusinessDetail = {
   id: string;
@@ -39,6 +40,16 @@ type Stylist = {
   available: boolean;
 };
 
+type PaymentMethod = {
+  id: string;
+  provider: "card" | "transfer" | "cash" | "wallet" | "paypal";
+  card_brand: string | null;
+  card_last4: string | null;
+  holder_name: string | null;
+  paypal_email: string | null;
+  is_default: boolean;
+};
+
 export default function SalonModal({
   businessId,
   onClose,
@@ -52,16 +63,22 @@ export default function SalonModal({
   const [business, setBusiness] = useState<BusinessDetail | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"servicios" | "estilistas" | "ubicacion">("servicios");
   const [view, setView] = useState<"profile" | "booking">("profile");
   const [isBooking, setIsBooking] = useState(false);
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingStep, setBookingStep] = useState<"details" | "payment">("details");
+  const paymentSectionRef = useRef<HTMLDivElement | null>(null);
+  const bookingScrollRef = useRef<HTMLDivElement | null>(null);
   const [bookingForm, setBookingForm] = useState({
     serviceId: "",
     scheduledAt: "",
     notes: "",
-    paymentProvider: "cash" as "cash" | "wallet",
+    paymentProvider: "cash" as "cash" | "wallet" | "card",
+    paymentMethodId: "",
   });
 
   useEffect(() => {
@@ -81,10 +98,15 @@ export default function SalonModal({
           setStylists(data.stylists ?? []);
         }
 
-        const walletRes = await fetch("/api/client/payment-methods", { cache: "no-store" });
-        if (walletRes.ok) {
-          const walletData = (await walletRes.json()) as { wallet?: { balance: string } };
-          setWalletBalance(walletData.wallet ? Number(walletData.wallet.balance) : null);
+        const paymentMethodsRes = await fetch("/api/client/payment-methods", { cache: "no-store" });
+        if (paymentMethodsRes.ok) {
+          const paymentMethodsData = (await paymentMethodsRes.json()) as {
+            methods?: PaymentMethod[];
+            wallet?: { balance: string };
+          };
+
+          setPaymentMethods(paymentMethodsData.methods ?? []);
+          setWalletBalance(paymentMethodsData.wallet ? Number(paymentMethodsData.wallet.balance) : null);
         }
       } catch (error) {
         console.error(t("modal.loadError"), error);
@@ -94,12 +116,22 @@ export default function SalonModal({
     };
 
     fetchDetails();
-  }, [businessId]);
+  }, [businessId, t]);
 
   const selectedService = services.find((service) => service.id === bookingForm.serviceId) ?? null;
+  const savedCardMethods = paymentMethods.filter((method) => method.provider === "card");
 
   const handleAgendar = () => {
     setView("booking");
+    setBookingStep("details");
+  };
+
+  const handleBackToProfile = () => {
+    setView("profile");
+    setBookingStep("details");
+    requestAnimationFrame(() => {
+      bookingScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
   };
 
   const handleSubmitBooking = async () => {
@@ -121,6 +153,27 @@ export default function SalonModal({
       return;
     }
 
+    if (bookingForm.paymentProvider === "card" && !bookingForm.paymentMethodId) {
+      showToast({
+        type: "error",
+        title: "Selecciona una tarjeta",
+        message: "Debes elegir una tarjeta guardada para continuar.",
+      });
+      return;
+    }
+
+    if (bookingForm.paymentProvider === "card") {
+      const selectedCard = savedCardMethods.find((method) => method.id === bookingForm.paymentMethodId);
+      if (!selectedCard) {
+        showToast({
+          type: "error",
+          title: "Tarjeta no válida",
+          message: "La tarjeta seleccionada no está disponible.",
+        });
+        return;
+      }
+    }
+
     setIsBooking(true);
 
     try {
@@ -133,6 +186,7 @@ export default function SalonModal({
           scheduledAt: bookingForm.scheduledAt,
           totalAmount: Number(selectedService.price),
           paymentProvider: bookingForm.paymentProvider,
+          paymentMethodId: bookingForm.paymentProvider === "card" ? bookingForm.paymentMethodId : null,
           notes: bookingForm.notes || null,
         }),
       });
@@ -161,6 +215,26 @@ export default function SalonModal({
     }
   };
 
+  const selectedCard = savedCardMethods.find((method) => method.id === bookingForm.paymentMethodId) ?? null;
+
+  useEffect(() => {
+    if (view !== "booking" || bookingStep !== "payment") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      paymentSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [bookingStep, view]);
+
+  useEffect(() => {
+    if (view === "profile") {
+      bookingScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [view]);
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -176,16 +250,18 @@ export default function SalonModal({
   const latitude = business.latitude === null ? null : Number(business.latitude);
   const longitude = business.longitude === null ? null : Number(business.longitude);
   const hasLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const selectedDate = bookingDate || bookingForm.scheduledAt.split("T")[0] || "";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/55 px-4 py-8 backdrop-blur-md">
-      <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-white/60 bg-white shadow-2xl ring-1 ring-indigo-100/60">
+      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/60 bg-white shadow-2xl ring-1 ring-indigo-100/60">
         <div className="relative h-56 bg-linear-to-br from-indigo-100 via-indigo-50 to-purple-100">
           {business.image_url && (
-            <img
-              src={business.image_url}
-              alt={business.salon_name}
-              className="h-full w-full object-cover"
+            <div
+              className="h-full w-full bg-cover bg-center"
+              role="img"
+              aria-label={business.salon_name}
+              style={{ backgroundImage: `url(${business.image_url})` }}
             />
           )}
           <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/5 to-transparent" />
@@ -208,14 +284,10 @@ export default function SalonModal({
           </div>
         </div>
 
-        <div className="p-6 sm:p-8">
-          <div className="overflow-hidden rounded-2xl">
-            <div
-            className={`flex w-[200%] will-change-transform transition-transform duration-500 ease-in-out ${
-              view === "booking" ? "-translate-x-1/2" : "translate-x-0"
-            }`}
-          >
-            <div className="w-1/2 shrink-0 box-border">
+        <div className="flex-1 min-h-0 p-6 sm:p-8">
+          <div className="h-full overflow-hidden rounded-2xl">
+            {view === "profile" ? (
+              <div className="h-full overflow-y-auto pr-2">
               <div className="mt-1 flex flex-wrap gap-3 text-sm">
             {business.phone && (
               <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 font-medium text-slate-700">
@@ -360,15 +432,31 @@ export default function SalonModal({
             </button>
               </div>
             </div>
-
-            <div className="w-1/2 shrink-0 box-border">
+            ) : (
+              <div ref={bookingScrollRef} className="h-full overflow-y-auto pl-0 pr-1">
               <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{t("modal.quickBooking")}</p>
                 <h3 className="mt-2 text-xl font-black text-[#151138]">{t("modal.bookTitle")}</h3>
                 <p className="mt-1 text-sm text-slate-600">{t("modal.bookSubtitle")} {business.salon_name}.</p>
               </div>
 
-              <div className="mt-5 space-y-4">
+              <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Flujo de reserva</p>
+                  <p className="text-sm font-bold text-[#151138]">
+                    {bookingStep === "payment" ? "Paso 2 de 2 · Pago" : "Paso 1 de 2 · Datos y horario"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBackToProfile}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  {t("modal.back")}
+                </button>
+              </div>
+
+              <div className="mt-5 flex min-h-0 flex-col gap-4">
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.service")}</label>
                   <select
@@ -388,12 +476,34 @@ export default function SalonModal({
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.dateTime")}</label>
                   <input
-                    type="datetime-local"
-                    value={bookingForm.scheduledAt}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, scheduledAt: event.target.value }))}
+                    type="date"
+                    value={selectedDate}
+                    onChange={(event) => {
+                      const nextDate = event.target.value;
+                      setBookingDate(nextDate);
+                      setBookingForm((current) => ({ ...current, scheduledAt: "" }));
+                    }}
+                    min={new Date().toISOString().split("T")[0]}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
                   />
                 </div>
+
+                {bookingForm.serviceId && selectedDate ? (
+                  <TimeSlotPicker
+                    key={`${bookingForm.serviceId}-${selectedDate}`}
+                    businessUserId={business.id}
+                    serviceId={bookingForm.serviceId}
+                    selectedDate={selectedDate}
+                    serviceDuration={selectedService?.duration_minutes ?? 30}
+                    onSelectTime={(isoDateTime) => {
+                      setBookingForm((current) => ({
+                        ...current,
+                        scheduledAt: isoDateTime,
+                      }));
+                      setBookingStep("payment");
+                    }}
+                  />
+                ) : null}
 
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.notes")}</label>
@@ -406,69 +516,119 @@ export default function SalonModal({
                   />
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.payment")}</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "cash" }))}
-                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                        bookingForm.paymentProvider === "cash"
-                          ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                          : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      {t("modal.cashLocal")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "wallet" }))}
-                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                        bookingForm.paymentProvider === "wallet"
-                          ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                          : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      {t("modal.wallet")}
-                    </button>
-                  </div>
-                  {bookingForm.paymentProvider === "wallet" ? (
-                    <p className="mt-2 text-xs text-slate-600">
-                      {walletBalance !== null
-                        ? `${t("modal.availableBalance")} $${walletBalance.toFixed(2)}`
-                        : t("modal.noBalance")}
-                    </p>
+                <div ref={paymentSectionRef} className="scroll-mt-6">
+                  {bookingStep === "payment" ? (
+                    <>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.payment")}</label>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Paso 2 de 2</p>
+                        <p className="text-xs text-slate-500">Último paso para confirmar</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "cash", paymentMethodId: "" }))}
+                          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                            bookingForm.paymentProvider === "cash"
+                              ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          {t("modal.cashLocal")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "wallet", paymentMethodId: "" }))}
+                          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                            bookingForm.paymentProvider === "wallet"
+                              ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          Saldo wallet
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "card" }))}
+                          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                            bookingForm.paymentProvider === "card"
+                              ? "border-blue-600 bg-blue-50 text-blue-700"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          Tarjeta guardada
+                        </button>
+                      </div>
+                      {bookingForm.paymentProvider === "wallet" ? (
+                        <p className="mt-2 text-xs text-slate-600">
+                          {walletBalance !== null
+                            ? `${t("modal.availableBalance")} $${walletBalance.toFixed(2)}`
+                            : t("modal.noBalance")}
+                        </p>
+                      ) : bookingForm.paymentProvider === "card" ? (
+                        <div className="mt-2 space-y-2">
+                          <select
+                            value={bookingForm.paymentMethodId}
+                            onChange={(event) => setBookingForm((current) => ({ ...current, paymentMethodId: event.target.value }))}
+                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                          >
+                            <option value="">Selecciona una tarjeta guardada</option>
+                            {savedCardMethods.map((method) => (
+                              <option key={method.id} value={method.id}>
+                                {`${(method.card_brand || "Tarjeta").toUpperCase()} •••• ${method.card_last4 || "0000"}`}
+                              </option>
+                            ))}
+                          </select>
+                          {selectedCard ? (
+                            <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                              Se cobrará directamente a {`${(selectedCard.card_brand || "tarjeta").toUpperCase()} •••• ${selectedCard.card_last4 || "0000"}`}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-slate-600">
+                              No hay tarjetas guardadas disponibles. Ve a Pagos para agregar una.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-slate-600">{t("modal.payAtSalon")}</p>
+                      )}
+                    </>
                   ) : (
-                    <p className="mt-2 text-xs text-slate-600">{t("modal.payAtSalon")}</p>
+                    <div className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/60 px-4 py-5 text-center">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Paso 2 de 2</p>
+                      <p className="mt-2 text-sm text-slate-700">Selecciona un horario disponible para mostrar el método de pago.</p>
+                    </div>
                   )}
                 </div>
 
-                {selectedService ? (
-                  <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
-                    {t("modal.estimatedTotal")} ${Number(selectedService.price).toFixed(2)}
-                  </p>
-                ) : null}
+                <div className="sticky bottom-0 mt-auto border-t border-slate-200 bg-white/95 pt-4 backdrop-blur-sm">
+                  {selectedService ? (
+                    <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+                      {t("modal.estimatedTotal")} ${Number(selectedService.price).toFixed(2)}
+                    </p>
+                  ) : null}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setView("profile")}
-                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    {t("modal.back")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleSubmitBooking()}
-                    disabled={isBooking}
-                    className="rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-sm font-bold text-white transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {isBooking ? t("modal.booking") : t("modal.confirmBook")}
-                  </button>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleBackToProfile}
+                      className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      {t("modal.back")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSubmitBooking()}
+                      disabled={isBooking}
+                      className="rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-sm font-bold text-white transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isBooking ? t("modal.booking") : t("modal.confirmBook")}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

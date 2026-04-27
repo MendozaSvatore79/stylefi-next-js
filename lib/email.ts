@@ -39,6 +39,24 @@ type SendAppointmentConfirmationEmailInput = {
   totalAmount: number;
 };
 
+type SupportConversationEntry = {
+  role: "user" | "oracle" | "admin" | "system";
+  name?: string | null;
+  message: string;
+  createdAt?: string;
+};
+
+type SendSupportConversationEmailInput = {
+  to: string;
+  subject: string;
+  ticketId: string;
+  contactName: string;
+  contactEmail: string;
+  route?: string | null;
+  summary?: string | null;
+  conversation: SupportConversationEntry[];
+};
+
 export async function sendOtpEmail({ to, code, recipientName }: SendOtpEmailInput) {
   const host = normalizeEnv(getOptionalEnv("SMTP_HOST"));
   const user = normalizeEnv(getOptionalEnv("SMTP_USER"));
@@ -266,6 +284,76 @@ export async function sendAppointmentConfirmationEmails({
           <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Servicio:</strong> ${serviceName}</p>
           <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Fecha y hora:</strong> ${dateLabel}</p>
           <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Total:</strong> $${amountLabel}</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendSupportConversationEmail({
+  to,
+  subject,
+  ticketId,
+  contactName,
+  contactEmail,
+  route,
+  summary,
+  conversation,
+}: SendSupportConversationEmailInput) {
+  const host = normalizeEnv(getOptionalEnv("SMTP_HOST"));
+  const user = normalizeEnv(getOptionalEnv("SMTP_USER"));
+  const pass = normalizeEnv(getOptionalEnv("SMTP_PASSWORD"));
+  const port = Number(normalizeEnv(getOptionalEnv("SMTP_PORT")) ?? "587");
+  const secure = normalizeEnv(getOptionalEnv("SMTP_SECURE")) === "true" || port === 465;
+  const from = normalizeEnv(getOptionalEnv("SMTP_FROM")) ?? user ?? "STYLEHUB <no-reply@stylehub.local>";
+
+  const transcript = conversation
+    .map((entry) => `${entry.role.toUpperCase()}${entry.name ? ` (${entry.name})` : ""}: ${entry.message}`)
+    .join("\n\n");
+
+  if (!host || !user || !pass) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[SUPPORT DEV] Ticket ${ticketId} transcript sent to ${to}`);
+      console.warn(`[SUPPORT DEV] Route: ${route ?? "n/a"}`);
+      console.warn(`[SUPPORT DEV] Summary: ${summary ?? "n/a"}`);
+      console.warn(`[SUPPORT DEV] Transcript:\n${transcript}`);
+      return;
+    }
+
+    throw new Error("SMTP configuration is incomplete.");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject,
+    text: [
+      `Ticket: ${ticketId}`,
+      `Contacto: ${contactName} <${contactEmail}>`,
+      route ? `Ruta: ${route}` : null,
+      summary ? `Resumen: ${summary}` : null,
+      "",
+      transcript,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    html: `
+      <div style="font-family: Arial, sans-serif; background:#f6f7fb; padding:24px; color:#171135;">
+        <div style="max-width:720px; margin:0 auto; background:#ffffff; border-radius:20px; padding:32px; border:1px solid #e5e7eb;">
+          <p style="margin:0 0 8px; text-transform:uppercase; letter-spacing:.16em; font-size:12px; color:#6b7280;">STYLEHUB · ORACLE</p>
+          <h1 style="margin:0 0 12px; font-size:28px; line-height:1.2; color:#130b3a;">${subject}</h1>
+          <p style="margin:0 0 10px; font-size:15px; color:#374151;"><strong>Ticket:</strong> ${ticketId}</p>
+          <p style="margin:0 0 10px; font-size:15px; color:#374151;"><strong>Contacto:</strong> ${contactName} &lt;${contactEmail}&gt;</p>
+          ${route ? `<p style="margin:0 0 10px; font-size:15px; color:#374151;"><strong>Ruta:</strong> ${route}</p>` : ""}
+          ${summary ? `<p style="margin:0 0 20px; font-size:15px; color:#374151;"><strong>Resumen:</strong> ${summary}</p>` : ""}
+          <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:#fafafa; white-space:pre-wrap; font-size:14px; line-height:1.6; color:#1f2937;">${transcript.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
         </div>
       </div>
     `,

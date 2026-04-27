@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Clock3, LayoutGrid, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Clock3, LayoutGrid, ShieldCheck, Users } from "lucide-react";
 
 import {
   AlertDialog,
@@ -65,6 +65,52 @@ type ModuleActionDialogState = {
   actionLabel: string;
 } | null;
 
+type AdminUser = {
+  id: string;
+  account_type: "cliente" | "negocio";
+  first_name: string | null;
+  last_name: string | null;
+  business_name: string | null;
+  phone: string | null;
+  email: string;
+  email_verified: boolean;
+  is_banned: boolean;
+  banned_at: string | null;
+  ban_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type UsersSummary = {
+  total: number;
+  clients: number;
+  businesses: number;
+  verified: number;
+  banned: number;
+};
+
+type UsersPagination = {
+  page: number;
+  pageSize: number;
+  totalFiltered: number;
+  totalPages: number;
+};
+
+type UserActionDialogState = {
+  userId: string;
+  userName: string;
+  action: "delete" | "ban" | "unban";
+} | null;
+
+type EditUserFormState = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  businessName: string;
+  phone: string;
+  email: string;
+};
+
 const statusLabel: Record<ModuleStatus, string> = {
   online: "Online",
   degraded: "Desactivado",
@@ -79,16 +125,28 @@ const statusVariantByModuleStatus: Record<ModuleStatus, "success" | "warning" | 
 
 export default function AdminDashboardPage() {
   const [branches, setBranches] = useState<BranchVerification[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersSummary, setUsersSummary] = useState<UsersSummary>({ total: 0, clients: 0, businesses: 0, verified: 0, banned: 0 });
+  const [usersPagination, setUsersPagination] = useState<UsersPagination>({ page: 1, pageSize: 10, totalFiltered: 0, totalPages: 1 });
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [liveModules, setLiveModules] = useState<AdminLiveModule[]>([]);
   const [liveDashboardStatus, setLiveDashboardStatus] = useState<ModuleStatus>("offline");
   const [liveLoading, setLiveLoading] = useState<boolean>(true);
   const [liveSavingKey, setLiveSavingKey] = useState<string | null>(null);
+  const [usersLoading, setUsersLoading] = useState<boolean>(true);
+  const [userSavingId, setUserSavingId] = useState<string | null>(null);
   const [branchQuery, setBranchQuery] = useState("");
   const [moduleQuery, setModuleQuery] = useState("");
+  const [userQuery, setUserQuery] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState<"all" | "cliente" | "negocio">("all");
+  const [userBannedFilter, setUserBannedFilter] = useState<"all" | "yes" | "no">("all");
+  const [userSortBy, setUserSortBy] = useState<"created_at" | "updated_at" | "email" | "account_type" | "name">("created_at");
+  const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   const [refreshing, setRefreshing] = useState(false);
   const [branchActionDialog, setBranchActionDialog] = useState<BranchActionDialogState>(null);
   const [moduleActionDialog, setModuleActionDialog] = useState<ModuleActionDialogState>(null);
+  const [userActionDialog, setUserActionDialog] = useState<UserActionDialogState>(null);
+  const [editUserForm, setEditUserForm] = useState<EditUserFormState | null>(null);
 
   const loadBranches = async () => {
     const response = await fetch("/api/admin/branch-verifications?status=pending", { cache: "no-store" });
@@ -122,14 +180,54 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const loadUsers = useCallback(async (overrides?: Partial<{ page: number; pageSize: number }>) => {
+    setUsersLoading(true);
+
+    try {
+      const page = overrides?.page ?? usersPagination.page;
+      const pageSize = overrides?.pageSize ?? usersPagination.pageSize;
+
+      const params = new URLSearchParams({
+        search: userQuery,
+        role: userRoleFilter,
+        banned: userBannedFilter,
+        sortBy: userSortBy,
+        sortDir: userSortDir,
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+
+      const response = await fetch(`/api/admin/users?${params.toString()}`, { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        users: AdminUser[];
+        summary: UsersSummary;
+        pagination?: UsersPagination;
+      };
+
+      setUsers(payload.users ?? []);
+      setUsersSummary(payload.summary ?? { total: 0, clients: 0, businesses: 0, verified: 0, banned: 0 });
+      setUsersPagination(payload.pagination ?? { page: 1, pageSize, totalFiltered: 0, totalPages: 1 });
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [userBannedFilter, userQuery, userRoleFilter, userSortBy, userSortDir, usersPagination.page, usersPagination.pageSize]);
+
   useEffect(() => {
     void Promise.all([loadBranches(), loadLiveDashboard()]);
   }, []);
 
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
+
   const refreshDashboard = async () => {
     try {
       setRefreshing(true);
-      await Promise.all([loadBranches(), loadLiveDashboard()]);
+      await Promise.all([loadBranches(), loadLiveDashboard(), loadUsers()]);
     } finally {
       setRefreshing(false);
     }
@@ -171,6 +269,8 @@ export default function AdminDashboardPage() {
         .includes(query);
     });
   }, [liveModules, moduleQuery]);
+
+  const filteredUsers = users;
 
   const reviewBranch = async (branchId: string, status: "approved" | "rejected") => {
     try {
@@ -221,6 +321,70 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const saveUserEdit = async () => {
+    if (!editUserForm) {
+      return;
+    }
+
+    try {
+      setUserSavingId(editUserForm.id);
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: editUserForm.id,
+          action: "edit",
+          firstName: editUserForm.firstName,
+          lastName: editUserForm.lastName,
+          businessName: editUserForm.businessName,
+          phone: editUserForm.phone,
+          email: editUserForm.email,
+        }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      setEditUserForm(null);
+      await loadUsers();
+    } finally {
+      setUserSavingId(null);
+    }
+  };
+
+  const runUserAction = async (action: NonNullable<UserActionDialogState>["action"], userId: string) => {
+    try {
+      setUserSavingId(userId);
+
+      const response =
+        action === "delete"
+          ? await fetch("/api/admin/users", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId }),
+            })
+          : await fetch("/api/admin/users", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId, action }),
+            });
+
+      if (!response.ok) {
+        return;
+      }
+
+      await loadUsers();
+    } finally {
+      setUserSavingId(null);
+    }
+  };
+
+  const getUserDisplayName = (user: AdminUser) => {
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+    return fullName || user.business_name || user.email;
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <Card className="border-slate-200 bg-linear-to-r from-[#13193a] to-[#1f2d64] text-white shadow-xl">
@@ -254,14 +418,14 @@ export default function AdminDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Módulos activos</CardDescription>
-            <CardTitle className="text-3xl font-black text-emerald-700">{liveSummary.enabled}</CardTitle>
+            <CardDescription>Usuarios totales</CardDescription>
+            <CardTitle className="text-3xl font-black text-slate-900">{usersSummary.total}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>En mantenimiento</CardDescription>
-            <CardTitle className="text-3xl font-black text-amber-700">{liveSummary.maintenance}</CardTitle>
+            <CardDescription>Usuarios baneados</CardDescription>
+            <CardTitle className="text-3xl font-black text-amber-700">{usersSummary.banned}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -283,6 +447,9 @@ export default function AdminDashboardPage() {
           <TabsTrigger value="modulos" id="modulos">
             <Clock3 className="size-4" /> Módulos
           </TabsTrigger>
+          <TabsTrigger value="usuarios" id="usuarios">
+            <Users className="size-4" /> Usuarios
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumen">
@@ -291,7 +458,7 @@ export default function AdminDashboardPage() {
               <CardTitle>Resumen operativo</CardTitle>
               <CardDescription>Vista ejecutiva de salud y control administrativo.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
+            <CardContent className="grid gap-4 md:grid-cols-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Estado general</p>
                 <p className="mt-2 text-2xl font-black text-slate-900">{statusLabel[liveDashboardStatus]}</p>
@@ -299,6 +466,10 @@ export default function AdminDashboardPage() {
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Módulos totales</p>
                 <p className="mt-2 text-2xl font-black text-slate-900">{liveSummary.total}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Usuarios verificados</p>
+                <p className="mt-2 text-2xl font-black text-slate-900">{usersSummary.verified}</p>
               </div>
             </CardContent>
           </Card>
@@ -466,6 +637,229 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="usuarios">
+          <Card>
+            <CardHeader>
+              <CardTitle>Usuarios de la plataforma</CardTitle>
+              <CardDescription>Visualiza, edita, banea o elimina cuentas de clientes y negocios.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))]">
+                <Input
+                  value={userQuery}
+                  onChange={(event) => setUserQuery(event.target.value)}
+                  placeholder="Buscar por nombre, negocio, correo, rol o teléfono"
+                />
+                <select
+                  value={userRoleFilter}
+                  onChange={(event) => setUserRoleFilter(event.target.value as "all" | "cliente" | "negocio")}
+                  className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                >
+                  <option value="all">Todos los roles</option>
+                  <option value="cliente">Cliente</option>
+                  <option value="negocio">Negocio</option>
+                </select>
+                <select
+                  value={userBannedFilter}
+                  onChange={(event) => setUserBannedFilter(event.target.value as "all" | "yes" | "no")}
+                  className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="no">Activos</option>
+                  <option value="yes">Baneados</option>
+                </select>
+                <select
+                  value={userSortBy}
+                  onChange={(event) => setUserSortBy(event.target.value as "created_at" | "updated_at" | "email" | "account_type" | "name")}
+                  className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                >
+                  <option value="created_at">Orden: Alta reciente</option>
+                  <option value="updated_at">Orden: Última actualización</option>
+                  <option value="name">Orden: Nombre</option>
+                  <option value="email">Orden: Correo</option>
+                  <option value="account_type">Orden: Rol</option>
+                </select>
+                <select
+                  value={userSortDir}
+                  onChange={(event) => setUserSortDir(event.target.value as "asc" | "desc")}
+                  className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                >
+                  <option value="desc">Descendente</option>
+                  <option value="asc">Ascendente</option>
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span>Clientes: {usersSummary.clients}</span>
+                <span>·</span>
+                <span>Negocios: {usersSummary.businesses}</span>
+                <span>·</span>
+                <span>Mostrando: {filteredUsers.length} de {usersPagination.totalFiltered}</span>
+                <span>·</span>
+                <span>Página {usersPagination.page} de {usersPagination.totalPages}</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={usersLoading || usersPagination.page <= 1}
+                  onClick={() => void loadUsers({ page: Math.max(1, usersPagination.page - 1) })}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={usersLoading || usersPagination.page >= usersPagination.totalPages}
+                  onClick={() => void loadUsers({ page: Math.min(usersPagination.totalPages, usersPagination.page + 1) })}
+                >
+                  Siguiente
+                </Button>
+                <select
+                  value={String(usersPagination.pageSize)}
+                  onChange={(event) => void loadUsers({ page: 1, pageSize: Number(event.target.value) })}
+                  className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700"
+                >
+                  <option value="10">10 / página</option>
+                  <option value="20">20 / página</option>
+                  <option value="50">50 / página</option>
+                </select>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <p className="font-semibold text-slate-900">{getUserDisplayName(user)}</p>
+                        <p className="text-xs text-slate-500">ID: {user.id.slice(0, 8)}...</p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.account_type === "negocio" ? "warning" : "secondary"}>
+                          {user.account_type === "negocio" ? "Negocio" : "Cliente"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-slate-900">{user.email}</p>
+                        <p className="text-xs text-slate-500">{user.phone || "Sin teléfono"}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={user.is_banned ? "danger" : "success"}>{user.is_banned ? "Baneado" : "Activo"}</Badge>
+                          <span className="text-xs text-slate-500">{user.email_verified ? "Verificado" : "Sin verificar"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={userSavingId === user.id}
+                            onClick={() =>
+                              setEditUserForm({
+                                id: user.id,
+                                firstName: user.first_name ?? "",
+                                lastName: user.last_name ?? "",
+                                businessName: user.business_name ?? "",
+                                phone: user.phone ?? "",
+                                email: user.email,
+                              })
+                            }
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={user.is_banned ? "default" : "destructive"}
+                            disabled={userSavingId === user.id}
+                            onClick={() =>
+                              setUserActionDialog({
+                                userId: user.id,
+                                userName: getUserDisplayName(user),
+                                action: user.is_banned ? "unban" : "ban",
+                              })
+                            }
+                          >
+                            {user.is_banned ? "Desbanear" : "Banear"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={userSavingId === user.id}
+                            onClick={() =>
+                              setUserActionDialog({
+                                userId: user.id,
+                                userName: getUserDisplayName(user),
+                                action: "delete",
+                              })
+                            }
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {usersLoading ? <p className="text-sm text-slate-500">Cargando usuarios...</p> : null}
+              {!usersLoading && filteredUsers.length === 0 ? <p className="text-sm text-slate-500">No hay usuarios para los filtros actuales.</p> : null}
+
+              {editUserForm ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-semibold text-slate-900">Editar usuario</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <Input
+                      value={editUserForm.firstName}
+                      onChange={(event) => setEditUserForm((current) => (current ? { ...current, firstName: event.target.value } : null))}
+                      placeholder="Nombre"
+                    />
+                    <Input
+                      value={editUserForm.lastName}
+                      onChange={(event) => setEditUserForm((current) => (current ? { ...current, lastName: event.target.value } : null))}
+                      placeholder="Apellido"
+                    />
+                    <Input
+                      value={editUserForm.businessName}
+                      onChange={(event) => setEditUserForm((current) => (current ? { ...current, businessName: event.target.value } : null))}
+                      placeholder="Nombre de negocio"
+                    />
+                    <Input
+                      value={editUserForm.phone}
+                      onChange={(event) => setEditUserForm((current) => (current ? { ...current, phone: event.target.value } : null))}
+                      placeholder="Teléfono"
+                    />
+                    <Input
+                      value={editUserForm.email}
+                      onChange={(event) => setEditUserForm((current) => (current ? { ...current, email: event.target.value } : null))}
+                      placeholder="Correo"
+                    />
+                  </div>
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setEditUserForm(null)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={() => void saveUserEdit()} disabled={userSavingId === editUserForm.id}>
+                      {userSavingId === editUserForm.id ? "Guardando..." : "Guardar cambios"}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <AlertDialog open={Boolean(branchActionDialog)} onOpenChange={(open) => !open && setBranchActionDialog(null)}>
@@ -512,6 +906,33 @@ export default function AdminDashboardPage() {
                 }
                 void updateLiveModule(moduleActionDialog.moduleKey, moduleActionDialog.updates);
                 setModuleActionDialog(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={Boolean(userActionDialog)} onOpenChange={(open) => !open && setUserActionDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar acción de usuario</AlertDialogTitle>
+            <AlertDialogDescription>
+              {userActionDialog
+                ? `¿Deseas ${userActionDialog.action === "delete" ? "eliminar" : userActionDialog.action === "ban" ? "banear" : "desbanear"} a ${userActionDialog.userName}?`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!userActionDialog) {
+                  return;
+                }
+                void runUserAction(userActionDialog.action, userActionDialog.userId);
+                setUserActionDialog(null);
               }}
             >
               Confirmar
