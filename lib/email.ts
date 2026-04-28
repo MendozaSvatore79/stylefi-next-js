@@ -408,7 +408,7 @@ export async function sendSupportConversationEmail({
     html: `
       <div style="font-family: Arial, sans-serif; background:#f6f7fb; padding:24px; color:#171135;">
         <div style="max-width:720px; margin:0 auto; background:#ffffff; border-radius:20px; padding:32px; border:1px solid #e5e7eb;">
-          <p style="margin:0 0 8px; text-transform:uppercase; letter-spacing:.16em; font-size:12px; color:#6b7280;">STYLEHUB · ORACLE</p>
+          <p style="margin:0 0 8px; text-transform:uppercase; letter-spacing:.16em; font-size:12px; color:#6b7280;">STYLEHUB · AURA</p>
           <h1 style="margin:0 0 12px; font-size:28px; line-height:1.2; color:#130b3a;">${subject}</h1>
           <p style="margin:0 0 10px; font-size:15px; color:#374151;"><strong>Ticket:</strong> ${ticketId}</p>
           <p style="margin:0 0 10px; font-size:15px; color:#374151;"><strong>Contacto:</strong> ${contactName} &lt;${contactEmail}&gt;</p>

@@ -281,7 +281,7 @@ function keywordDecision(input: OracleInput): OracleDecision {
     return {
       reply: shouldEscalateUnknown
         ? "Gracias por la info. Para ayudarte mejor y más rápido, voy a escalar tu caso con un agente administrativo."
-        : `Soy Oracle 👋 ${followUpQuestion("general", oracleTurns)}`,
+        : `Soy AURA 👋 ${followUpQuestion("general", oracleTurns)}`,
       summary: input.latestMessage,
       category: "general",
       confidence: 0.35,
@@ -327,7 +327,7 @@ async function modelDecision(input: OracleInput): Promise<OracleDecision | null>
   }
 
   const systemPrompt = [
-    "Eres Oracle, asistente de soporte técnico de STYLEHUB.",
+    "Eres AURA, asistente de soporte técnico de STYLEHUB.",
     "Habla en español natural, empático y claro.",
     "Tu objetivo es resolver sin escalar en los primeros turnos, haciendo preguntas útiles.",
     "Escala solo si: 1) el usuario lo pide explícitamente, 2) faltan datos tras varios intentos, 3) bloqueo crítico sin solución inmediata.",
@@ -365,7 +365,7 @@ async function modelDecision(input: OracleInput): Promise<OracleDecision | null>
 
       if (!response.ok) {
         const reason = await response.text().catch(() => "");
-        console.warn(`Oracle Ollama call failed (${response.status}).`, reason.slice(0, 500));
+        console.warn(`AURA Ollama call failed (${response.status}).`, reason.slice(0, 500));
         return null;
       }
 
@@ -377,7 +377,7 @@ async function modelDecision(input: OracleInput): Promise<OracleDecision | null>
 
       const parsed = parseJsonLoose<Partial<OracleDecision>>(text);
       if (!parsed?.reply || isInvalidModelReply(parsed.reply)) {
-        console.warn("Oracle Ollama returned invalid reply payload, using fallback.", text.slice(0, 160));
+        console.warn("AURA Ollama returned invalid reply payload, using fallback.", text.slice(0, 160));
         return null;
       }
 
@@ -442,7 +442,7 @@ async function modelDecision(input: OracleInput): Promise<OracleDecision | null>
             continue;
           }
 
-          console.warn(`Oracle Gemini call failed (${response.status}).`, reason.slice(0, 500));
+          console.warn(`AURA Gemini call failed (${response.status}).`, reason.slice(0, 500));
           return null;
         }
 
@@ -468,7 +468,7 @@ async function modelDecision(input: OracleInput): Promise<OracleDecision | null>
       }
 
       if (lastError) {
-        console.warn("Oracle Gemini retries exhausted.", lastError);
+        console.warn("AURA Gemini retries exhausted.", lastError);
       }
 
       return null;
@@ -493,7 +493,7 @@ async function modelDecision(input: OracleInput): Promise<OracleDecision | null>
 
     if (!response.ok) {
       const reason = await response.text().catch(() => "");
-      console.warn(`Oracle model call failed (${response.status}).`, reason.slice(0, 500));
+      console.warn(`AURA model call failed (${response.status}).`, reason.slice(0, 500));
       return null;
     }
 
@@ -517,7 +517,7 @@ async function modelDecision(input: OracleInput): Promise<OracleDecision | null>
       escalationReason: parsed.escalationReason,
     };
   } catch (error) {
-    console.warn("Oracle model call failed, using fallback engine.", error);
+    console.warn("AURA model call failed, using fallback engine.", error);
     return null;
   }
 }
@@ -556,7 +556,7 @@ export async function oracleRespond(input: OracleInput): Promise<OracleDecision>
         }
       }
     } catch (error) {
-      console.warn("Oracle endpoint unavailable, using local decision engine.", error);
+      console.warn("AURA endpoint unavailable, using local decision engine.", error);
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
@@ -20,6 +21,20 @@ type BusinessDetail = {
   image_url: string;
 };
 
+type Branch = {
+  id: string;
+  branch_name: string;
+  description: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  phone: string | null;
+  image_url: string | null;
+  is_primary: boolean;
+};
+
 type Service = {
   id: string;
   service_name: string;
@@ -27,6 +42,7 @@ type Service = {
   price: number | string;
   duration_minutes: number | null;
   image_url: string;
+  branch_id?: string | null;
 };
 
 type Stylist = {
@@ -38,6 +54,7 @@ type Stylist = {
   years_experience: number;
   image_url: string;
   available: boolean;
+  branch_id?: string | null;
 };
 
 type PaymentMethod = {
@@ -58,9 +75,12 @@ export default function SalonModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { status } = useSession();
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [business, setBusiness] = useState<BusinessDetail | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -71,6 +91,7 @@ export default function SalonModal({
   const [isBooking, setIsBooking] = useState(false);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingStep, setBookingStep] = useState<"details" | "payment">("details");
+  const [requiresAuth, setRequiresAuth] = useState(false);
   const paymentSectionRef = useRef<HTMLDivElement | null>(null);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
   const [bookingForm, setBookingForm] = useState({
@@ -83,19 +104,37 @@ export default function SalonModal({
 
   useEffect(() => {
     const fetchDetails = async () => {
+      if (status === "unauthenticated") {
+        setRequiresAuth(true);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/businesses?businessId=${businessId}`, {
           cache: "no-store",
         });
+
+        if (res.status === 401) {
+          setRequiresAuth(true);
+          return;
+        }
+
         if (res.ok) {
           const data = (await res.json()) as {
             business: BusinessDetail;
+            branches?: Branch[];
             services: Service[];
             stylists: Stylist[];
           };
           setBusiness(data.business);
           setServices(data.services ?? []);
           setStylists(data.stylists ?? []);
+          setBranches(data.branches ?? []);
+
+          // choose default selected branch: primary first, else first branch
+          const defaultBranch = (data.branches ?? []).find((b) => b.is_primary) ?? (data.branches && data.branches[0]) ?? null;
+          setSelectedBranchId(defaultBranch ? defaultBranch.id : null);
         }
 
         const paymentMethodsRes = await fetch("/api/client/payment-methods", { cache: "no-store" });
@@ -116,10 +155,29 @@ export default function SalonModal({
     };
 
     fetchDetails();
-  }, [businessId, t]);
+  }, [businessId, status, t]);
 
   const selectedService = services.find((service) => service.id === bookingForm.serviceId) ?? null;
+  const servicesForBranch = selectedBranchId
+    ? services.filter((service) => service.branch_id ? String(service.branch_id) === String(selectedBranchId) : false)
+    : services;
+  const stylistsForBranch = selectedBranchId
+    ? stylists.filter((stylist) => stylist.branch_id ? String(stylist.branch_id) === String(selectedBranchId) : false)
+    : stylists;
   const savedCardMethods = paymentMethods.filter((method) => method.provider === "card");
+
+  useEffect(() => {
+    if (!bookingForm.serviceId) {
+      return;
+    }
+
+    const serviceStillAvailable = servicesForBranch.some((service) => service.id === bookingForm.serviceId);
+    if (!serviceStillAvailable) {
+      setBookingForm((current) => ({ ...current, serviceId: "", scheduledAt: "" }));
+      setBookingDate("");
+      setBookingStep("details");
+    }
+  }, [bookingForm.serviceId, servicesForBranch]);
 
   const handleAgendar = () => {
     setView("booking");
@@ -182,6 +240,8 @@ export default function SalonModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessUserId: business.id,
+          branchId: selectedBranchId,
+          serviceId: selectedService.id,
           serviceName: selectedService.service_name,
           scheduledAt: bookingForm.scheduledAt,
           totalAmount: Number(selectedService.price),
@@ -243,25 +303,62 @@ export default function SalonModal({
     );
   }
 
+  if (requiresAuth) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8 backdrop-blur-md">
+        <div className="w-full max-w-xl rounded-3xl border border-white/60 bg-white p-8 shadow-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-600">Acceso restringido</p>
+          <h2 className="mt-2 text-3xl font-black text-[#151138]">Inicia sesión para ver más detalles</h2>
+          <p className="mt-4 text-sm text-slate-600">
+            La información completa del salón, servicios, estilistas y agenda está disponible solo para usuarios autenticados.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 flex-1 rounded-xl border border-slate-300 font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Cerrar
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/iniciar-sesion")}
+              className="h-11 flex-1 rounded-xl bg-blue-700 font-bold text-white transition hover:bg-blue-800"
+            >
+              Iniciar sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!business) {
     return null;
   }
 
-  const latitude = business.latitude === null ? null : Number(business.latitude);
-  const longitude = business.longitude === null ? null : Number(business.longitude);
-  const hasLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
   const selectedDate = bookingDate || bookingForm.scheduledAt.split("T")[0] || "";
+
+  // Determine which branch to show details for (if branches loaded)
+  const selectedBranch = branches.find((b) => b.id === selectedBranchId) ?? null;
+  const displayPhone = selectedBranch?.phone ?? business.phone ?? null;
+  const displayAddress = [selectedBranch?.address, selectedBranch?.city, selectedBranch?.state].filter(Boolean).join(", ") || `${business.address}, ${business.city}`;
+  const displayLatitude = selectedBranch?.latitude ?? business.latitude;
+  const displayLongitude = selectedBranch?.longitude ?? business.longitude;
+  const displayHasLocation = displayLatitude !== null && displayLongitude !== null && Number.isFinite(Number(displayLatitude)) && Number.isFinite(Number(displayLongitude));
+  const headerImage = selectedBranch?.image_url || business.image_url;
+  const headerLabel = selectedBranch?.branch_name || business.salon_name;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/55 px-4 py-8 backdrop-blur-md">
       <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/60 bg-white shadow-2xl ring-1 ring-indigo-100/60">
         <div className="relative h-56 bg-linear-to-br from-indigo-100 via-indigo-50 to-purple-100">
-          {business.image_url && (
+          {headerImage && (
             <div
               className="h-full w-full bg-cover bg-center"
               role="img"
-              aria-label={business.salon_name}
-              style={{ backgroundImage: `url(${business.image_url})` }}
+              aria-label={headerLabel}
+              style={{ backgroundImage: `url(${headerImage})` }}
             />
           )}
           <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/5 to-transparent" />
@@ -279,7 +376,7 @@ export default function SalonModal({
           </button>
 
           <div className="absolute bottom-6 left-6 right-6">
-            <h2 className="text-2xl font-black text-white sm:text-3xl">{business.salon_name}</h2>
+            <h2 className="text-2xl font-black text-white sm:text-3xl">{headerLabel}</h2>
             <p className="mt-1 max-w-2xl text-sm text-white/90">{business.description || t("modal.defaultDescription")}</p>
           </div>
         </div>
@@ -288,19 +385,37 @@ export default function SalonModal({
           <div className="h-full overflow-hidden rounded-2xl">
             {view === "profile" ? (
               <div className="h-full overflow-y-auto pr-2">
-              <div className="mt-1 flex flex-wrap gap-3 text-sm">
-            {business.phone && (
-              <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 font-medium text-slate-700">
-                <span>📱</span>
-                <span>{business.phone}</span>
-              </div>
-            )}
-            {business.address && (
-              <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 font-medium text-slate-700">
-                <span>📍</span>
-                <span>{business.address}, {business.city}</span>
-              </div>
-            )}
+              <div className="mt-1 flex flex-col gap-3 text-sm">
+                {branches.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {branches.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setSelectedBranchId(b.id)}
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${selectedBranchId === b.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-200"}`}
+                      >
+                        {b.branch_name}
+                        {b.is_primary ? <span className="ml-2 text-[10px] font-bold text-emerald-700">Principal</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-3">
+                  {displayPhone ? (
+                    <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 font-medium text-slate-700">
+                      <span>📱</span>
+                      <span>{displayPhone}</span>
+                    </div>
+                  ) : null}
+                  {displayAddress ? (
+                    <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 font-medium text-slate-700">
+                      <span>📍</span>
+                      <span>{displayAddress}</span>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-2 rounded-2xl bg-slate-100/90 p-1.5">
@@ -323,10 +438,10 @@ export default function SalonModal({
 
               {activeTab === "servicios" && (
                 <div className="mt-6 max-h-96 space-y-4 overflow-y-auto pr-1">
-              {services.length === 0 ? (
+              {servicesForBranch.length === 0 ? (
                 <p className="py-8 text-center text-slate-600">{t("modal.noServices")}</p>
               ) : (
-                services.map((service) => (
+                servicesForBranch.map((service: any) => (
                   <div key={service.id} className="rounded-2xl border border-slate-200 bg-linear-to-r from-white to-slate-50 p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
@@ -351,7 +466,7 @@ export default function SalonModal({
               {stylists.length === 0 ? (
                 <p className="py-8 text-center text-slate-600">{t("modal.noStylists")}</p>
               ) : (
-                stylists.map((stylist) => (
+                stylistsForBranch.map((stylist) => (
                   <div key={stylist.id} className="rounded-2xl border border-slate-200 bg-linear-to-r from-white to-slate-50 p-4 shadow-sm">
                     <div className="flex items-start gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-indigo-400 to-purple-500 text-white font-bold">
@@ -390,7 +505,7 @@ export default function SalonModal({
 
               {activeTab === "ubicacion" && (
                 <div className="mt-6 space-y-4">
-              {hasLocation ? (
+              {displayHasLocation ? (
                 <>
                   <div className="flex h-80 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
                     <iframe
@@ -399,12 +514,12 @@ export default function SalonModal({
                       style={{ border: 0 }}
                       loading="lazy"
                       allowFullScreen
-                      src={`https://www.google.com/maps?q=${latitude},${longitude}&z=16&output=embed`}
+                      src={`https://www.google.com/maps?q=${displayLatitude},${displayLongitude}&z=16&output=embed`}
                     />
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                     <p className="text-sm text-slate-600">
-                      <strong>Dirección:</strong> {business.address}, {business.city}, {business.state}
+                      <strong>Dirección:</strong> {displayAddress}
                     </p>
                   </div>
                 </>
@@ -437,7 +552,7 @@ export default function SalonModal({
               <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{t("modal.quickBooking")}</p>
                 <h3 className="mt-2 text-xl font-black text-[#151138]">{t("modal.bookTitle")}</h3>
-                <p className="mt-1 text-sm text-slate-600">{t("modal.bookSubtitle")} {business.salon_name}.</p>
+                <p className="mt-1 text-sm text-slate-600">{t("modal.bookSubtitle")} {headerLabel}.</p>
               </div>
 
               <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -465,7 +580,7 @@ export default function SalonModal({
                     className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
                   >
                     <option value="">{t("modal.selectService")}</option>
-                    {services.map((service) => (
+                    {servicesForBranch.map((service) => (
                       <option key={service.id} value={service.id}>
                         {service.service_name} · ${Number(service.price).toFixed(2)}
                       </option>

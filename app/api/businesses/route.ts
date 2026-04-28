@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 
+import { authConfig } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
@@ -15,6 +17,15 @@ export async function GET(request: Request) {
 
     // Si se solicita un negocio específico con detalles
     if (businessId) {
+      const session = await getServerSession(authConfig);
+
+      if (!session?.user) {
+        return NextResponse.json(
+          { error: "Debes iniciar sesión para ver más detalles del salón." },
+          { status: 401 },
+        );
+      }
+
       const result = await db`
         SELECT
           u.id,
@@ -63,14 +74,23 @@ export async function GET(request: Request) {
         AND br.id IS NOT NULL
       `;
 
-      const business = (result as any[])[0];
+      const business = (result as Array<{ id: string } & Record<string, unknown>>)[0];
 
       if (!business) {
         return NextResponse.json({ error: "Negocio no encontrado" }, { status: 404 });
       }
 
+      // Obtener todas las sucursales aprobadas del negocio (para mostrar múltiples ubicaciones)
+      const branches = await db`
+        SELECT id, branch_name, description, address, city, state, postal_code, latitude, longitude, phone, website, image_url, opening_hours, closing_hours, is_primary
+        FROM stylehub_business_branches
+        WHERE business_user_id = ${businessId}
+        AND validation_status = 'approved'
+        ORDER BY is_primary DESC, created_at ASC
+      `;
+
       const services = await db`
-        SELECT s.id, s.service_name, s.description, s.price, s.duration_minutes, s.image_url
+        SELECT s.id, s.service_name, s.description, s.price, s.duration_minutes, s.image_url, s.branch_id
         FROM stylehub_business_services s
         JOIN stylehub_business_branches br ON br.id = s.branch_id
         WHERE s.business_user_id = ${businessId}
@@ -79,7 +99,7 @@ export async function GET(request: Request) {
       `;
 
       const stylists = await db`
-        SELECT st.id, st.first_name, st.last_name, st.email, st.specialization, st.years_experience, st.image_url, st.available
+        SELECT st.id, st.first_name, st.last_name, st.email, st.specialization, st.years_experience, st.image_url, st.available, st.branch_id
         FROM stylehub_business_stylists st
         JOIN stylehub_business_branches br ON br.id = st.branch_id
         WHERE st.business_user_id = ${businessId}
@@ -87,7 +107,7 @@ export async function GET(request: Request) {
         ORDER BY st.created_at DESC
       `;
 
-      return NextResponse.json({ business, services, stylists });
+      return NextResponse.json({ business, branches, services, stylists });
     }
 
     // Listar todos los negocios
@@ -102,10 +122,24 @@ export async function GET(request: Request) {
         br.address,
         br.city,
         br.state,
-        br.image_url
+        br.image_url,
+        br.service_summary
       FROM stylehub_users u
       JOIN LATERAL (
-        SELECT branch_name, description, address, city, state, image_url
+        SELECT
+          branch_name,
+          description,
+          address,
+          city,
+          state,
+          image_url,
+          COALESCE((
+            SELECT STRING_AGG(DISTINCT s.service_name, ', ' ORDER BY s.service_name)
+            FROM stylehub_business_services s
+            JOIN stylehub_business_branches sb ON sb.id = s.branch_id
+            WHERE s.business_user_id = u.id
+              AND sb.validation_status = 'approved'
+          ), '') AS service_summary
         FROM stylehub_business_branches
         WHERE business_user_id = u.id
         AND validation_status = 'approved'

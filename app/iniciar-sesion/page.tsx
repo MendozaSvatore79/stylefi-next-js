@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -64,6 +64,7 @@ const copy = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const { language } = useLanguage();
   const text = language === "en" ? copy.en : copy.es;
@@ -71,25 +72,37 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUnauthorizedAccessMessage, setShowUnauthorizedAccessMessage] = useState(false);
+
+  const unauthorizedAccessMessage = language === "en" ? "Unauthorized access, please sign in." : "acceso no autorizado por favor inicia sesion";
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("error") === "google_client_only") {
+    if (searchParams.get("reason") === "unauthorized") {
+      setShowUnauthorizedAccessMessage(true);
+
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("reason");
+      const nextQuery = params.toString();
+      router.replace(nextQuery ? `/iniciar-sesion?${nextQuery}` : "/iniciar-sesion");
+    }
+
+    if (searchParams.get("error") === "google_client_only") {
       showToast({
         type: "error",
         title: text.googleUnavailableTitle,
         message: text.googleUnavailableMsg,
       });
 
+      const params = new URLSearchParams(searchParams.toString());
       params.delete("error");
       const nextQuery = params.toString();
       router.replace(nextQuery ? `/iniciar-sesion?${nextQuery}` : "/iniciar-sesion");
     }
-  }, [router, showToast]);
+  }, [router, searchParams, showToast, text.googleUnavailableMsg, text.googleUnavailableTitle]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -180,6 +193,12 @@ export default function LoginPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{text.section}</p>
             <h1 className="mt-2 text-4xl font-black leading-tight text-[#151138]">{text.title}</h1>
             <p className="mt-3 text-sm text-slate-600">{text.subtitle}</p>
+
+            {showUnauthorizedAccessMessage ? (
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                {unauthorizedAccessMessage}
+              </div>
+            ) : null}
 
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
               {error ? (

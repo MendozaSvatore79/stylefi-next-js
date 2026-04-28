@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   { href: "/dashboard/admin#verificaciones", label: "Verificaciones", icon: ShieldCheck },
   { href: "/dashboard/admin#modulos", label: "Módulos", icon: Settings2 },
   { href: "/dashboard/admin#metricas", label: "Métricas", icon: BarChart3 },
-  { href: "/dashboard/admin/soporte", label: "Soporte Oracle", icon: LifeBuoy },
+  { href: "/dashboard/admin/soporte", label: "Soporte AURA", icon: LifeBuoy },
 ];
 
 export default function AdminDashboardShell({ children }: AdminDashboardShellProps) {

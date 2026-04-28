@@ -94,6 +94,27 @@ export async function GET(request: Request) {
   });
 }
 
+async function appendSystemMessage(ticketId: string, message: string) {
+  const db = getDb();
+
+  await db`
+    INSERT INTO stylehub_support_messages (
+      ticket_id,
+      sender_role,
+      sender_name,
+      message,
+      metadata
+    )
+    VALUES (
+      ${ticketId},
+      'system',
+      'Sistema',
+      ${message},
+      ${JSON.stringify({ type: 'ticket_status_update' })}::jsonb
+    )
+  `;
+}
+
 export async function POST(request: Request) {
   const currentUser = await getCurrentSupportUser();
   const payload = (await request.json()) as {
@@ -104,7 +125,66 @@ export async function POST(request: Request) {
     contactPhone?: string;
     subject?: string;
     sourceRoute?: string;
+    ticketAction?: "confirm_close" | "reopen";
   };
+
+  if (payload.ticketAction) {
+    const ticketId = payload.ticketId?.trim();
+    if (!ticketId) {
+      return NextResponse.json({ error: "Debes indicar un ticket." }, { status: 400 });
+    }
+
+    await ensureStylehubSchema();
+    const db = getDb();
+    const [ticket] = (await db`
+      SELECT *
+      FROM stylehub_support_tickets
+      WHERE id = ${ticketId}
+      LIMIT 1
+    `) as Array<SupportTicket>;
+
+    if (!ticket) {
+      return NextResponse.json({ error: "No se encontró el ticket." }, { status: 404 });
+    }
+
+    if (payload.ticketAction === "confirm_close") {
+      await db`
+        UPDATE stylehub_support_tickets
+        SET status = 'closed',
+            resolved_at = COALESCE(resolved_at, NOW()),
+            updated_at = NOW(),
+            last_message_at = NOW()
+        WHERE id = ${ticketId}
+      `;
+
+      await appendSystemMessage(ticketId, "El cliente confirmó el cierre del ticket y quedó marcado como cerrado.");
+    }
+
+    if (payload.ticketAction === "reopen") {
+      await db`
+        UPDATE stylehub_support_tickets
+        SET status = 'in_progress',
+            resolved_at = NULL,
+            updated_at = NOW(),
+            last_message_at = NOW()
+        WHERE id = ${ticketId}
+      `;
+
+      await appendSystemMessage(ticketId, "El cliente solicitó reabrir el ticket para seguimiento adicional.");
+    }
+
+    const updated = await loadTicketWithMessages(ticketId);
+    if (!updated) {
+      return NextResponse.json({ error: "No se pudo actualizar el ticket." }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      ticket: updated.ticket,
+      messages: mapMessages(updated.messages),
+      oracleReply: null,
+      needsEscalation: false,
+    });
+  }
 
   const message = payload.message?.trim();
   if (!message) {
@@ -114,7 +194,7 @@ export async function POST(request: Request) {
   const contactName = currentUser?.name || payload.contactName?.trim();
   const contactEmail = currentUser?.email || payload.contactEmail?.trim().toLowerCase();
   const contactPhone = currentUser?.phone || payload.contactPhone?.trim() || null;
-  const subject = payload.subject?.trim() || "Soporte Oracle";
+  const subject = payload.subject?.trim() || "Soporte AURA";
   const sourceRoute = payload.sourceRoute?.trim() || null;
 
   if (!contactName || !contactEmail) {
@@ -126,6 +206,7 @@ export async function POST(request: Request) {
 
   let ticketId = payload.ticketId?.trim() || null;
   let ticket = null as SupportTicket | null;
+  let isNewTicket = false;
 
   if (ticketId) {
     const existing = await loadTicketWithMessages(ticketId);
@@ -166,6 +247,7 @@ export async function POST(request: Request) {
 
     ticket = createdTicket;
     ticketId = createdTicket.id;
+    isNewTicket = true;
   }
 
   if (!ticketId) {
@@ -220,7 +302,7 @@ export async function POST(request: Request) {
     VALUES (
       ${ticketId},
       'oracle',
-      'Oracle',
+      'AURA',
       ${oracleDecision.reply},
       ${JSON.stringify({ category: oracleDecision.category, confidence: oracleDecision.confidence, needsEscalation: oracleDecision.needsEscalation })}::jsonb
     )
@@ -241,7 +323,7 @@ export async function POST(request: Request) {
       UPDATE stylehub_support_tickets
       SET status = 'escalated',
           escalated_to_admin = TRUE,
-          escalation_reason = ${oracleDecision.escalationReason || "Oracle no pudo resolver el caso automáticamente."},
+          escalation_reason = ${oracleDecision.escalationReason || "AURA no pudo resolver el caso automáticamente."},
           oracle_summary = ${oracleDecision.summary},
           oracle_confidence = ${oracleDecision.confidence},
           assigned_admin_email = ${assignedAdminEmail},
@@ -283,41 +365,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No se pudo actualizar el ticket." }, { status: 500 });
   }
 
-  if (shouldEscalate) {
-    const transcript = updated.messages.map((entry) => ({
-      role: entry.sender_role,
-      name: entry.sender_name,
-      message: entry.message,
-      createdAt: entry.created_at,
-    }));
+  const transcript = updated.messages.map((entry) => ({
+    role: entry.sender_role,
+    name: entry.sender_name,
+    message: entry.message,
+    createdAt: entry.created_at,
+  }));
 
-    const supportAdminEmail = assignedAdminEmail || getOptionalEnv("SMTP_FROM") || undefined;
+  const supportAdminEmail = assignedAdminEmail || getOptionalEnv("SUPPORT_ADMIN_EMAIL")?.trim() || getOptionalEnv("ADMIN_EMAIL")?.trim() || null;
+  const notificationSubject = isNewTicket
+    ? `Nuevo ticket de soporte #${ticketId}`
+    : shouldEscalate
+      ? `AURA escaló tu ticket #${ticketId}`
+      : `Actualización de tu ticket #${ticketId}`;
 
-    if (supportAdminEmail) {
-      await Promise.all([
-        sendSupportConversationEmail({
-          to: contactEmail,
-          subject: `Oracle escaló tu ticket #${ticketId}`,
-          ticketId,
-          contactName,
-          contactEmail,
-          route: sourceRoute,
-          summary: oracleDecision.summary,
-          conversation: transcript,
-        }),
-        sendSupportConversationEmail({
+  const notificationSummary = shouldEscalate ? oracleDecision.summary : updated.ticket.oracle_summary;
+
+  await Promise.allSettled([
+    sendSupportConversationEmail({
+      to: contactEmail,
+      subject: notificationSubject,
+      ticketId,
+      contactName,
+      contactEmail,
+      route: sourceRoute,
+      summary: notificationSummary,
+      conversation: transcript,
+    }),
+    supportAdminEmail
+      ? sendSupportConversationEmail({
           to: supportAdminEmail,
-          subject: `Nuevo ticket escalado #${ticketId}`,
+          subject: isNewTicket ? `Nuevo ticket de soporte #${ticketId}` : `Actualización de ticket #${ticketId}`,
           ticketId,
           contactName,
           contactEmail,
           route: sourceRoute,
-          summary: oracleDecision.summary,
+          summary: notificationSummary,
           conversation: transcript,
-        }),
-      ]);
-    }
-  }
+        })
+      : Promise.resolve(),
+  ]);
 
   return NextResponse.json({
     ticket: updated.ticket,

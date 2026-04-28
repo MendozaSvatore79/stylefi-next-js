@@ -139,7 +139,7 @@ export default function AdminSupportPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Soporte Oracle</CardTitle>
+          <CardTitle>Soporte AURA</CardTitle>
           <CardDescription>Tickets escalados desde el bot, con historial y respuesta del equipo administrativo.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">
@@ -209,7 +209,7 @@ export default function AdminSupportPage() {
                     <p className="text-slate-500">{selectedTicket.contact_phone || "Sin teléfono"}</p>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">IA Oracle</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">IA AURA</p>
                     <p className="mt-1 font-semibold text-slate-900">{selectedTicket.oracle_summary || "Sin resumen"}</p>
                     <p className="text-slate-500">Confianza: {selectedTicket.oracle_confidence ?? "n/a"}</p>
                     <p className="text-slate-500">Ruta: {selectedTicket.source_route || "n/a"}</p>
@@ -220,7 +220,7 @@ export default function AdminSupportPage() {
                   {messages.map((message) => (
                     <div key={message.id} className={`rounded-2xl px-3 py-2 text-sm ${message.sender_role === "admin" ? "bg-amber-50 text-amber-900" : message.sender_role === "oracle" ? "bg-white text-slate-800" : "bg-blue-600 text-white"}`}>
                       <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">
-                        {message.sender_role === "oracle" ? "Oracle" : message.sender_role === "admin" ? "Agente" : message.sender_role === "system" ? "Sistema" : "Usuario"}
+                        {message.sender_role === "oracle" ? "AURA" : message.sender_role === "admin" ? "Agente" : message.sender_role === "system" ? "Sistema" : "Usuario"}
                       </p>
                       <p>{message.message}</p>
                     </div>

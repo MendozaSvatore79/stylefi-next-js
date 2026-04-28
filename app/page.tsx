@@ -64,8 +64,6 @@ const recomendaciones = [
   },
 ];
 
-const categorias = ["Barbería", "Estética", "Uñas", "Spa", "Maquillaje"];
-
 const metricas = [
   { valor: "+1500", etiqueta: "Negocios activos" },
   { valor: "+22k", etiqueta: "Reservas al mes" },
@@ -123,62 +121,39 @@ export default async function Home() {
         <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-red-500/14 blur-3xl animate-drift" />
         <div className="absolute bottom-10 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-300/8 blur-3xl animate-float-slow" />
 
-        <div className="relative mx-auto grid w-full max-w-7xl gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-10">
+        <div className="relative mx-auto grid w-full max-w-7xl gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-start lg:gap-8">
           <div className="rounded-4xl border border-blue-950/10 bg-white/70 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.10)] backdrop-blur-md sm:p-8 lg:p-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-900/10 bg-blue-950 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/90">
+            <div className="stagger-enter inline-flex items-center gap-2 rounded-full border border-blue-900/10 bg-blue-950 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/90" style={{ animationDelay: "60ms" }}>
               <span className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_18px_rgba(239,68,68,0.65)]" />
               Agenda tecnológica para negocios de belleza
             </div>
 
-            <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase leading-[0.95] tracking-tight text-[#0d1b3d] sm:text-6xl lg:text-7xl">
+            <h1 className="stagger-enter mt-5 max-w-4xl text-4xl font-black uppercase leading-[0.95] tracking-tight text-[#0d1b3d] sm:text-6xl lg:text-7xl" style={{ animationDelay: "120ms" }}>
               Reserva belleza con una experiencia <span className="text-red-700">moderna</span>
             </h1>
 
-            <p className="mt-4 max-w-2xl text-sm text-slate-700 sm:text-base lg:text-lg">
+            <p className="stagger-enter mt-4 max-w-2xl text-sm text-slate-700 sm:text-base lg:text-lg" style={{ animationDelay: "180ms" }}>
               Un home futurista para tu sistema de citas: clientes, negocios y admin en una interfaz visual, rápida y lista para escalar.
             </p>
 
-            <div
-              suppressHydrationWarning
-              className="mt-8 flex w-full max-w-4xl flex-col gap-3 rounded-3xl border border-blue-900/10 bg-white p-3 shadow-2xl shadow-black/10 sm:flex-row sm:p-4"
-            >
-              <div className="flex h-12 items-center rounded-full bg-slate-50 px-4 shadow-lg sm:flex-[1.45]">
-                <span aria-hidden className="mr-3 text-lg text-blue-900">⌕</span>
-                <input
-                  type="text"
-                  placeholder="Buscar servicios"
-                  className="w-full border-0 bg-transparent text-sm text-slate-700 outline-none"
-                />
-                <span className="ml-3 border-l border-slate-200 pl-3 text-lg text-blue-900">⚙</span>
-              </div>
-
-              <div className="flex h-12 items-center rounded-full bg-slate-50 px-5 shadow-lg sm:flex-1">
-                <input
-                  type="text"
-                  placeholder="Buscar negocio"
-                  className="w-full border-0 bg-transparent text-sm text-slate-700 outline-none"
-                />
-              </div>
-
-              <button className="h-12 rounded-full bg-blue-700 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-xl">
-                Buscar ahora
-              </button>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {categorias.map((categoria) => (
-                <span
-                  key={categoria}
-                  className="rounded-full border border-blue-900/10 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
-                >
-                  {categoria}
-                </span>
-              ))}
+            <div className="stagger-enter mt-8 flex flex-wrap gap-3" style={{ animationDelay: "230ms" }}>
+              <Link
+                href="/iniciar-sesion"
+                className="inline-flex h-12 items-center justify-center rounded-full bg-blue-700 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-xl"
+              >
+                Iniciar y reservar
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-blue-900/15 bg-white px-6 text-sm font-semibold text-[#151138] transition hover:-translate-y-0.5 hover:bg-slate-50"
+              >
+                Crear cuenta
+              </Link>
             </div>
 
             <div className="mt-6 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
-              {metricas.map((item) => (
-                <article key={item.etiqueta} className="rounded-2xl border border-blue-900/10 bg-white p-4 text-slate-900 shadow-sm">
+              {metricas.map((item, index) => (
+                <article key={item.etiqueta} className="stagger-enter rounded-2xl border border-blue-900/10 bg-white p-4 text-slate-900 shadow-sm" style={{ animationDelay: `${280 + index * 70}ms` }}>
                   <p className="text-2xl font-black text-blue-950 sm:text-3xl">{item.valor}</p>
                   <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{item.etiqueta}</p>
                 </article>
@@ -186,10 +161,13 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-135">
-            <div className="absolute -left-4 -top-4 h-full w-full rounded-4xl border border-white/10 bg-blue-500/10 blur-xl animate-float-slow" />
-            <LiveDashboardPanel />
+          <div className="stagger-enter relative lg:pt-2" style={{ animationDelay: "220ms" }}>
+            <div className="pointer-events-none absolute -inset-5 rounded-[2.2rem] bg-blue-500/12 blur-2xl animate-drift" />
+            <div className="relative rounded-4xl border border-blue-950/10 bg-[#101126] p-4 shadow-[0_22px_55px_rgba(15,23,42,0.22)] sm:p-5 animate-float-slow">
+              <LiveDashboardPanel />
+            </div>
           </div>
+
         </div>
       </section>
 
@@ -210,7 +188,8 @@ export default async function Home() {
           {techFeatures.map((feature, index) => (
             <article
               key={feature.titulo}
-              className={`group rounded-3xl border p-5 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(37,99,235,0.16)] ${index === 0 ? "border-blue-950/20 bg-[#0a1d4a] text-white ring-1 ring-red-500/20" : "border-white/20 bg-white/75 text-slate-900"}`}
+              className={`stagger-enter group rounded-3xl border p-5 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(37,99,235,0.16)] ${index === 0 ? "border-blue-950/20 bg-[#0a1d4a] text-white ring-1 ring-red-500/20" : "border-white/20 bg-white/75 text-slate-900"}`}
+              style={{ animationDelay: `${90 + index * 70}ms` }}
             >
               <div className="flex items-center justify-between">
                 <span className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl ${index === 0 ? "bg-red-500 text-white shadow-[0_0_18px_rgba(239,68,68,0.35)]" : "bg-blue-950 text-white"}`}>
@@ -248,7 +227,8 @@ export default async function Home() {
               {recomendaciones.map((item, index) => (
                 <article
                   key={item.nombre}
-                  className="group relative isolate h-72 overflow-hidden rounded-2xl border border-white/30 bg-[#111b3f] shadow-[0_10px_22px_rgba(15,23,42,0.16)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(29,78,216,0.20)]"
+                  className="stagger-enter group relative isolate h-72 overflow-hidden rounded-2xl border border-white/30 bg-[#111b3f] shadow-[0_10px_22px_rgba(15,23,42,0.16)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(29,78,216,0.20)]"
+                  style={{ animationDelay: `${120 + index * 60}ms` }}
                 >
                   <div
                     className="absolute inset-0 bg-cover bg-center transition duration-700 group-hover:scale-105"

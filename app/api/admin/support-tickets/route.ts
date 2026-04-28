@@ -165,7 +165,7 @@ export async function PATCH(request: Request) {
   const updatedTicket = await fetchTicket(ticketId);
   const messages = await fetchMessages(ticketId);
 
-  if ((payload.action === "resolve" || payload.action === "reply") && updatedTicket) {
+  if ((payload.action === "resolve" || payload.action === "reply" || payload.action === "reopen") && updatedTicket) {
     const transcript = messages.map((entry) => ({
       role: entry.sender_role,
       name: entry.sender_name,

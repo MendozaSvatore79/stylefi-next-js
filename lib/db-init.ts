@@ -375,6 +375,8 @@ export function ensureStylehubSchema() {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           client_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,
           business_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE RESTRICT,
+          branch_id UUID REFERENCES stylehub_business_branches(id) ON DELETE SET NULL,
+          service_id UUID,
           service_name TEXT NOT NULL,
           scheduled_at TIMESTAMPTZ NOT NULL,
           status TEXT NOT NULL DEFAULT 'pending'
@@ -391,6 +393,48 @@ export function ensureStylehubSchema() {
       await db`
         ALTER TABLE stylehub_client_appointments
         ADD COLUMN IF NOT EXISTS payment_provider TEXT;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD COLUMN IF NOT EXISTS branch_id UUID;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD COLUMN IF NOT EXISTS service_id UUID;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        DROP CONSTRAINT IF EXISTS stylehub_client_appointments_branch_id_fkey;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        DROP CONSTRAINT IF EXISTS stylehub_client_appointments_service_id_fkey;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD CONSTRAINT stylehub_client_appointments_branch_id_fkey
+        FOREIGN KEY (branch_id) REFERENCES stylehub_business_branches(id) ON DELETE SET NULL;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD CONSTRAINT stylehub_client_appointments_service_id_fkey
+        FOREIGN KEY (service_id) REFERENCES stylehub_business_services(id) ON DELETE SET NULL;
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_branch_id
+        ON stylehub_client_appointments(branch_id);
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_service_id
+        ON stylehub_client_appointments(service_id);
       `;
 
       await db`

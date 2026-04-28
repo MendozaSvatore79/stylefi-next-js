@@ -61,6 +61,8 @@ export async function POST(request: Request) {
     const db = getDb();
     const payload = (await request.json()) as {
       businessUserId?: string;
+      branchId?: string | null;
+      serviceId?: string | null;
       serviceName?: string;
       scheduledAt?: string;
       totalAmount?: number;
@@ -70,6 +72,8 @@ export async function POST(request: Request) {
     };
 
     const businessUserId = payload.businessUserId?.trim();
+    const branchId = payload.branchId?.trim() || null;
+    const serviceId = payload.serviceId?.trim() || null;
     const serviceName = payload.serviceName?.trim();
     const scheduledAt = payload.scheduledAt ? new Date(payload.scheduledAt) : null;
     const totalAmount = Number(payload.totalAmount ?? 0);
@@ -99,6 +103,44 @@ export async function POST(request: Request) {
 
     if (businesses.length === 0) {
       return NextResponse.json({ error: "El negocio seleccionado no es válido." }, { status: 400 });
+    }
+
+    if (branchId) {
+      const branch = (await db`
+        SELECT id
+        FROM stylehub_business_branches
+        WHERE id = ${branchId}
+          AND business_user_id = ${businessUserId}
+          AND validation_status = 'approved'
+        LIMIT 1
+      `) as Array<{ id: string }>;
+
+      if (branch.length === 0) {
+        return NextResponse.json({ error: "La sucursal seleccionada no es válida para este negocio." }, { status: 400 });
+      }
+    }
+
+    if (serviceId) {
+      const service = branchId
+        ? ((await db`
+            SELECT id
+            FROM stylehub_business_services
+            WHERE id = ${serviceId}
+              AND business_user_id = ${businessUserId}
+              AND branch_id = ${branchId}
+            LIMIT 1
+          `) as Array<{ id: string }>)
+        : ((await db`
+            SELECT id
+            FROM stylehub_business_services
+            WHERE id = ${serviceId}
+              AND business_user_id = ${businessUserId}
+            LIMIT 1
+          `) as Array<{ id: string }>);
+
+      if (service.length === 0) {
+        return NextResponse.json({ error: "El servicio seleccionado no pertenece a la sucursal elegida." }, { status: 400 });
+      }
     }
 
     // Validar que no exista cita en el mismo horario del negocio
@@ -195,6 +237,8 @@ export async function POST(request: Request) {
       INSERT INTO stylehub_client_appointments (
         client_user_id,
         business_user_id,
+        branch_id,
+        service_id,
         service_name,
         scheduled_at,
         total_amount,
@@ -207,6 +251,8 @@ export async function POST(request: Request) {
       VALUES (
         ${auth.userId},
         ${businessUserId},
+        ${branchId},
+        ${serviceId},
         ${serviceName},
         ${scheduledAt.toISOString()},
         ${totalAmount},
