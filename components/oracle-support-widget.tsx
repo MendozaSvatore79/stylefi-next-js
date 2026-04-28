@@ -439,9 +439,46 @@ export default function OracleSupportWidget() {
 
               <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
                 {!isAuthenticated ? (
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-sm text-slate-700">
-                    <p className="font-semibold text-[#0d1b3d]">Antes de empezar</p>
-                    <p className="mt-1 text-xs text-slate-600">Si no has iniciado sesión, AURA te pedirá nombre y correo para levantar el ticket.</p>
+                  <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-sm text-slate-700">
+                    <div>
+                      <p className="font-semibold text-[#0d1b3d]">Antes de empezar</p>
+                      <p className="mt-1 text-xs text-slate-600">Si no has iniciado sesión, AURA necesita tu nombre y correo para levantar el ticket.</p>
+                    </div>
+
+                    <div className="space-y-3 rounded-2xl border border-white/70 bg-white/70 p-3">
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Nombre</span>
+                        <input
+                          type="text"
+                          value={contactName}
+                          onChange={(event) => setContactName(event.target.value)}
+                          placeholder="Tu nombre"
+                          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-blue-200 focus:ring"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Correo</span>
+                        <input
+                          type="email"
+                          value={contactEmail}
+                          onChange={(event) => setContactEmail(event.target.value)}
+                          placeholder="correo@ejemplo.com"
+                          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-blue-200 focus:ring"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Teléfono opcional</span>
+                        <input
+                          type="tel"
+                          value={contactPhone}
+                          onChange={(event) => setContactPhone(event.target.value)}
+                          placeholder="55 1234 5678"
+                          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-blue-200 focus:ring"
+                        />
+                      </label>
+                    </div>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-slate-700">
