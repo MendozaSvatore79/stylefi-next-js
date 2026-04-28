@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
@@ -14,23 +12,19 @@ type ErrorInfo = {
 const errorCopy: Record<string, ErrorInfo> = {
   AccessDenied: {
     title: "Acceso denegado",
-    description:
-      "No tienes permisos para iniciar sesión con esta cuenta. Si crees que es un error, contacta al administrador.",
+    description: "No tienes permisos para iniciar sesión con esta cuenta. Si crees que es un error, contacta al administrador.",
   },
   OAuthSignin: {
     title: "No se pudo iniciar sesión",
-    description:
-      "Ocurrió un problema al iniciar sesión con el proveedor. Inténtalo nuevamente en unos segundos.",
+    description: "Ocurrió un problema al iniciar sesión con el proveedor. Inténtalo nuevamente en unos segundos.",
   },
   OAuthCallback: {
     title: "Error al validar la sesión",
-    description:
-      "No pudimos validar tu autenticación. Vuelve a intentarlo desde la pantalla de inicio de sesión.",
+    description: "No pudimos validar tu autenticación. Vuelve a intentarlo desde la pantalla de inicio de sesión.",
   },
   default: {
     title: "No fue posible iniciar sesión",
-    description:
-      "Hubo un problema con la autenticación. Intenta de nuevo o usa otro método de acceso.",
+    description: "Hubo un problema con la autenticación. Intenta de nuevo o usa otro método de acceso.",
   },
 };
 
