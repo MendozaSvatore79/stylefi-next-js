@@ -48,7 +48,7 @@ describe("pantalla de citas del negocio", () => {
 
   it("solo ofrece los cambios de estado que el servidor permite, incluido «no asistió»", () => {
     expect(fuente).toContain("function estadosPermitidos");
-    expect(fuente).toContain('no_show: { es: "No asistió"');
+    expect(fuente).toContain("etiquetaEstado(status, language)"); // nombres en lib/estado-cita.ts (incluye «No asistió»)
     expect(fuente).not.toContain("const STATUSES");
   });
 

@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
+import { colorEstado, etiquetaEstado } from "@/lib/estado-cita";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 
@@ -706,8 +707,8 @@ export default function ClienteCitasPage() {
                     </span>
                   ) : null}
                 </p>
-                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-bold uppercase text-slate-700">
-                  {appointment.status}
+                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
+                  {etiquetaEstado(appointment.status, language)}
                 </span>
               </div>
               <p className="mt-1 text-sm text-slate-600">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/toast";
+import { etiquetaEstado } from "@/lib/estado-cita";
 import { useLanguage } from "@/lib/language-context";
 
 type Appointment = {
@@ -18,14 +19,6 @@ type Appointment = {
   first_name: string;
   last_name: string;
   email: string;
-};
-
-const ETIQUETAS: Record<Appointment["status"], { es: string; en: string }> = {
-  pending: { es: "Pendiente", en: "Pending" },
-  confirmed: { es: "Confirmada", en: "Confirmed" },
-  completed: { es: "Completada", en: "Completed" },
-  no_show: { es: "No asistió", en: "No-show" },
-  cancelled: { es: "Cancelada", en: "Cancelled" },
 };
 
 /**
@@ -171,7 +164,7 @@ export default function NegocioCitasPage() {
                   >
                     {estadosPermitidos(appointment).map((status) => (
                       <option key={status} value={status}>
-                        {ETIQUETAS[status][language === "en" ? "en" : "es"]}
+                        {etiquetaEstado(status, language)}
                       </option>
                     ))}
                   </select>
