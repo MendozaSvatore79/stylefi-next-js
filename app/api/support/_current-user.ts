@@ -12,6 +12,8 @@ export type SupportCurrentUser = {
   phone: string | null;
 } | null;
 
+// Solo clientes y negocios: los tickets de soporte no aceptan otro tipo de cuenta, así que una
+// cuenta de administración usa el soporte como visitante.
 export async function getCurrentSupportUser(): Promise<SupportCurrentUser> {
   const session = await getServerSession(authConfig);
 
@@ -30,6 +32,7 @@ export async function getCurrentSupportUser(): Promise<SupportCurrentUser> {
       SELECT id, account_type, first_name, last_name, business_name, email, phone
       FROM stylehub_users
       WHERE id = ${sessionUserId}
+        AND account_type IN ('cliente', 'negocio')
       LIMIT 1
     `) as Array<{
       id: string;
@@ -55,6 +58,7 @@ export async function getCurrentSupportUser(): Promise<SupportCurrentUser> {
     SELECT id, account_type, first_name, last_name, business_name, email, phone
     FROM stylehub_users
     WHERE email = ${email}
+      AND account_type IN ('cliente', 'negocio')
     LIMIT 1
   `) as Array<{
     id: string;

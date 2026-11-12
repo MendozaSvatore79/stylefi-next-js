@@ -16,9 +16,29 @@ SMTP_USER="usuario@tu-dominio.com"
 SMTP_PASSWORD="tu-password"
 SMTP_FROM="STYLEHUB <no-reply@stylehub.com>"
 SMTP_SECURE="false"
-ADMIN_EMAIL="admin@stylehub.com"
-ADMIN_PASSWORD="tu-contrasena-segura"
 ```
+
+### Cuentas de administración
+
+Las cuentas de administración son usuarios de la base con tipo `admin` (ya no se usan
+`ADMIN_EMAIL`/`ADMIN_PASSWORD`). Para crear una, o ponerle contraseña nueva:
+
+```bash
+npm run crear-admin -- correo@dominio.com "Nombre"
+```
+
+Lee `DATABASE_URL` de `.env.local`. Si no defines `CREAR_ADMIN_PASSWORD` (12+ caracteres), genera una
+contraseña y la muestra una sola vez. Todas las rutas de `app/api/admin/` exigen esa sesión
+(`requireAdmin()` en `lib/admin-auth.ts`).
+
+### Pruebas
+
+```bash
+npm test
+```
+
+Usan Vitest y no necesitan base de datos. `tests/admin-auth.test.ts` descubre todas las rutas de
+`app/api/admin/` y falla si alguna no exige una sesión de administración.
 
 ### Esquema de Neon
 

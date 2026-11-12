@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
@@ -41,6 +42,11 @@ function normalizeEmail(value: unknown) {
 }
 
 export async function GET(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   try {
     await ensureStylehubSchema();
     const db = getDb();
@@ -70,6 +76,7 @@ export async function GET(request: Request) {
         created_at,
         updated_at
       FROM stylehub_users
+      WHERE account_type <> 'admin'
       ORDER BY created_at DESC
     `) as Array<{
       id: string;
@@ -95,6 +102,7 @@ export async function GET(request: Request) {
         COUNT(*) FILTER (WHERE email_verified = TRUE)::int AS total_verified,
         COUNT(*) FILTER (WHERE is_banned = TRUE)::int AS total_banned
       FROM stylehub_users
+      WHERE account_type <> 'admin'
     `) as Array<{
       total_users: number;
       total_clients: number;
@@ -182,6 +190,11 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   try {
     await ensureStylehubSchema();
     const db = getDb();
@@ -210,6 +223,7 @@ export async function PATCH(request: Request) {
           email = ${email},
           updated_at = NOW()
         WHERE id = ${userId}
+          AND account_type <> 'admin'
         RETURNING id
       `) as Array<{ id: string }>;
 
@@ -229,6 +243,7 @@ export async function PATCH(request: Request) {
           ban_reason = ${toNullableText(payload.banReason)},
           updated_at = NOW()
         WHERE id = ${userId}
+          AND account_type <> 'admin'
         RETURNING id
       `) as Array<{ id: string }>;
 
@@ -248,6 +263,7 @@ export async function PATCH(request: Request) {
           ban_reason = NULL,
           updated_at = NOW()
         WHERE id = ${userId}
+          AND account_type <> 'admin'
         RETURNING id
       `) as Array<{ id: string }>;
 
@@ -272,6 +288,11 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   try {
     await ensureStylehubSchema();
     const db = getDb();
@@ -286,6 +307,7 @@ export async function DELETE(request: Request) {
     const deleted = (await db`
       DELETE FROM stylehub_users
       WHERE id = ${userId}
+        AND account_type <> 'admin'
       RETURNING id
     `) as Array<{ id: string }>;
 

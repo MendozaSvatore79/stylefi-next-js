@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
-import { getOptionalEnv } from "@/lib/env";
 import { verifyPassword } from "@/lib/password";
 
 export const runtime = "nodejs";
@@ -16,10 +15,6 @@ function toText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalize(value: string | undefined): string | undefined {
-  return value?.trim().replace(/^['\"]+|['\"]+$/g, "");
-}
-
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as LoginPayload;
@@ -28,18 +23,6 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return NextResponse.json({ error: "Ingresa correo y contraseña." }, { status: 400 });
-    }
-
-    const adminEmail = normalize(getOptionalEnv("ADMIN_EMAIL"));
-    const adminPassword = normalize(getOptionalEnv("ADMIN_PASSWORD"));
-
-    if (adminEmail && adminPassword && email === adminEmail.toLowerCase() && password === adminPassword) {
-      return NextResponse.json({
-        success: true,
-        role: "admin",
-        redirectTo: "/dashboard/admin",
-        message: "Bienvenido, administrador.",
-      });
     }
 
     const db = getDb();
@@ -54,7 +37,7 @@ export async function POST(request: Request) {
       id: string;
       email: string;
       password_hash: string;
-      account_type: "cliente" | "negocio";
+      account_type: "cliente" | "negocio" | "admin";
       email_verified: boolean;
       is_banned: boolean;
     }>;
@@ -77,7 +60,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "La contraseña es incorrecta." }, { status: 401 });
     }
 
-    const redirectTo = user.account_type === "negocio" ? "/dashboard/negocio" : "/dashboard/cliente";
+    // Los administradores son cuentas de la base (npm run crear-admin) y entran con sesión de
+    // NextAuth como todos; ya no se comparan contra ADMIN_EMAIL/ADMIN_PASSWORD.
+    const redirectTo =
+      user.account_type === "admin"
+        ? "/dashboard/admin"
+        : user.account_type === "negocio"
+          ? "/dashboard/negocio"
+          : "/dashboard/cliente";
 
     return NextResponse.json({
       success: true,

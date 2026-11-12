@@ -1,8 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- account_type 'admin': cuentas de administración, creadas con `npm run crear-admin`.
+
 CREATE TABLE IF NOT EXISTS stylehub_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_type TEXT NOT NULL CHECK (account_type IN ('cliente', 'negocio')),
+  account_type TEXT NOT NULL CHECK (account_type IN ('cliente', 'negocio', 'admin')),
   first_name TEXT,
   last_name TEXT,
   business_name TEXT,

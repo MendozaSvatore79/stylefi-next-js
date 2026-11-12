@@ -281,7 +281,6 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({
           branchId,
           status,
-          reviewer: "admin-panel",
           notes: status === "approved" ? "Información verificada por administración." : "Rechazada por revisión administrativa.",
         }),
       });

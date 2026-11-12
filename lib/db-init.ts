@@ -14,7 +14,7 @@ export function ensureStylehubSchema() {
       await db`
         CREATE TABLE IF NOT EXISTS stylehub_users (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          account_type TEXT NOT NULL CHECK (account_type IN ('cliente', 'negocio')),
+          account_type TEXT NOT NULL CHECK (account_type IN ('cliente', 'negocio', 'admin')),
           first_name TEXT,
           last_name TEXT,
           business_name TEXT,
@@ -39,6 +39,24 @@ export function ensureStylehubSchema() {
       await db`
         ALTER TABLE stylehub_users
         ADD COLUMN IF NOT EXISTS onboarding_seen BOOLEAN NOT NULL DEFAULT FALSE;
+      `;
+
+      // Cuentas de administración (npm run crear-admin). En bases creadas antes, la restricción
+      // solo aceptaba cliente y negocio: se reemplaza una sola vez por la que también acepta admin
+      // (condicional, para no quitarla y volver a ponerla en cada arranque).
+      await db`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'stylehub_users_account_type_check'
+              AND pg_get_constraintdef(oid) LIKE '%admin%'
+          ) THEN
+            ALTER TABLE stylehub_users DROP CONSTRAINT IF EXISTS stylehub_users_account_type_check;
+            ALTER TABLE stylehub_users ADD CONSTRAINT stylehub_users_account_type_check
+              CHECK (account_type IN ('cliente', 'negocio', 'admin'));
+          END IF;
+        END $$;
       `;
 
       await db`

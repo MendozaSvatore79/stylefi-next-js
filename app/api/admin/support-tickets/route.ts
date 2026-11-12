@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 import { sendSupportConversationEmail } from "@/lib/email";
@@ -60,6 +61,11 @@ async function fetchTicket(ticketId: string) {
 }
 
 export async function GET(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   await ensureStylehubSchema();
   const db = getDb();
 
@@ -98,6 +104,11 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   await ensureStylehubSchema();
   const db = getDb();
 
@@ -105,7 +116,6 @@ export async function PATCH(request: Request) {
     ticketId?: string;
     action?: "reply" | "resolve" | "reopen";
     message?: string;
-    adminEmail?: string;
   };
 
   const ticketId = payload.ticketId?.trim();
@@ -118,7 +128,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "No se encontró el ticket." }, { status: 404 });
   }
 
-  const adminEmail = payload.adminEmail?.trim().toLowerCase() || ticket.assigned_admin_email || null;
+  // El administrador que responde es el de la sesión, no uno indicado en el cuerpo de la petición
+  const adminEmail = auth.admin.email;
 
   if (payload.action === "reply") {
     const message = payload.message?.trim();
