@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import PlatformOnboardingModal from "@/components/platform-onboarding-modal";
-import { colorEstado, etiquetaEstado } from "@/lib/estado-cita";
+import { colorEstado, etiquetaEstado, fechaHoraCita } from "@/lib/estado-cita";
 import { useLanguage } from "@/lib/language-context";
 
 type Appointment = {
@@ -113,7 +113,7 @@ export default function ClienteDashboardPage() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-slate-800">{appointment.service_name}</p>
-                    <p className="text-sm text-slate-500">{new Date(appointment.scheduled_at).toLocaleString("es-MX")}</p>
+                    <p className="text-sm text-slate-500">{fechaHoraCita(appointment.scheduled_at, language)}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
                     {etiquetaEstado(appointment.status, language)}

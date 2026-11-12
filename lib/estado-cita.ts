@@ -1,3 +1,5 @@
+import { ZONA_HORARIA } from "@/lib/availability";
+
 /** Estados de una cita: nombre para mostrar y color de la etiqueta (mismos en todas las pantallas). */
 
 export const ESTADOS_CITA = ["pending", "confirmed", "completed", "no_show", "cancelled"] as const;
@@ -45,4 +47,13 @@ export function puedeModificarCliente(
   if (cita.status !== "pending" && cita.status !== "confirmed") return "cerrada";
   const inicio = new Date(cita.scheduled_at).getTime();
   return inicio > ahora.getTime() + PLAZO_CLIENTE_MIN * 60_000 ? "permitido" : "fuera-de-plazo";
+}
+
+/** Fecha y hora de la cita en la zona del negocio, formato corto: "14 nov 2026, 10:00 a.m.". */
+export function fechaHoraCita(fecha: string | Date, language: string): string {
+  return new Date(fecha).toLocaleString(language === "en" ? "en-US" : "es-MX", {
+    timeZone: ZONA_HORARIA,
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }

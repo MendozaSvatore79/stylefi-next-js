@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
-import { colorEstado, etiquetaEstado, puedeModificarCliente } from "@/lib/estado-cita";
+import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@/lib/estado-cita";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 
@@ -715,7 +715,7 @@ export default function ClienteCitasPage() {
                 {(appointment.business_name || `${appointment.first_name ?? ""} ${appointment.last_name ?? ""}`.trim()) ||
                   (language === "en" ? "Business" : "Negocio")}
               </p>
-              <p className="mt-1 text-sm text-slate-600">{new Date(appointment.scheduled_at).toLocaleString()}</p>
+              <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
               <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
 
               {appointment.notes ? (

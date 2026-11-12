@@ -53,6 +53,6 @@ describe("pantalla de citas del negocio", () => {
   });
 
   it("muestra la hora en la zona del negocio", () => {
-    expect(fuente).toContain('timeZone: "America/Mexico_City"');
+    expect(fuente).toContain("fechaHoraCita(appointment.scheduled_at, language)"); // zona del negocio, en lib/estado-cita.ts
   });
 });

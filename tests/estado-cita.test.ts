@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { colorEstado, ESTADOS_CITA, etiquetaEstado, PLAZO_CLIENTE_MIN, puedeModificarCliente } from "@/lib/estado-cita";
+import { colorEstado, ESTADOS_CITA, etiquetaEstado, fechaHoraCita, PLAZO_CLIENTE_MIN, puedeModificarCliente } from "@/lib/estado-cita";
 
 const leer = (archivo: string) => readFileSync(path.resolve(import.meta.dirname, "..", archivo), "utf8");
 
@@ -80,4 +80,24 @@ describe("puedeModificarCliente", () => {
     expect(fuente.indexOf("handleCancelAppointment(appointment.id)")).toBeGreaterThan(guardia);
     expect(fuente).toContain("Faltan menos de 2 horas: para cambiarla, comunícate con el negocio.");
   });
+});
+
+describe("fechaHoraCita", () => {
+  it("usa la hora de México y formato corto, sin segundos", () => {
+    const fecha = "2026-11-14T16:00:00Z"; // 10:00 en Ciudad de México
+    const es = fechaHoraCita(fecha, "es");
+    expect(es).toMatch(/14 nov 2026/);
+    expect(es).toMatch(/10:00/);
+    expect(es).not.toMatch(/10:00:00/);
+    expect(fechaHoraCita(fecha, "en")).toMatch(/Nov 14, 2026.*10:00/);
+  });
+
+  it.each(["app/dashboard/cliente/citas/page.tsx", "app/dashboard/cliente/page.tsx", "app/dashboard/negocio/citas/page.tsx"])(
+    "%s muestra la hora de la cita con fechaHoraCita",
+    (archivo) => {
+      const fuente = leer(archivo);
+      expect(fuente).toContain("fechaHoraCita(appointment.scheduled_at, language)");
+      expect(fuente).not.toMatch(/new Date\(appointment\.scheduled_at\)\.toLocale/);
+    },
+  );
 });
