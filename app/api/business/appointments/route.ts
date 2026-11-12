@@ -29,11 +29,16 @@ export async function GET() {
         a.total_amount,
         a.notes,
         a.created_at,
+        a.ends_at,
+        a.payment_provider,
         c.first_name,
         c.last_name,
-        c.email
+        c.email,
+        st.first_name AS stylist_first_name,
+        st.last_name AS stylist_last_name
       FROM stylehub_client_appointments a
       JOIN stylehub_users c ON c.id = a.client_user_id
+      LEFT JOIN stylehub_business_stylists st ON st.id = a.stylist_id
       WHERE a.business_user_id = ${auth.userId}
       ORDER BY a.scheduled_at ASC
     `;

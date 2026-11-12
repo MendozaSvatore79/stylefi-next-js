@@ -42,3 +42,17 @@ describe("pantallas de citas", () => {
     expect(fuente).toContain('params.set("stylistId", stylistId)');
   });
 });
+
+describe("pantalla de citas del negocio", () => {
+  const fuente = leer("app/dashboard/negocio/citas/page.tsx");
+
+  it("solo ofrece los cambios de estado que el servidor permite, incluido «no asistió»", () => {
+    expect(fuente).toContain("function estadosPermitidos");
+    expect(fuente).toContain('no_show: { es: "No asistió"');
+    expect(fuente).not.toContain("const STATUSES");
+  });
+
+  it("muestra la hora en la zona del negocio", () => {
+    expect(fuente).toContain('timeZone: "America/Mexico_City"');
+  });
+});
