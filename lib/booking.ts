@@ -1,3 +1,4 @@
+import { PLAZO_CLIENTE_MIN } from "@/lib/estado-cita";
 import {
   DURACION_POR_DEFECTO,
   type EstilistaDelDia,
@@ -130,8 +131,8 @@ export async function disponibilidad(
 
 // --- Reservar, cancelar y reagendar -----------------------------------------------------------
 
-/** Plazo del cliente para cancelar o reagendar (decisión de producto del 2026-11-12). */
-export const PLAZO_CLIENTE_MIN = 120;
+// Plazo del cliente para cancelar o reagendar: vive en lib/estado-cita.ts para que la pantalla use el mismo.
+export { PLAZO_CLIENTE_MIN };
 
 export class HorarioNoDisponible extends Error {
   constructor() {
