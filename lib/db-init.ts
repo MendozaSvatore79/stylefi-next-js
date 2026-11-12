@@ -682,6 +682,112 @@ export function ensureStylehubSchema() {
         ON stylehub_live_dashboard_modules(path_prefix);
       `;
 
+      // --- Motor de citas (cambio 4): servicios por estilista, horario semanal, ausencias, y citas con
+      // estilista, hora de fin y zona horaria. Ver lib/availability.ts y lib/booking.ts.
+      await db`
+        CREATE TABLE IF NOT EXISTS stylehub_stylist_services (
+          stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+          service_id UUID NOT NULL REFERENCES stylehub_business_services(id) ON DELETE CASCADE,
+          PRIMARY KEY (stylist_id, service_id)
+        );
+      `;
+
+      // day_of_week: 0 = lunes … 6 = domingo. El descanso es el hueco entre dos bloques del mismo día.
+      await db`
+        CREATE TABLE IF NOT EXISTS stylehub_stylist_schedule_blocks (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+          day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+          start_time TIME NOT NULL,
+          end_time TIME NOT NULL,
+          CHECK (start_time < end_time)
+        );
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_schedule_blocks_stylist
+        ON stylehub_stylist_schedule_blocks(stylist_id, day_of_week);
+      `;
+
+      await db`
+        CREATE TABLE IF NOT EXISTS stylehub_stylist_absences (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+          starts_at TIMESTAMPTZ NOT NULL,
+          ends_at TIMESTAMPTZ NOT NULL,
+          reason TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          CHECK (starts_at < ends_at)
+        );
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_stylist_absences_stylist
+        ON stylehub_stylist_absences(stylist_id, starts_at);
+      `;
+
+      // Citas: estilista (RESTRICT: un estilista con citas no se borra), fin y zona horaria del negocio
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD COLUMN IF NOT EXISTS stylist_id UUID REFERENCES stylehub_business_stylists(id) ON DELETE RESTRICT,
+        ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS time_zone TEXT NOT NULL DEFAULT 'America/Mexico_City';
+      `;
+
+      // Citas anteriores: fin = inicio + duración del servicio (30 min si no tiene)
+      await db`
+        UPDATE stylehub_client_appointments a
+        SET ends_at = a.scheduled_at + make_interval(mins => COALESCE(s.duration_minutes, 30))
+        FROM (SELECT a2.id, sv.duration_minutes
+              FROM stylehub_client_appointments a2
+              LEFT JOIN stylehub_business_services sv ON sv.id = a2.service_id
+              WHERE a2.ends_at IS NULL) s
+        WHERE a.id = s.id;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ALTER COLUMN ends_at SET NOT NULL;
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_stylist
+        ON stylehub_client_appointments(stylist_id, scheduled_at);
+      `;
+
+      // Estado "no asistió" (se reemplaza la restricción una sola vez)
+      await db`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'stylehub_client_appointments_status_check'
+              AND pg_get_constraintdef(oid) LIKE '%no_show%'
+          ) THEN
+            ALTER TABLE stylehub_client_appointments DROP CONSTRAINT IF EXISTS stylehub_client_appointments_status_check;
+            ALTER TABLE stylehub_client_appointments ADD CONSTRAINT stylehub_client_appointments_status_check
+              CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled', 'no_show'));
+          END IF;
+        END $$;
+      `;
+
+      // Sin citas encimadas del mismo estilista (todas menos las canceladas), en la propia base.
+      // Es la segunda capa; la primera es el bloqueo dentro de la transacción (lib/booking.ts).
+      // Si la extensión btree_gist no estuviera disponible, la app sigue arrancando con la primera capa.
+      await db`
+        DO $$
+        BEGIN
+          CREATE EXTENSION IF NOT EXISTS btree_gist;
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stylehub_appointments_no_overlap') THEN
+            ALTER TABLE stylehub_client_appointments ADD CONSTRAINT stylehub_appointments_no_overlap
+              EXCLUDE USING gist (stylist_id WITH =, tstzrange(scheduled_at, ends_at, '[)') WITH &&)
+              WHERE (stylist_id IS NOT NULL AND status <> 'cancelled');
+          END IF;
+        EXCEPTION WHEN OTHERS THEN
+          RAISE WARNING 'No se pudo crear stylehub_appointments_no_overlap: %', SQLERRM;
+        END $$;
+      `;
+
       // Archivos subidos (lib/storage.ts): comprobantes privados e imágenes públicas, hasta 4 MB
       await db`
         CREATE TABLE IF NOT EXISTS stylehub_files (

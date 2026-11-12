@@ -156,3 +156,36 @@ CREATE TABLE IF NOT EXISTS stylehub_files (
 );
 
 CREATE INDEX IF NOT EXISTS idx_stylehub_files_owner ON stylehub_files(owner_user_id);
+
+-- Motor de citas (lib/availability.ts y lib/booking.ts). En una base existente estas tablas y
+-- columnas las crea ensureStylehubSchema(); aquí quedan como referencia.
+CREATE TABLE IF NOT EXISTS stylehub_stylist_services (
+  stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+  service_id UUID NOT NULL REFERENCES stylehub_business_services(id) ON DELETE CASCADE,
+  PRIMARY KEY (stylist_id, service_id)
+);
+
+-- day_of_week: 0 = lunes … 6 = domingo; el descanso es el hueco entre bloques del mismo día
+CREATE TABLE IF NOT EXISTS stylehub_stylist_schedule_blocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+  day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  CHECK (start_time < end_time)
+);
+
+CREATE TABLE IF NOT EXISTS stylehub_stylist_absences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (starts_at < ends_at)
+);
+
+-- Citas: stylist_id UUID REFERENCES stylehub_business_stylists(id) ON DELETE RESTRICT,
+--        ends_at TIMESTAMPTZ NOT NULL, time_zone TEXT NOT NULL DEFAULT 'America/Mexico_City',
+--        status también acepta 'no_show', y la restricción stylehub_appointments_no_overlap
+--        (btree_gist) impide citas encimadas del mismo estilista salvo las canceladas.

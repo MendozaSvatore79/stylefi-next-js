@@ -262,6 +262,13 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
+    // 23503: el estilista tiene citas (stylist_id ON DELETE RESTRICT)
+    if ((error as { code?: string }).code === "23503") {
+      return NextResponse.json(
+        { error: "Este estilista tiene citas registradas y no se puede borrar. Márcalo como no disponible." },
+        { status: 409 },
+      );
+    }
     console.error(error);
     return NextResponse.json({ error: "No se pudo eliminar el estilista." }, { status: 500 });
   }
