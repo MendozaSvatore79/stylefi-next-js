@@ -1,0 +1,25 @@
+# PostgreSQL para desarrollo local (misma versión mayor que usaremos en AWS RDS).
+#   npm run db:arriba   → enciende la base (los datos quedan en el volumen stylefi-pg)
+#   npm run db:abajo    → la apaga sin borrar datos
+# Solo escucha en 127.0.0.1: la contraseña de abajo es de desarrollo, no se usa en ningún otro lado.
+services:
+  postgres:
+    image: postgres:17
+    container_name: stylefi-postgres
+    environment:
+      POSTGRES_USER: stylefi
+      POSTGRES_PASSWORD: stylefi-local
+      POSTGRES_DB: stylefi
+      TZ: UTC
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - stylefi-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stylefi -d stylefi"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  stylefi-pg:

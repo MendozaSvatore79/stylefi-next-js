@@ -74,7 +74,7 @@ export async function GET(request: Request) {
         AND br.id IS NOT NULL
       `;
 
-      const business = (result as Array<{ id: string } & Record<string, unknown>>)[0];
+      const business = (result as unknown as Array<{ id: string } & Record<string, unknown>>)[0];
 
       if (!business) {
         return NextResponse.json({ error: "Negocio no encontrado" }, { status: 404 });
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       `;
 
       const stylists = await db`
-        SELECT st.id, st.first_name, st.last_name, st.email, st.specialization, st.years_experience, st.image_url, st.available, st.branch_id,
+        SELECT st.id, st.first_name, st.last_name, st.specialization, st.years_experience, st.image_url, st.available, st.branch_id,
           COALESCE((SELECT array_agg(ss.service_id) FROM stylehub_stylist_services ss WHERE ss.stylist_id = st.id), '{}') AS service_ids
         FROM stylehub_business_stylists st
         JOIN stylehub_business_branches br ON br.id = st.branch_id

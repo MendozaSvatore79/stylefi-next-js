@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import PlatformOnboardingModal from "@/components/platform-onboarding-modal";
+import { colorEstado, etiquetaEstado, fechaHoraCita } from "@/lib/estado-cita";
 import { useLanguage } from "@/lib/language-context";
 
 type Appointment = {
   id: string;
   service_name: string;
   scheduled_at: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status: string;
   total_amount: string;
 };
 
@@ -19,7 +20,7 @@ type PaymentMethod = {
 };
 
 export default function ClienteDashboardPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -112,18 +113,10 @@ export default function ClienteDashboardPage() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-slate-800">{appointment.service_name}</p>
-                    <p className="text-sm text-slate-500">{new Date(appointment.scheduled_at).toLocaleString("es-MX")}</p>
+                    <p className="text-sm text-slate-500">{fechaHoraCita(appointment.scheduled_at, language)}</p>
                   </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${
-                      appointment.status === "confirmed"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : appointment.status === "pending"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-100 text-slate-800"
-                    }`}
-                  >
-                    {appointment.status}
+                  <span className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
+                    {etiquetaEstado(appointment.status, language)}
                   </span>
                 </div>
               ))}

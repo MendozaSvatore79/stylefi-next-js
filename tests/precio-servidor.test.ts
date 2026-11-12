@@ -30,7 +30,7 @@ vi.mock("@/lib/db", () => ({
       estado.queries.push(q);
       return Promise.resolve(responder(q));
     };
-    sql.transaction = (consultas: Promise<unknown[]>[]) => Promise.all(consultas);
+    sql.begin = (fn: (tx: typeof sql) => Promise<unknown[]>[]) => Promise.all(fn(sql));
     return sql;
   },
 }));

@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
+import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@/lib/estado-cita";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 
@@ -706,47 +707,51 @@ export default function ClienteCitasPage() {
                     </span>
                   ) : null}
                 </p>
-                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-bold uppercase text-slate-700">
-                  {appointment.status}
+                <span className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
+                  {etiquetaEstado(appointment.status, language)}
                 </span>
               </div>
               <p className="mt-1 text-sm text-slate-600">
                 {(appointment.business_name || `${appointment.first_name ?? ""} ${appointment.last_name ?? ""}`.trim()) ||
                   (language === "en" ? "Business" : "Negocio")}
               </p>
-              <p className="mt-1 text-sm text-slate-600">{new Date(appointment.scheduled_at).toLocaleString()}</p>
+              <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
               <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
 
               {appointment.notes ? (
                 <p className="mt-1 text-xs text-slate-500">{language === "en" ? "Notes:" : "Notas:"} {appointment.notes}</p>
               ) : null}
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => openReschedule(appointment)}
-                  disabled={
-                    appointment.status === "completed" ||
-                    appointment.status === "cancelled" ||
-                    cancellingAppointmentId === appointment.id
-                  }
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-indigo-300 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {language === "en" ? "Reschedule" : "Reagendar"}
-                </button>
+              {puedeModificarCliente(appointment) === "fuera-de-plazo" ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  {language === "en"
+                    ? "Less than 2 hours to go: to change it, contact the business."
+                    : "Faltan menos de 2 horas: para cambiarla, comunícate con el negocio."}
+                </p>
+              ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => void handleCancelAppointment(appointment.id)}
-                  disabled={
-                    appointment.status === "completed" ||
-                    appointment.status === "cancelled" ||
-                    cancellingAppointmentId === appointment.id
-                  }
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {cancellingAppointmentId === appointment.id ? (language === "en" ? "Cancelling..." : "Cancelando...") : (language === "en" ? "Cancel appointment" : "Cancelar cita")}
-                </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {puedeModificarCliente(appointment) === "permitido" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openReschedule(appointment)}
+                      disabled={cancellingAppointmentId === appointment.id}
+                      className="inline-flex h-9 items-center justify-center rounded-lg border border-indigo-300 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {language === "en" ? "Reschedule" : "Reagendar"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => void handleCancelAppointment(appointment.id)}
+                      disabled={cancellingAppointmentId === appointment.id}
+                      className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {cancellingAppointmentId === appointment.id ? (language === "en" ? "Cancelling..." : "Cancelando...") : (language === "en" ? "Cancel appointment" : "Cancelar cita")}
+                    </button>
+                  </>
+                ) : null}
 
                 <button
                   type="button"

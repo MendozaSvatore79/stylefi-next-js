@@ -23,7 +23,7 @@ export function generarPassword() {
 
 /**
  * Devuelve "creada" o "actualizada".
- * @param {(strings: TemplateStringsArray, ...values: unknown[]) => Promise<any[]>} db función de consulta con plantillas (la de @neondatabase/serverless)
+ * @param {(strings: TemplateStringsArray, ...values: unknown[]) => Promise<any[]>} db función de consulta con plantillas (la del cliente postgres)
  * @param {{ email: string, nombre?: string, password: string }} datos
  */
 export async function crearAdmin(db, { email, nombre, password }) {
@@ -83,11 +83,15 @@ async function main() {
     console.error("Falta DATABASE_URL (en .env.local).");
     process.exit(2);
   }
-  const { neon } = await import("@neondatabase/serverless");
+  const { default: postgres } = await import("postgres");
+  const url = process.env.DATABASE_URL;
+  const local = ["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname.replace(/^\[|\]$/g, ""));
+  const sql = postgres(url, { max: 1, connect_timeout: 10, ssl: local ? false : "require" });
   const generada = !process.env.CREAR_ADMIN_PASSWORD;
   const password = process.env.CREAR_ADMIN_PASSWORD || generarPassword();
+  let codigo = 0;
   try {
-    const resultado = await crearAdmin(neon(process.env.DATABASE_URL), { email, nombre, password });
+    const resultado = await crearAdmin(sql, { email, nombre, password });
     console.log(`Cuenta de administración ${resultado}: ${email.trim().toLowerCase()}`);
     if (generada) {
       console.log(`Contraseña (se muestra solo esta vez, guárdala en tu gestor): ${password}`);
@@ -98,8 +102,11 @@ async function main() {
     } else {
       console.error(error instanceof Error ? error.message : error);
     }
-    process.exit(1);
+    codigo = 1;
+  } finally {
+    await sql.end({ timeout: 5 });
   }
+  process.exit(codigo);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

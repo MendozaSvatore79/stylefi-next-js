@@ -38,9 +38,9 @@ export async function validarServiciosDelNegocio(db: SqlTx, businessUserId: stri
 
 /** Reemplaza los servicios del estilista (ya validados), en una transacción. */
 export async function reemplazarServiciosDelEstilista(db: SqlTx, stylistId: string, ids: string[]) {
-  await db.transaction([
-    db`DELETE FROM stylehub_stylist_services WHERE stylist_id = ${stylistId}`,
-    db`
+  await db.begin((tx) => [
+    tx`DELETE FROM stylehub_stylist_services WHERE stylist_id = ${stylistId}`,
+    tx`
       INSERT INTO stylehub_stylist_services (stylist_id, service_id)
       SELECT ${stylistId}::uuid, unnest(${ids}::uuid[])
     `,
@@ -85,9 +85,9 @@ export async function leerHorario(db: SqlTx, stylistId: string) {
 
 /** Reemplaza el horario semanal completo, en una transacción. */
 export async function guardarHorario(db: SqlTx, stylistId: string, bloques: BloqueEntrada[]) {
-  await db.transaction([
-    db`DELETE FROM stylehub_stylist_schedule_blocks WHERE stylist_id = ${stylistId}`,
-    db`
+  await db.begin((tx) => [
+    tx`DELETE FROM stylehub_stylist_schedule_blocks WHERE stylist_id = ${stylistId}`,
+    tx`
       INSERT INTO stylehub_stylist_schedule_blocks (stylist_id, day_of_week, start_time, end_time)
       SELECT ${stylistId}::uuid, d, s, e
       FROM unnest(${bloques.map((b) => b.dayOfWeek)}::smallint[], ${bloques.map((b) => b.start)}::time[], ${bloques.map((b) => b.end)}::time[])

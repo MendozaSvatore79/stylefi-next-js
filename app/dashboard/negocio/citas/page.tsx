@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/toast";
+import { etiquetaEstado, fechaHoraCita } from "@/lib/estado-cita";
 import { useLanguage } from "@/lib/language-context";
 
 type Appointment = {
@@ -20,14 +21,6 @@ type Appointment = {
   email: string;
 };
 
-const ETIQUETAS: Record<Appointment["status"], { es: string; en: string }> = {
-  pending: { es: "Pendiente", en: "Pending" },
-  confirmed: { es: "Confirmada", en: "Confirmed" },
-  completed: { es: "Completada", en: "Completed" },
-  no_show: { es: "No asistió", en: "No-show" },
-  cancelled: { es: "Cancelada", en: "Cancelled" },
-};
-
 /**
  * Cambios permitidos (los mismos que valida el servidor): una cita cancelada, completada o "no asistió"
  * ya no cambia; "confirmada" solo desde "pendiente"; "completada" y "no asistió" solo después de su hora.
@@ -42,9 +35,6 @@ function estadosPermitidos(cita: Appointment): Array<Appointment["status"]> {
     "cancelled" as const,
   ];
 }
-
-const fechaHora = (iso: string, en: boolean) =>
-  new Date(iso).toLocaleString(en ? "en-US" : "es-MX", { timeZone: "America/Mexico_City", dateStyle: "medium", timeStyle: "short" });
 
 export default function NegocioCitasPage() {
   const { showToast } = useToast();
@@ -157,7 +147,7 @@ export default function NegocioCitasPage() {
                     {language === "en" ? "Client:" : "Cliente:"} {appointment.first_name} {appointment.last_name}
                   </p>
                   <p className="text-sm text-slate-600">{appointment.email}</p>
-                  <p className="mt-1 text-sm text-slate-600">{fechaHora(appointment.scheduled_at, language === "en")}</p>
+                  <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
                   <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
                 </div>
 
@@ -171,7 +161,7 @@ export default function NegocioCitasPage() {
                   >
                     {estadosPermitidos(appointment).map((status) => (
                       <option key={status} value={status}>
-                        {ETIQUETAS[status][language === "en" ? "en" : "es"]}
+                        {etiquetaEstado(status, language)}
                       </option>
                     ))}
                   </select>
