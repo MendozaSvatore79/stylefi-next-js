@@ -707,7 +707,7 @@ export default function ClienteCitasPage() {
                     </span>
                   ) : null}
                 </p>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
+                <span className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
                   {etiquetaEstado(appointment.status, language)}
                 </span>
               </div>

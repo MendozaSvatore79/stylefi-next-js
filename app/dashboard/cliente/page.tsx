@@ -115,7 +115,7 @@ export default function ClienteDashboardPage() {
                     <p className="font-semibold text-slate-800">{appointment.service_name}</p>
                     <p className="text-sm text-slate-500">{fechaHoraCita(appointment.scheduled_at, language)}</p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
+                  <span className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold uppercase ${colorEstado(appointment.status)}`}>
                     {etiquetaEstado(appointment.status, language)}
                   </span>
                 </div>
