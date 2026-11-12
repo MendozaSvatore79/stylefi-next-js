@@ -19,6 +19,7 @@
     "db:arriba": "docker compose up -d --wait postgres",
     "db:abajo": "docker compose stop postgres",
     "api:docker": "docker compose --profile api up -d --build --wait api",
-    "dev:api": "npm run dev -w @stylefi/api"
+    "dev:api": "npm run dev -w @stylefi/api",
+    "db:migrar": "npm run db:migrar -w @stylefi/api --"
   }
 }

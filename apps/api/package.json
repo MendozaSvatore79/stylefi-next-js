@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "prebuild": "npm run build -w @stylefi/shared",
     "predev": "npm run build -w @stylefi/shared",
-    "pretest": "npm run build -w @stylefi/shared"
+    "pretest": "npm run build -w @stylefi/shared",
+    "db:migrar": "node --env-file-if-exists=.env.local dist/db/migrar.js",
+    "predb:migrar": "nest build",
+    "db:generar": "drizzle-kit generate"
   },
   "dependencies": {
     "@nestjs/common": "12.3.2",
