@@ -3,6 +3,9 @@
 #   npm run db:abajo    → la apaga sin borrar datos
 #   npm run api:docker  → construye y levanta el API (NestJS) en un contenedor, junto a la base
 # Solo escucha en 127.0.0.1: la contraseña de abajo es de desarrollo, no se usa en ningún otro lado.
+# Nombre fijo del proyecto: el mismo contenedor y volumen sin importar en qué carpeta esté el repo.
+name: stylefi-next-js
+
 services:
   postgres:
     image: postgres:17
