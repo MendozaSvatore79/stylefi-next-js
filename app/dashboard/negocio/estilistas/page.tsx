@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import StylistAgendaPanel from "@/components/stylist-agenda-panel";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 
@@ -15,6 +16,8 @@ type Stylist = {
   available: boolean;
   branch_id: string | null;
   branch_name: string | null;
+  service_ids: string[];
+  schedule_blocks: number;
 };
 
 type Branch = {
@@ -28,6 +31,7 @@ export default function NegocioEstilistasPage() {
   const [stylists, setStylists] = useState<Stylist[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [abierto, setAbierto] = useState<string | null>(null);
   const [form, setForm] = useState({
     branchId: "",
     firstName: "",
@@ -253,6 +257,14 @@ export default function NegocioEstilistasPage() {
                         : "No disponible"}
                   </span>
                 </div>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAbierto((a) => (a === stylist.id ? null : stylist.id))}
+                  className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-200"
+                >
+                  {abierto === stylist.id ? (language === "en" ? "Close" : "Cerrar") : language === "en" ? "Schedule & services" : "Horario y servicios"}
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleDelete(stylist.id)}
@@ -260,7 +272,23 @@ export default function NegocioEstilistasPage() {
                 >
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
+                </div>
               </div>
+              {stylist.service_ids.length === 0 || stylist.schedule_blocks === 0 ? (
+                <p className="mt-2 rounded-lg bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+                  {language === "en"
+                    ? "Without services and a schedule this stylist can't receive appointments."
+                    : "Sin servicios ni horario este estilista no puede recibir citas."}
+                </p>
+              ) : null}
+              {abierto === stylist.id ? (
+                <StylistAgendaPanel
+                  stylistId={stylist.id}
+                  branchId={stylist.branch_id}
+                  serviceIds={stylist.service_ids}
+                  onSaved={() => void loadStylists()}
+                />
+              ) : null}
             </div>
           ))}
 

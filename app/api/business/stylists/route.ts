@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentBusinessUser } from "@/app/api/business/_current-user";
+import type { SqlTx } from "@/lib/booking";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
+import { DatosInvalidos, reemplazarServiciosDelEstilista, validarServiciosDelNegocio } from "@/lib/stylist-config";
 import { urlDeImagenValida } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -30,7 +32,12 @@ export async function GET() {
         s.available,
         s.branch_id,
         b.branch_name,
-        s.created_at
+        s.created_at,
+        COALESCE(
+          (SELECT array_agg(ss.service_id) FROM stylehub_stylist_services ss WHERE ss.stylist_id = s.id),
+          '{}'
+        ) AS service_ids,
+        (SELECT count(*) FROM stylehub_stylist_schedule_blocks sb WHERE sb.stylist_id = s.id)::int AS schedule_blocks
       FROM stylehub_business_stylists s
       LEFT JOIN stylehub_business_branches b ON b.id = s.branch_id
       WHERE s.business_user_id = ${auth.userId}
@@ -63,6 +70,7 @@ export async function POST(request: Request) {
       imageUrl?: string;
       available?: boolean;
       branchId?: string;
+      serviceIds?: string[];
     };
 
     const firstName = payload.firstName?.trim();
@@ -98,6 +106,10 @@ export async function POST(request: Request) {
     if (branch.length === 0) {
       return NextResponse.json({ error: "La sucursal seleccionada no es válida." }, { status: 400 });
     }
+
+    // Servicios que hace (opcional): se validan antes de guardar nada
+    const serviceIds =
+      payload.serviceIds === undefined ? null : await validarServiciosDelNegocio(db as unknown as SqlTx, auth.userId, payload.serviceIds);
 
     const [stylist] = (await db`
       INSERT INTO stylehub_business_stylists (
@@ -141,8 +153,15 @@ export async function POST(request: Request) {
       created_at: string;
     }>;
 
-    return NextResponse.json({ stylist }, { status: 201 });
+    if (serviceIds) {
+      await reemplazarServiciosDelEstilista(db as unknown as SqlTx, stylist.id, serviceIds);
+    }
+
+    return NextResponse.json({ stylist: { ...stylist, service_ids: serviceIds ?? [] } }, { status: 201 });
   } catch (error) {
+    if (error instanceof DatosInvalidos) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error(error);
     return NextResponse.json({ error: "No se pudo crear el estilista." }, { status: 500 });
   }
@@ -168,6 +187,7 @@ export async function PUT(request: Request) {
       imageUrl?: string;
       available?: boolean;
       branchId?: string;
+      serviceIds?: string[];
     };
 
     const id = payload.id?.trim();
@@ -205,6 +225,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "La sucursal seleccionada no es válida." }, { status: 400 });
     }
 
+    // Servicios que hace (opcional): se validan antes de guardar nada
+    const serviceIds =
+      payload.serviceIds === undefined ? null : await validarServiciosDelNegocio(db as unknown as SqlTx, auth.userId, payload.serviceIds);
+
     const updated = (await db`
       UPDATE stylehub_business_stylists
       SET first_name = ${firstName},
@@ -226,8 +250,15 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "No se encontró el estilista." }, { status: 404 });
     }
 
+    if (serviceIds) {
+      await reemplazarServiciosDelEstilista(db as unknown as SqlTx, id, serviceIds);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof DatosInvalidos) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error(error);
     return NextResponse.json({ error: "No se pudo actualizar el estilista." }, { status: 500 });
   }
