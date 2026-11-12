@@ -389,88 +389,6 @@ export function ensureStylehubSchema() {
       `;
 
       await db`
-        CREATE TABLE IF NOT EXISTS stylehub_client_appointments (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          client_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,
-          business_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE RESTRICT,
-          branch_id UUID REFERENCES stylehub_business_branches(id) ON DELETE SET NULL,
-          service_id UUID,
-          service_name TEXT NOT NULL,
-          scheduled_at TIMESTAMPTZ NOT NULL,
-          status TEXT NOT NULL DEFAULT 'pending'
-            CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
-          total_amount NUMERIC(10, 2) NOT NULL,
-          payment_method_id UUID REFERENCES stylehub_client_payment_methods(id) ON DELETE SET NULL,
-          payment_provider TEXT,
-          notes TEXT,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
-      `;
-
-      await db`
-        ALTER TABLE stylehub_client_appointments
-        ADD COLUMN IF NOT EXISTS payment_provider TEXT;
-      `;
-
-      await db`
-        ALTER TABLE stylehub_client_appointments
-        ADD COLUMN IF NOT EXISTS branch_id UUID;
-      `;
-
-      await db`
-        ALTER TABLE stylehub_client_appointments
-        ADD COLUMN IF NOT EXISTS service_id UUID;
-      `;
-
-      await db`
-        ALTER TABLE stylehub_client_appointments
-        DROP CONSTRAINT IF EXISTS stylehub_client_appointments_branch_id_fkey;
-      `;
-
-      await db`
-        ALTER TABLE stylehub_client_appointments
-        DROP CONSTRAINT IF EXISTS stylehub_client_appointments_service_id_fkey;
-      `;
-
-      await db`
-        ALTER TABLE stylehub_client_appointments
-        ADD CONSTRAINT stylehub_client_appointments_branch_id_fkey
-        FOREIGN KEY (branch_id) REFERENCES stylehub_business_branches(id) ON DELETE SET NULL;
-      `;
-
-      await db`
-        ALTER TABLE stylehub_client_appointments
-        ADD CONSTRAINT stylehub_client_appointments_service_id_fkey
-        FOREIGN KEY (service_id) REFERENCES stylehub_business_services(id) ON DELETE SET NULL;
-      `;
-
-      await db`
-        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_branch_id
-        ON stylehub_client_appointments(branch_id);
-      `;
-
-      await db`
-        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_service_id
-        ON stylehub_client_appointments(service_id);
-      `;
-
-      await db`
-        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_client_user_id
-        ON stylehub_client_appointments(client_user_id);
-      `;
-
-      await db`
-        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_business_user_id
-        ON stylehub_client_appointments(business_user_id);
-      `;
-
-      await db`
-        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_scheduled_at
-        ON stylehub_client_appointments(scheduled_at DESC);
-      `;
-
-      await db`
         CREATE TABLE IF NOT EXISTS stylehub_business_info (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           business_user_id UUID NOT NULL UNIQUE REFERENCES stylehub_users(id) ON DELETE CASCADE,
@@ -680,6 +598,90 @@ export function ensureStylehubSchema() {
       await db`
         CREATE INDEX IF NOT EXISTS idx_stylehub_live_dashboard_modules_path_prefix
         ON stylehub_live_dashboard_modules(path_prefix);
+      `;
+
+      // Citas: van después de sucursales, servicios y estilistas porque hacen referencia a ellas.
+      // Antes se creaban primero y una base vacía fallaba (42P01); ver tests/esquema-orden.test.ts.
+      await db`
+        CREATE TABLE IF NOT EXISTS stylehub_client_appointments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          client_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,
+          business_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE RESTRICT,
+          branch_id UUID REFERENCES stylehub_business_branches(id) ON DELETE SET NULL,
+          service_id UUID,
+          service_name TEXT NOT NULL,
+          scheduled_at TIMESTAMPTZ NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending'
+            CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+          total_amount NUMERIC(10, 2) NOT NULL,
+          payment_method_id UUID REFERENCES stylehub_client_payment_methods(id) ON DELETE SET NULL,
+          payment_provider TEXT,
+          notes TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD COLUMN IF NOT EXISTS payment_provider TEXT;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD COLUMN IF NOT EXISTS branch_id UUID;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD COLUMN IF NOT EXISTS service_id UUID;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        DROP CONSTRAINT IF EXISTS stylehub_client_appointments_branch_id_fkey;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        DROP CONSTRAINT IF EXISTS stylehub_client_appointments_service_id_fkey;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD CONSTRAINT stylehub_client_appointments_branch_id_fkey
+        FOREIGN KEY (branch_id) REFERENCES stylehub_business_branches(id) ON DELETE SET NULL;
+      `;
+
+      await db`
+        ALTER TABLE stylehub_client_appointments
+        ADD CONSTRAINT stylehub_client_appointments_service_id_fkey
+        FOREIGN KEY (service_id) REFERENCES stylehub_business_services(id) ON DELETE SET NULL;
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_branch_id
+        ON stylehub_client_appointments(branch_id);
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_service_id
+        ON stylehub_client_appointments(service_id);
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_client_user_id
+        ON stylehub_client_appointments(client_user_id);
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_business_user_id
+        ON stylehub_client_appointments(business_user_id);
+      `;
+
+      await db`
+        CREATE INDEX IF NOT EXISTS idx_stylehub_client_appointments_scheduled_at
+        ON stylehub_client_appointments(scheduled_at DESC);
       `;
 
       // --- Motor de citas (cambio 4): servicios por estilista, horario semanal, ausencias, y citas con
