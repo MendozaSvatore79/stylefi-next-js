@@ -788,6 +788,18 @@ export function ensureStylehubSchema() {
         END $$;
       `;
 
+      // Movimientos del monedero ligados a su cita; una cita se reembolsa una sola vez
+      await db`
+        ALTER TABLE stylehub_client_wallet_transactions
+        ADD COLUMN IF NOT EXISTS appointment_id UUID REFERENCES stylehub_client_appointments(id) ON DELETE SET NULL;
+      `;
+
+      await db`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_stylehub_wallet_tx_one_refund_per_appointment
+        ON stylehub_client_wallet_transactions(appointment_id)
+        WHERE transaction_type = 'refund' AND appointment_id IS NOT NULL;
+      `;
+
       // Archivos subidos (lib/storage.ts): comprobantes privados e imágenes públicas, hasta 4 MB
       await db`
         CREATE TABLE IF NOT EXISTS stylehub_files (

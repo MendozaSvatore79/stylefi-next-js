@@ -189,3 +189,5 @@ CREATE TABLE IF NOT EXISTS stylehub_stylist_absences (
 --        ends_at TIMESTAMPTZ NOT NULL, time_zone TEXT NOT NULL DEFAULT 'America/Mexico_City',
 --        status también acepta 'no_show', y la restricción stylehub_appointments_no_overlap
 --        (btree_gist) impide citas encimadas del mismo estilista salvo las canceladas.
+-- Movimientos del monedero: appointment_id UUID (ON DELETE SET NULL) y un índice único para que
+-- cada cita tenga como máximo un reembolso (idx_stylehub_wallet_tx_one_refund_per_appointment).
