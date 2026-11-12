@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       `;
 
       const stylists = await db`
-        SELECT st.id, st.first_name, st.last_name, st.email, st.specialization, st.years_experience, st.image_url, st.available, st.branch_id,
+        SELECT st.id, st.first_name, st.last_name, st.specialization, st.years_experience, st.image_url, st.available, st.branch_id,
           COALESCE((SELECT array_agg(ss.service_id) FROM stylehub_stylist_services ss WHERE ss.stylist_id = st.id), '{}') AS service_ids
         FROM stylehub_business_stylists st
         JOIN stylehub_business_branches br ON br.id = st.branch_id

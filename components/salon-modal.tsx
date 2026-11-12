@@ -49,7 +49,6 @@ type Stylist = {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
   specialization: string;
   years_experience: number;
   image_url: string;
