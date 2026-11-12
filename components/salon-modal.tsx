@@ -202,7 +202,10 @@ export default function SalonModal({
       return;
     }
 
-    if (bookingForm.paymentProvider === "wallet" && walletBalance !== null && walletBalance < Number(selectedService.price)) {
+    // Un servicio de $0 se reserva sin cobro: no hace falta saldo ni tarjeta
+    const sinCosto = Number(selectedService.price) === 0;
+
+    if (!sinCosto && bookingForm.paymentProvider === "wallet" && walletBalance !== null && walletBalance < Number(selectedService.price)) {
       showToast({
         type: "error",
         title: t("modal.insufficientBalance"),
@@ -211,7 +214,7 @@ export default function SalonModal({
       return;
     }
 
-    if (bookingForm.paymentProvider === "card" && !bookingForm.paymentMethodId) {
+    if (!sinCosto && bookingForm.paymentProvider === "card" && !bookingForm.paymentMethodId) {
       showToast({
         type: "error",
         title: "Selecciona una tarjeta",
@@ -220,7 +223,7 @@ export default function SalonModal({
       return;
     }
 
-    if (bookingForm.paymentProvider === "card") {
+    if (!sinCosto && bookingForm.paymentProvider === "card") {
       const selectedCard = savedCardMethods.find((method) => method.id === bookingForm.paymentMethodId);
       if (!selectedCard) {
         showToast({
@@ -242,9 +245,7 @@ export default function SalonModal({
           businessUserId: business.id,
           branchId: selectedBranchId,
           serviceId: selectedService.id,
-          serviceName: selectedService.service_name,
           scheduledAt: bookingForm.scheduledAt,
-          totalAmount: Number(selectedService.price),
           paymentProvider: bookingForm.paymentProvider,
           paymentMethodId: bookingForm.paymentProvider === "card" ? bookingForm.paymentMethodId : null,
           notes: bookingForm.notes || null,

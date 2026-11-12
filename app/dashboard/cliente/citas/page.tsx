@@ -384,20 +384,11 @@ export default function ClienteCitasPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!form.businessUserId || !form.serviceName || !form.scheduledAt) {
+    if (!form.businessUserId || !form.serviceId || !form.scheduledAt) {
       showToast({
         type: "error",
         title: copy.completeAppointment,
         message: copy.selectBusinessServiceDate,
-      });
-      return;
-    }
-
-    if (!form.totalAmount || Number(form.totalAmount) <= 0) {
-      showToast({
-        type: "error",
-        title: copy.invalidAmount,
-        message: copy.selectServiceAmount,
       });
       return;
     }
@@ -417,10 +408,14 @@ export default function ClienteCitasPage() {
       const response = await fetch("/api/client/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // El precio y el nombre del servicio los fija el servidor; solo se manda qué servicio y cuándo
         body: JSON.stringify({
-          ...form,
-          totalAmount: Number(form.totalAmount),
+          businessUserId: form.businessUserId,
+          serviceId: form.serviceId,
+          stylistId: form.stylistId,
+          scheduledAt: form.scheduledAt,
           paymentProvider: form.paymentProvider,
+          notes: form.notes,
         }),
       });
 
@@ -481,8 +476,6 @@ export default function ClienteCitasPage() {
     deletedAllMsg: language === "en" ? `Deleted ${0} appointment(s) in total.` : `Se borraron ${0} cita(s) en total.`,
     completeAppointment: language === "en" ? "Complete your appointment" : "Completa tu cita",
     selectBusinessServiceDate: language === "en" ? "Select business, service, and date/time." : "Selecciona negocio, servicio y fecha/hora.",
-    invalidAmount: language === "en" ? "Invalid amount" : "Monto inválido",
-    selectServiceAmount: language === "en" ? "Select a service to auto-fill the amount or enter it manually." : "Selecciona un servicio para autocompletar el monto o ingrésalo manualmente.",
     insufficientBalance: language === "en" ? "Insufficient balance" : "Saldo insuficiente",
     insufficientBalanceMsg: language === "en" ? "You don't have enough balance to schedule this appointment with wallet." : "No tienes saldo suficiente para agendar esta cita con wallet.",
     scheduled: language === "en" ? "Appointment scheduled" : "Cita agendada",
@@ -538,7 +531,7 @@ export default function ClienteCitasPage() {
                   ...current,
                   serviceId: selectedServiceId,
                   serviceName: selectedService?.service_name ?? "",
-                  totalAmount: selectedService ? String(Number(selectedService.price)) : current.totalAmount,
+                  totalAmount: selectedService ? String(Number(selectedService.price)) : "",
                 }));
               }}
               className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
@@ -627,15 +620,14 @@ export default function ClienteCitasPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              type="number"
-              min="1"
-              step="0.01"
-              value={form.totalAmount}
-              onChange={(event) => setForm((current) => ({ ...current, totalAmount: event.target.value }))}
-              placeholder={language === "en" ? "Total amount" : "Monto total"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-            />
+            {/* Solo lectura: el precio es el del servicio y lo fija el servidor */}
+            <p className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-700" aria-live="polite">
+              {!form.serviceId
+                ? language === "en" ? "Select a service to see its price" : "Elige un servicio para ver su precio"
+                : Number(form.totalAmount) === 0
+                  ? language === "en" ? "Free of charge" : "Sin costo"
+                  : `${language === "en" ? "Price" : "Precio"}: ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(form.totalAmount))}`}
+            </p>
           </div>
 
           <textarea

@@ -6,6 +6,8 @@ import { ensureStylehubSchema } from "@/lib/db-init";
 
 export const runtime = "nodejs";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function mxDateKey(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Mexico_City",
@@ -59,13 +61,12 @@ export async function POST(request: Request) {
   try {
     await ensureStylehubSchema();
     const db = getDb();
+    // El precio y el nombre del servicio NO se aceptan del navegador: salen de la base (ver abajo).
     const payload = (await request.json()) as {
       businessUserId?: string;
       branchId?: string | null;
       serviceId?: string | null;
-      serviceName?: string;
       scheduledAt?: string;
-      totalAmount?: number;
       paymentMethodId?: string | null;
       paymentProvider?: "cash" | "wallet" | "card";
       notes?: string;
@@ -74,23 +75,23 @@ export async function POST(request: Request) {
     const businessUserId = payload.businessUserId?.trim();
     const branchId = payload.branchId?.trim() || null;
     const serviceId = payload.serviceId?.trim() || null;
-    const serviceName = payload.serviceName?.trim();
     const scheduledAt = payload.scheduledAt ? new Date(payload.scheduledAt) : null;
-    const totalAmount = Number(payload.totalAmount ?? 0);
-    const paymentMethodId = payload.paymentMethodId?.trim() || null;
-    const paymentProvider = payload.paymentProvider === "wallet" || payload.paymentProvider === "card" ? payload.paymentProvider : "cash";
+    let paymentMethodId = payload.paymentMethodId?.trim() || null;
+    let paymentProvider: "cash" | "wallet" | "card" | "free" =
+      payload.paymentProvider === "wallet" || payload.paymentProvider === "card" ? payload.paymentProvider : "cash";
     const notes = payload.notes?.trim() || null;
 
-    if (!businessUserId || !serviceName || !scheduledAt || Number.isNaN(scheduledAt.getTime())) {
+    if (!businessUserId || !serviceId || !scheduledAt || Number.isNaN(scheduledAt.getTime())) {
       return NextResponse.json({ error: "Completa negocio, servicio y fecha/hora." }, { status: 400 });
+    }
+
+    // Identificadores mal formados darían un error de Postgres (500); se rechazan antes con 400
+    if (![businessUserId, serviceId, branchId, paymentMethodId].every((id) => id === null || UUID.test(id))) {
+      return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
     }
 
     if (scheduledAt.getTime() < Date.now()) {
       return NextResponse.json({ error: "La cita debe ser en una fecha futura." }, { status: 400 });
-    }
-
-    if (totalAmount <= 0) {
-      return NextResponse.json({ error: "Ingresa un monto válido para la cita." }, { status: 400 });
     }
 
     const businesses = (await db`
@@ -120,27 +121,39 @@ export async function POST(request: Request) {
       }
     }
 
-    if (serviceId) {
-      const service = branchId
-        ? ((await db`
-            SELECT id
-            FROM stylehub_business_services
-            WHERE id = ${serviceId}
-              AND business_user_id = ${businessUserId}
-              AND branch_id = ${branchId}
-            LIMIT 1
-          `) as Array<{ id: string }>)
-        : ((await db`
-            SELECT id
-            FROM stylehub_business_services
-            WHERE id = ${serviceId}
-              AND business_user_id = ${businessUserId}
-            LIMIT 1
-          `) as Array<{ id: string }>);
+    const [service] = branchId
+      ? ((await db`
+          SELECT id, service_name, price
+          FROM stylehub_business_services
+          WHERE id = ${serviceId}
+            AND business_user_id = ${businessUserId}
+            AND branch_id = ${branchId}
+          LIMIT 1
+        `) as Array<{ id: string; service_name: string; price: string }>)
+      : ((await db`
+          SELECT id, service_name, price
+          FROM stylehub_business_services
+          WHERE id = ${serviceId}
+            AND business_user_id = ${businessUserId}
+          LIMIT 1
+        `) as Array<{ id: string; service_name: string; price: string }>);
 
-      if (service.length === 0) {
-        return NextResponse.json({ error: "El servicio seleccionado no pertenece a la sucursal elegida." }, { status: 400 });
-      }
+    if (!service) {
+      return NextResponse.json({ error: "El servicio seleccionado no pertenece a la sucursal elegida." }, { status: 400 });
+    }
+
+    // Precio y nombre vigentes del servicio al reservar (si el negocio los cambia después, la cita no cambia)
+    const serviceName = service.service_name;
+    const totalAmount = Number(service.price);
+
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) {
+      return NextResponse.json({ error: "El servicio no tiene un precio válido." }, { status: 400 });
+    }
+
+    // Servicio de $0: se reserva sin cobro (sin monedero ni tarjeta)
+    if (totalAmount === 0) {
+      paymentProvider = "free";
+      paymentMethodId = null;
     }
 
     // Validar que no exista cita en el mismo horario del negocio
