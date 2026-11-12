@@ -9,13 +9,17 @@
     "lint": "eslint",
     "test": "vitest run",
     "crear-admin": "node --env-file=.env.local scripts/crear-admin.mjs",
-    "demo": "node --env-file=.env.local scripts/demo.mjs"
+    "demo": "node --env-file=.env.local scripts/demo.mjs",
+    "predev": "npm run build -w @stylefi/shared",
+    "prebuild": "npm run build -w @stylefi/shared",
+    "pretest": "npm run build -w @stylefi/shared"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-tabs": "^1.1.13",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.2.0",
+    "@stylefi/shared": "*",
     "@types/nodemailer": "^7.0.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

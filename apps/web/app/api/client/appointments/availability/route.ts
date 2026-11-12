@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentClientUser } from "@/app/api/client/_current-user";
-import { esFecha, horaLocal } from "@/lib/availability";
+import { esFecha, horaLocal } from "@stylefi/shared";
 import { disponibilidad, ReservaInvalida, type Sql } from "@/lib/booking";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";

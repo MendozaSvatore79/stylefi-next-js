@@ -61,7 +61,7 @@ describe("disponibilidad", () => {
 
   it("junta los estilistas que hacen el servicio, con 30 min si el servicio no tiene duración", async () => {
     const { disponibilidad } = await import("@/lib/booking");
-    const { horaLocal } = await import("@/lib/availability");
+    const { horaLocal } = await import("@stylefi/shared");
     const db = (await import("@/lib/db")).getDb() as never;
     const r = await disponibilidad(db, { businessUserId: NEGOCIO, branchId: null, serviceId: SERVICIO, stylistId: null, fecha: "2030-01-07", ahora });
     expect(r.servicio.duration_minutes).toBe(30);

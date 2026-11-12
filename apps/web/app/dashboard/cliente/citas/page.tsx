@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
-import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@/lib/estado-cita";
+import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 

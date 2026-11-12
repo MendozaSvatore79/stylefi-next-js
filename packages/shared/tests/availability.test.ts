@@ -9,7 +9,7 @@ import {
   horaLocalAUtc,
   horariosLibres,
   type EstilistaDelDia,
-} from "@/lib/availability";
+} from "../src/availability.js";
 
 const LUNES = "2030-01-07";
 const DOMINGO_PREVIO = new Date("2030-01-06T18:00:00Z"); // "ahora": el día anterior al mediodía

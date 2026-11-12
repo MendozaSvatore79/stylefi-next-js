@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import PlatformOnboardingModal from "@/components/platform-onboarding-modal";
-import { colorEstado, etiquetaEstado, fechaHoraCita } from "@/lib/estado-cita";
+import { colorEstado, etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 
 type Appointment = {

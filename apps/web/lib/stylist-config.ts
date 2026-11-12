@@ -1,4 +1,4 @@
-import { horaLocalAUtc, ZONA_HORARIA } from "@/lib/availability";
+import { horaLocalAUtc, ZONA_HORARIA } from "@stylefi/shared";
 import type { SqlTx } from "@/lib/booking";
 
 /**

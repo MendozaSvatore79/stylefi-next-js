@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/toast";
-import { etiquetaEstado, fechaHoraCita } from "@/lib/estado-cita";
+import { etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 
 type Appointment = {

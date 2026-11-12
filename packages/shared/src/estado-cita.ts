@@ -1,4 +1,4 @@
-import { ZONA_HORARIA } from "@/lib/availability";
+import { ZONA_HORARIA } from "./availability.js";
 
 /** Estados de una cita: nombre para mostrar y color de la etiqueta (mismos en todas las pantallas). */
 

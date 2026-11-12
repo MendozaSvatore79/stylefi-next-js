@@ -1,4 +1,3 @@
-import { PLAZO_CLIENTE_MIN } from "@/lib/estado-cita";
 import {
   DURACION_POR_DEFECTO,
   type EstilistaDelDia,
@@ -6,8 +5,9 @@ import {
   type HorarioLibre,
   horariosLibres,
   limitesDelDia,
+  PLAZO_CLIENTE_MIN,
   ZONA_HORARIA,
-} from "@/lib/availability";
+} from "@stylefi/shared";
 
 /** Función de consulta con plantillas (la del cliente postgres o la de una transacción). */
 export type Sql = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown[]>;
