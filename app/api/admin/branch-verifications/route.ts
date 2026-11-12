@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
@@ -12,6 +13,11 @@ function isValidationStatus(value: unknown): value is ValidationStatus {
 }
 
 export async function GET(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   try {
     await ensureStylehubSchema();
     const db = getDb();
@@ -75,6 +81,11 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   try {
     await ensureStylehubSchema();
     const db = getDb();
@@ -83,13 +94,13 @@ export async function PATCH(request: Request) {
       branchId?: string;
       status?: ValidationStatus;
       notes?: string;
-      reviewer?: string;
     };
 
     const branchId = payload.branchId?.trim();
     const status = payload.status;
     const notes = payload.notes?.trim() || null;
-    const reviewer = payload.reviewer?.trim() || "admin";
+    // Quién revisó sale de la sesión, no del cuerpo de la petición
+    const reviewer = auth.admin.email;
 
     if (!branchId || !status || !isValidationStatus(status)) {
       return NextResponse.json({ error: "Datos de validación inválidos." }, { status: 400 });

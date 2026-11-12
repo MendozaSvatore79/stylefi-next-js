@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentBusinessUser } from "@/app/api/business/_current-user";
+import { cancelarCita, CitaNoModificable, type SqlTx } from "@/lib/booking";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 import { sendAppointmentConfirmationEmails } from "@/lib/email";
 
 export const runtime = "nodejs";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET() {
   const auth = await getCurrentBusinessUser();
@@ -26,11 +29,16 @@ export async function GET() {
         a.total_amount,
         a.notes,
         a.created_at,
+        a.ends_at,
+        a.payment_provider,
         c.first_name,
         c.last_name,
-        c.email
+        c.email,
+        st.first_name AS stylist_first_name,
+        st.last_name AS stylist_last_name
       FROM stylehub_client_appointments a
       JOIN stylehub_users c ON c.id = a.client_user_id
+      LEFT JOIN stylehub_business_stylists st ON st.id = a.stylist_id
       WHERE a.business_user_id = ${auth.userId}
       ORDER BY a.scheduled_at ASC
     `;
@@ -53,7 +61,7 @@ export async function PATCH(request: Request) {
     const db = getDb();
     const payload = (await request.json()) as {
       appointmentId?: string;
-      status?: "pending" | "confirmed" | "completed" | "cancelled";
+      status?: string;
     };
 
     const appointmentId = payload.appointmentId?.trim();
@@ -63,8 +71,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Datos de cita inválidos." }, { status: 400 });
     }
 
-    if (!["pending", "confirmed", "completed", "cancelled"].includes(status)) {
+    if (!["confirmed", "completed", "cancelled", "no_show"].includes(status)) {
       return NextResponse.json({ error: "Estado de cita inválido." }, { status: 400 });
+    }
+
+    if (!UUID.test(appointmentId)) {
+      return NextResponse.json({ error: "No se encontró la cita." }, { status: 404 });
+    }
+
+    // Cancelar devuelve el 100 % si se pagó con el monedero, en la misma sentencia (lib/booking.ts)
+    if (status === "cancelled") {
+      try {
+        const { reembolso } = await cancelarCita(db as unknown as SqlTx, { appointmentId, por: "negocio", userId: auth.userId });
+        return NextResponse.json({ ok: true, refund: reembolso });
+      } catch (error) {
+        if (error instanceof CitaNoModificable) {
+          return NextResponse.json({ error: error.message }, { status: error.message.startsWith("No encontramos") ? 404 : 400 });
+        }
+        throw error;
+      }
     }
 
     const appointments = (await db`
@@ -89,7 +114,7 @@ export async function PATCH(request: Request) {
       LIMIT 1
     `) as Array<{
       id: string;
-      status: "pending" | "confirmed" | "completed" | "cancelled";
+      status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
       service_name: string;
       scheduled_at: string;
       total_amount: string;
@@ -109,25 +134,17 @@ export async function PATCH(request: Request) {
     const appointment = appointments[0];
     const previousStatus = appointment.status;
 
-    // Validar transiciones de status permitidas y disponibilidad
-    if (status === "confirmed" && previousStatus === "pending") {
-      // Al confirmar, validar que no haya conflicto con otro horario
-      const conflicting = (await db`
-        SELECT id
-        FROM stylehub_client_appointments
-        WHERE business_user_id = ${auth.userId}
-        AND id != ${appointmentId}
-        AND status IN ('pending', 'confirmed')
-        AND scheduled_at = ${appointment.scheduled_at}
-        LIMIT 1
-      `) as Array<{ id: string }>;
-
-      if (conflicting.length > 0) {
-        return NextResponse.json(
-          { error: "Ese horario ya está ocupado. No se puede confirmar la cita." },
-          { status: 409 },
-        );
-      }
+    // Transiciones permitidas (decisión del 2026-11-12): una cita cancelada, completada o "no asistió"
+    // ya no cambia; "confirmada" solo desde "pendiente"; "completada" y "no asistió" solo después de su hora.
+    // La pendiente ya ocupa su horario (no se traslapa con otra), así que confirmarla no requiere revisar.
+    if (!["pending", "confirmed"].includes(previousStatus)) {
+      return NextResponse.json({ error: "Esta cita ya no se puede cambiar." }, { status: 400 });
+    }
+    if (status === "confirmed" && previousStatus !== "pending") {
+      return NextResponse.json({ error: "La cita ya está confirmada." }, { status: 400 });
+    }
+    if ((status === "completed" || status === "no_show") && new Date(appointment.scheduled_at).getTime() > Date.now()) {
+      return NextResponse.json({ error: "Solo puedes marcarla después de la hora de la cita." }, { status: 400 });
     }
 
     const updated = (await db`
@@ -136,11 +153,12 @@ export async function PATCH(request: Request) {
           updated_at = NOW()
       WHERE id = ${appointmentId}
       AND business_user_id = ${auth.userId}
+      AND status = ${previousStatus}
       RETURNING id
     `) as Array<{ id: string }>;
 
     if (updated.length === 0) {
-      return NextResponse.json({ error: "No se encontró la cita." }, { status: 404 });
+      return NextResponse.json({ error: "La cita cambió mientras tanto; recarga e inténtalo de nuevo." }, { status: 409 });
     }
 
     if (status === "confirmed" && previousStatus !== "confirmed") {

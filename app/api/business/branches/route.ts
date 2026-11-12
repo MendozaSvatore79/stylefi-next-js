@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentBusinessUser } from "@/app/api/business/_current-user";
-import { saveBranchImage, saveBranchOwnershipProof } from "@/lib/branch-files";
+import { ArchivoInvalido, borrarArchivoPropio, guardarArchivo, urlDeImagenValida, validarArchivo } from "@/lib/storage";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
@@ -54,7 +54,6 @@ type BranchPayload = {
   phone?: string;
   website?: string;
   imageUrl?: string;
-  ownershipProofUrl?: string;
   openingHours?: string;
   closingHours?: string;
   isPrimary?: boolean;
@@ -83,7 +82,6 @@ async function readPayload(request: Request): Promise<BranchPayload> {
       phone: toText(formData.get("phone")) || undefined,
       website: toText(formData.get("website")) || undefined,
       imageUrl: toText(formData.get("imageUrl")) || undefined,
-      ownershipProofUrl: toText(formData.get("ownershipProofUrl")) || undefined,
       openingHours: toText(formData.get("openingHours")) || undefined,
       closingHours: toText(formData.get("closingHours")) || undefined,
       isPrimary: parseBoolean(formData.get("isPrimary")),
@@ -193,20 +191,32 @@ export async function POST(request: Request) {
 
     const phone = payload.phone?.trim() || null;
     const website = payload.website?.trim() || null;
-    const imageFromUpload = payload.branchImageFile ? await saveBranchImage(payload.branchImageFile) : null;
-    const imageUrl = imageFromUpload ?? (payload.imageUrl?.trim() || null);
-    const proofFromUpload = payload.ownershipProofFile ? await saveBranchOwnershipProof(payload.ownershipProofFile) : null;
-    const ownershipProofUrl = proofFromUpload ?? (payload.ownershipProofUrl?.trim() || null);
     const openingHours = payload.openingHours?.trim() || null;
     const closingHours = payload.closingHours?.trim() || null;
     const isPrimary = Boolean(payload.isPrimary ?? false);
 
-    if (!ownershipProofUrl) {
+    // El comprobante solo se acepta como archivo subido (nunca como URL escrita a mano)
+    if (!payload.ownershipProofFile) {
       return NextResponse.json(
         { error: "Debes adjuntar un comprobante de propiedad para enviar la sucursal a validación." },
         { status: 400 },
       );
     }
+
+    const typedImageUrl = payload.imageUrl?.trim() || null;
+    if (!payload.branchImageFile && !urlDeImagenValida(typedImageUrl)) {
+      return NextResponse.json({ error: "La URL de la imagen debe empezar con https://" }, { status: 400 });
+    }
+
+    // Se validan ambos archivos antes de guardar cualquiera, para no dejar archivos huérfanos
+    await validarArchivo(payload.ownershipProofFile, "branch_proof");
+    if (payload.branchImageFile) {
+      await validarArchivo(payload.branchImageFile, "branch_image");
+    }
+    const ownershipProofUrl = await guardarArchivo(auth.userId, "branch_proof", payload.ownershipProofFile);
+    const imageUrl = payload.branchImageFile
+      ? await guardarArchivo(auth.userId, "branch_image", payload.branchImageFile)
+      : typedImageUrl;
 
     if (isPrimary) {
       await db`
@@ -290,6 +300,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ branch }, { status: 201 });
   } catch (error) {
+    if (error instanceof ArchivoInvalido) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error(error);
 
     const errorWithCode = error as { code?: string };
@@ -340,20 +353,48 @@ export async function PUT(request: Request) {
 
     const phone = payload.phone?.trim() || null;
     const website = payload.website?.trim() || null;
-    const imageFromUpload = payload.branchImageFile ? await saveBranchImage(payload.branchImageFile) : null;
-    const imageUrl = imageFromUpload ?? (payload.imageUrl?.trim() || null);
-    const proofFromUpload = payload.ownershipProofFile ? await saveBranchOwnershipProof(payload.ownershipProofFile) : null;
-    const ownershipProofUrl = proofFromUpload ?? (payload.ownershipProofUrl?.trim() || null);
     const openingHours = payload.openingHours?.trim() || null;
     const closingHours = payload.closingHours?.trim() || null;
     const isPrimary = Boolean(payload.isPrimary ?? false);
 
-    if (!ownershipProofUrl) {
+    const [current] = (await db`
+      SELECT image_url, ownership_proof_url
+      FROM stylehub_business_branches
+      WHERE id = ${id}
+      AND business_user_id = ${auth.userId}
+      LIMIT 1
+    `) as Array<{ image_url: string | null; ownership_proof_url: string | null }>;
+
+    if (!current) {
+      return NextResponse.json({ error: "No se encontró la sucursal." }, { status: 404 });
+    }
+
+    // Sin archivo nuevo se conserva el comprobante actual; nunca se acepta una URL escrita a mano
+    if (!payload.ownershipProofFile && !current.ownership_proof_url) {
       return NextResponse.json(
         { error: "Debes adjuntar un comprobante de propiedad para validar la sucursal." },
         { status: 400 },
       );
     }
+
+    // La imagen puede quedarse como está o cambiar por un archivo nuevo o por una URL https://
+    const typedImageUrl = payload.imageUrl?.trim() || null;
+    if (!payload.branchImageFile && typedImageUrl !== current.image_url && !urlDeImagenValida(typedImageUrl)) {
+      return NextResponse.json({ error: "La URL de la imagen debe empezar con https://" }, { status: 400 });
+    }
+
+    if (payload.ownershipProofFile) {
+      await validarArchivo(payload.ownershipProofFile, "branch_proof");
+    }
+    if (payload.branchImageFile) {
+      await validarArchivo(payload.branchImageFile, "branch_image");
+    }
+    const ownershipProofUrl = payload.ownershipProofFile
+      ? await guardarArchivo(auth.userId, "branch_proof", payload.ownershipProofFile)
+      : current.ownership_proof_url;
+    const imageUrl = payload.branchImageFile
+      ? await guardarArchivo(auth.userId, "branch_image", payload.branchImageFile)
+      : typedImageUrl;
 
     if (isPrimary) {
       await db`
@@ -395,8 +436,19 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "No se encontró la sucursal." }, { status: 404 });
     }
 
+    // Los archivos reemplazados ya no se usan
+    if (ownershipProofUrl !== current.ownership_proof_url) {
+      await borrarArchivoPropio(current.ownership_proof_url, auth.userId);
+    }
+    if (imageUrl !== current.image_url) {
+      await borrarArchivoPropio(current.image_url, auth.userId);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof ArchivoInvalido) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error(error);
 
     const errorWithCode = error as { code?: string };
@@ -428,12 +480,15 @@ export async function DELETE(request: Request) {
       DELETE FROM stylehub_business_branches
       WHERE id = ${id}
       AND business_user_id = ${auth.userId}
-      RETURNING id
-    `) as Array<{ id: string }>;
+      RETURNING id, image_url, ownership_proof_url
+    `) as Array<{ id: string; image_url: string | null; ownership_proof_url: string | null }>;
 
     if (deleted.length === 0) {
       return NextResponse.json({ error: "No se encontró la sucursal." }, { status: 404 });
     }
+
+    await borrarArchivoPropio(deleted[0].ownership_proof_url, auth.userId);
+    await borrarArchivoPropio(deleted[0].image_url, auth.userId);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse, connection } from "next/server";
 
+import { requireAdmin } from "@/lib/admin-auth";
 import { getLiveDashboardPayload, updateLiveDashboardModule } from "@/lib/live-dashboard";
 
 export const runtime = "nodejs";
@@ -12,6 +13,11 @@ type UpdatePayload = {
 };
 
 export async function GET() {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   try {
     await connection();
 
@@ -24,6 +30,11 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return auth.error;
+  }
+
   try {
     await connection();
 

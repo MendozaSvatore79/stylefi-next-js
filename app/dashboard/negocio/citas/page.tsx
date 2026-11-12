@@ -9,15 +9,42 @@ type Appointment = {
   id: string;
   service_name: string;
   scheduled_at: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
   total_amount: string;
+  payment_provider: string | null;
+  stylist_first_name: string | null;
+  stylist_last_name: string | null;
   notes: string | null;
   first_name: string;
   last_name: string;
   email: string;
 };
 
-const STATUSES: Array<Appointment["status"]> = ["pending", "confirmed", "completed", "cancelled"];
+const ETIQUETAS: Record<Appointment["status"], { es: string; en: string }> = {
+  pending: { es: "Pendiente", en: "Pending" },
+  confirmed: { es: "Confirmada", en: "Confirmed" },
+  completed: { es: "Completada", en: "Completed" },
+  no_show: { es: "No asistió", en: "No-show" },
+  cancelled: { es: "Cancelada", en: "Cancelled" },
+};
+
+/**
+ * Cambios permitidos (los mismos que valida el servidor): una cita cancelada, completada o "no asistió"
+ * ya no cambia; "confirmada" solo desde "pendiente"; "completada" y "no asistió" solo después de su hora.
+ */
+function estadosPermitidos(cita: Appointment): Array<Appointment["status"]> {
+  if (cita.status !== "pending" && cita.status !== "confirmed") return [cita.status];
+  const yaPaso = new Date(cita.scheduled_at).getTime() <= Date.now();
+  return [
+    cita.status,
+    ...(cita.status === "pending" ? (["confirmed"] as const) : []),
+    ...(yaPaso ? (["completed", "no_show"] as const) : []),
+    "cancelled" as const,
+  ];
+}
+
+const fechaHora = (iso: string, en: boolean) =>
+  new Date(iso).toLocaleString(en ? "en-US" : "es-MX", { timeZone: "America/Mexico_City", dateStyle: "medium", timeStyle: "short" });
 
 export default function NegocioCitasPage() {
   const { showToast } = useToast();
@@ -42,6 +69,15 @@ export default function NegocioCitasPage() {
 
   const updateStatus = async (appointmentId: string, status: Appointment["status"]) => {
     const previousAppointments = appointments;
+    const cita = appointments.find((a) => a.id === appointmentId);
+    if (status === "cancelled") {
+      const conReembolso = cita?.payment_provider === "wallet" && Number(cita.total_amount) > 0;
+      const aviso =
+        language === "en"
+          ? `Cancel this appointment?${conReembolso ? " The client will get the full amount back in their wallet." : ""}`
+          : `¿Cancelar esta cita?${conReembolso ? " Al cliente se le devolverá el monto completo a su wallet." : ""}`;
+      if (!window.confirm(aviso)) return;
+    }
 
     try {
       setLoadingStatusId(appointmentId);
@@ -62,14 +98,21 @@ export default function NegocioCitasPage() {
         body: JSON.stringify({ appointmentId, status }),
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: string; refund?: number };
       if (!response.ok) {
         throw new Error(payload.error ?? (language === "en" ? "Could not update status." : "No se pudo actualizar el estado."));
       }
 
+      const reembolso = Number(payload.refund ?? 0);
       showToast({
         type: "success",
         title: language === "en" ? "Status updated" : "Estado actualizado",
+        message:
+          reembolso > 0
+            ? language === "en"
+              ? `$${reembolso.toFixed(2)} returned to the client's wallet.`
+              : `Se devolvieron $${reembolso.toFixed(2)} al wallet del cliente.`
+            : undefined,
       });
 
       setSavedStatusId(appointmentId);
@@ -101,12 +144,20 @@ export default function NegocioCitasPage() {
             <div key={appointment.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-slate-800">{appointment.service_name}</p>
+                  <p className="font-semibold text-slate-800">
+                    {appointment.service_name}
+                    {appointment.stylist_first_name ? (
+                      <span className="font-normal text-slate-500">
+                        {" · "}
+                        {language === "en" ? "with" : "con"} {appointment.stylist_first_name} {appointment.stylist_last_name ?? ""}
+                      </span>
+                    ) : null}
+                  </p>
                   <p className="mt-1 text-sm text-slate-600">
                     {language === "en" ? "Client:" : "Cliente:"} {appointment.first_name} {appointment.last_name}
                   </p>
                   <p className="text-sm text-slate-600">{appointment.email}</p>
-                  <p className="mt-1 text-sm text-slate-600">{new Date(appointment.scheduled_at).toLocaleString(language === "en" ? "en-US" : "es-MX")}</p>
+                  <p className="mt-1 text-sm text-slate-600">{fechaHora(appointment.scheduled_at, language === "en")}</p>
                   <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
                 </div>
 
@@ -115,26 +166,12 @@ export default function NegocioCitasPage() {
                   <select
                     value={appointment.status}
                     onChange={(event) => void updateStatus(appointment.id, event.target.value as Appointment["status"])}
-                    disabled={loadingStatusId === appointment.id}
+                    disabled={loadingStatusId === appointment.id || estadosPermitidos(appointment).length === 1}
                     className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
                   >
-                    {STATUSES.map((status) => (
+                    {estadosPermitidos(appointment).map((status) => (
                       <option key={status} value={status}>
-                        {status === "pending"
-                          ? language === "en"
-                            ? "Pending"
-                            : "Pendiente"
-                          : status === "confirmed"
-                            ? language === "en"
-                              ? "Confirmed"
-                              : "Confirmada"
-                            : status === "completed"
-                              ? language === "en"
-                                ? "Completed"
-                                : "Completada"
-                              : language === "en"
-                                ? "Cancelled"
-                                : "Cancelada"}
+                        {ETIQUETAS[status][language === "en" ? "en" : "es"]}
                       </option>
                     ))}
                   </select>

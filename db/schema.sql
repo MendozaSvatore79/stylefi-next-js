@@ -1,8 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- account_type 'admin': cuentas de administración, creadas con `npm run crear-admin`.
+
 CREATE TABLE IF NOT EXISTS stylehub_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_type TEXT NOT NULL CHECK (account_type IN ('cliente', 'negocio')),
+  account_type TEXT NOT NULL CHECK (account_type IN ('cliente', 'negocio', 'admin')),
   first_name TEXT,
   last_name TEXT,
   business_name TEXT,
@@ -140,3 +142,52 @@ ON stylehub_user_two_factor_challenges(user_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_stylehub_two_factor_challenges_expires
 ON stylehub_user_two_factor_challenges(expires_at DESC);
+
+-- Archivos subidos (lib/storage.ts): comprobantes privados e imágenes públicas, hasta 4 MB.
+-- Se sirven desde /api/files/[id]; nunca desde public/.
+CREATE TABLE IF NOT EXISTS stylehub_files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('branch_image', 'branch_proof')),
+  content_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 4194304),
+  data BYTEA NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_files_owner ON stylehub_files(owner_user_id);
+
+-- Motor de citas (lib/availability.ts y lib/booking.ts). En una base existente estas tablas y
+-- columnas las crea ensureStylehubSchema(); aquí quedan como referencia.
+CREATE TABLE IF NOT EXISTS stylehub_stylist_services (
+  stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+  service_id UUID NOT NULL REFERENCES stylehub_business_services(id) ON DELETE CASCADE,
+  PRIMARY KEY (stylist_id, service_id)
+);
+
+-- day_of_week: 0 = lunes … 6 = domingo; el descanso es el hueco entre bloques del mismo día
+CREATE TABLE IF NOT EXISTS stylehub_stylist_schedule_blocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+  day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  CHECK (start_time < end_time)
+);
+
+CREATE TABLE IF NOT EXISTS stylehub_stylist_absences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stylist_id UUID NOT NULL REFERENCES stylehub_business_stylists(id) ON DELETE CASCADE,
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (starts_at < ends_at)
+);
+
+-- Citas: stylist_id UUID REFERENCES stylehub_business_stylists(id) ON DELETE RESTRICT,
+--        ends_at TIMESTAMPTZ NOT NULL, time_zone TEXT NOT NULL DEFAULT 'America/Mexico_City',
+--        status también acepta 'no_show', y la restricción stylehub_appointments_no_overlap
+--        (btree_gist) impide citas encimadas del mismo estilista salvo las canceladas.
+-- Movimientos del monedero: appointment_id UUID (ON DELETE SET NULL) y un índice único para que
+-- cada cita tenga como máximo un reembolso (idx_stylehub_wallet_tx_one_refund_per_appointment).

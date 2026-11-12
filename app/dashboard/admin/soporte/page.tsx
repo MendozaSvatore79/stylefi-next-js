@@ -52,7 +52,6 @@ export default function AdminSupportPage() {
   const [filter, setFilter] = useState("escalated");
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
-  const [adminEmail, setAdminEmail] = useState("");
   const [sending, setSending] = useState(false);
 
   const loadTickets = useCallback(async () => {
@@ -83,7 +82,6 @@ export default function AdminSupportPage() {
     setSelectedTicket(payload.ticket ?? null);
     setMessages(payload.messages ?? []);
     setReply("");
-    setAdminEmail(payload.ticket?.assigned_admin_email ?? "");
   };
 
   useEffect(() => {
@@ -120,7 +118,6 @@ export default function AdminSupportPage() {
           ticketId: selectedTicket.id,
           action,
           message: reply,
-          adminEmail,
         }),
       });
 
@@ -235,7 +232,6 @@ export default function AdminSupportPage() {
                     className="min-h-28 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
                   />
                   <div className="flex flex-wrap items-center gap-2">
-                    <input value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} placeholder="Correo del agente" className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-200 focus:ring" />
                     <Button disabled={sending} onClick={() => void sendReply("reply")}>Enviar respuesta</Button>
                     <Button variant="secondary" disabled={sending} onClick={() => void sendReply("resolve")}>Marcar resuelto</Button>
                   </div>

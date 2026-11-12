@@ -129,17 +129,16 @@ export default function LoginClient() {
         throw new Error(payload.error ?? text.loginErrorFallback);
       }
 
-      if (payload.role !== "admin") {
-        const authResult = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-          callbackUrl: payload.redirectTo ?? "/",
-        });
+      // Todas las cuentas, incluida la de administración, abren sesión con NextAuth
+      const authResult = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+        callbackUrl: payload.redirectTo ?? "/",
+      });
 
-        if (authResult?.error) {
-          throw new Error(text.loginSessionError);
-        }
+      if (authResult?.error) {
+        throw new Error(text.loginSessionError);
       }
 
       showToast({

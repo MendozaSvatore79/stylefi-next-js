@@ -28,6 +28,12 @@ type Appointment = {
   business_name: string | null;
   first_name: string | null;
   last_name: string | null;
+  business_user_id: string;
+  service_id: string | null;
+  branch_id: string | null;
+  stylist_id: string | null;
+  stylist_first_name: string | null;
+  stylist_last_name: string | null;
 };
 
 type Service = {
@@ -42,6 +48,8 @@ type Stylist = {
   first_name: string;
   last_name: string;
   specialization: string;
+  available?: boolean;
+  service_ids?: string[];
 };
 
 export default function ClienteCitasPage() {
@@ -56,6 +64,7 @@ export default function ClienteCitasPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [editScheduledAt, setEditScheduledAt] = useState("");
+  const [editDate, setEditDate] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
@@ -146,21 +155,17 @@ export default function ClienteCitasPage() {
     void loadBusinessCatalog(form.businessUserId);
   }, [form.businessUserId]);
 
-  const toInputDateTime = (value: string) => {
-    const date = new Date(value);
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - offset * 60_000);
-    return localDate.toISOString().slice(0, 16);
-  };
-
+  // Al reagendar se elige un horario libre del selector (el servidor solo acepta horarios ofrecidos)
   const openReschedule = (appointment: Appointment) => {
     setEditingAppointmentId(appointment.id);
-    setEditScheduledAt(toInputDateTime(appointment.scheduled_at));
+    setEditDate("");
+    setEditScheduledAt("");
     setEditNotes(appointment.notes ?? "");
   };
 
   const closeReschedule = () => {
     setEditingAppointmentId(null);
+    setEditDate("");
     setEditScheduledAt("");
     setEditNotes("");
   };
@@ -268,15 +273,23 @@ export default function ClienteCitasPage() {
         }),
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: string; refund?: number };
       if (!response.ok) {
         throw new Error(payload.error ?? (language === "en" ? "Could not cancel appointment." : "No se pudo cancelar la cita."));
       }
 
+      const reembolso = Number(payload.refund ?? 0);
       showToast({
         type: "success",
         title: language === "en" ? "Appointment cancelled" : "Cita cancelada",
-        message: language === "en" ? "The appointment was marked as cancelled." : "La cita se marcó como cancelada.",
+        message:
+          reembolso > 0
+            ? language === "en"
+              ? `We returned $${reembolso.toFixed(2)} to your wallet.`
+              : `Te devolvimos $${reembolso.toFixed(2)} a tu wallet.`
+            : language === "en"
+              ? "The appointment was marked as cancelled."
+              : "La cita se marcó como cancelada.",
       });
 
       if (editingAppointmentId === appointmentId) {
@@ -384,20 +397,11 @@ export default function ClienteCitasPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!form.businessUserId || !form.serviceName || !form.scheduledAt) {
+    if (!form.businessUserId || !form.serviceId || !form.scheduledAt) {
       showToast({
         type: "error",
         title: copy.completeAppointment,
         message: copy.selectBusinessServiceDate,
-      });
-      return;
-    }
-
-    if (!form.totalAmount || Number(form.totalAmount) <= 0) {
-      showToast({
-        type: "error",
-        title: copy.invalidAmount,
-        message: copy.selectServiceAmount,
       });
       return;
     }
@@ -417,10 +421,14 @@ export default function ClienteCitasPage() {
       const response = await fetch("/api/client/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // El precio y el nombre del servicio los fija el servidor; solo se manda qué servicio y cuándo
         body: JSON.stringify({
-          ...form,
-          totalAmount: Number(form.totalAmount),
+          businessUserId: form.businessUserId,
+          serviceId: form.serviceId,
+          stylistId: form.stylistId,
+          scheduledAt: form.scheduledAt,
           paymentProvider: form.paymentProvider,
+          notes: form.notes,
         }),
       });
 
@@ -481,8 +489,6 @@ export default function ClienteCitasPage() {
     deletedAllMsg: language === "en" ? `Deleted ${0} appointment(s) in total.` : `Se borraron ${0} cita(s) en total.`,
     completeAppointment: language === "en" ? "Complete your appointment" : "Completa tu cita",
     selectBusinessServiceDate: language === "en" ? "Select business, service, and date/time." : "Selecciona negocio, servicio y fecha/hora.",
-    invalidAmount: language === "en" ? "Invalid amount" : "Monto inválido",
-    selectServiceAmount: language === "en" ? "Select a service to auto-fill the amount or enter it manually." : "Selecciona un servicio para autocompletar el monto o ingrésalo manualmente.",
     insufficientBalance: language === "en" ? "Insufficient balance" : "Saldo insuficiente",
     insufficientBalanceMsg: language === "en" ? "You don't have enough balance to schedule this appointment with wallet." : "No tienes saldo suficiente para agendar esta cita con wallet.",
     scheduled: language === "en" ? "Appointment scheduled" : "Cita agendada",
@@ -538,7 +544,7 @@ export default function ClienteCitasPage() {
                   ...current,
                   serviceId: selectedServiceId,
                   serviceName: selectedService?.service_name ?? "",
-                  totalAmount: selectedService ? String(Number(selectedService.price)) : current.totalAmount,
+                  totalAmount: selectedService ? String(Number(selectedService.price)) : "",
                 }));
               }}
               className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
@@ -566,8 +572,10 @@ export default function ClienteCitasPage() {
 
           {form.businessUserId && form.serviceId && form.scheduledAt.split("T")[0] && (
             <TimeSlotPicker
+              key={`${form.serviceId}-${form.stylistId}-${form.scheduledAt.split("T")[0]}`}
               businessUserId={form.businessUserId}
               serviceId={form.serviceId}
+              stylistId={form.stylistId || null}
               selectedDate={form.scheduledAt.split("T")[0]}
               onSelectTime={(isoDateTime) => {
                 setForm((current) => ({
@@ -580,11 +588,16 @@ export default function ClienteCitasPage() {
 
           <select
             value={form.stylistId}
-            onChange={(event) => setForm((current) => ({ ...current, stylistId: event.target.value }))}
+            onChange={(event) =>
+              // Cambiar de estilista cambia los horarios libres: se conserva el día y se vuelve a elegir la hora
+              setForm((current) => ({ ...current, stylistId: event.target.value, scheduledAt: current.scheduledAt.split("T")[0] }))
+            }
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
           >
-            <option value="">{language === "en" ? "Stylist (optional)" : "Estilista (opcional)"}</option>
-            {stylists.map((stylist) => (
+            <option value="">{language === "en" ? "Anyone available" : "Cualquiera disponible"}</option>
+            {stylists
+              .filter((stylist) => stylist.available !== false && (stylist.service_ids ?? []).includes(form.serviceId))
+              .map((stylist) => (
               <option key={stylist.id} value={stylist.id}>
                 {stylist.first_name} {stylist.last_name}
               </option>
@@ -627,15 +640,14 @@ export default function ClienteCitasPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              type="number"
-              min="1"
-              step="0.01"
-              value={form.totalAmount}
-              onChange={(event) => setForm((current) => ({ ...current, totalAmount: event.target.value }))}
-              placeholder={language === "en" ? "Total amount" : "Monto total"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-            />
+            {/* Solo lectura: el precio es el del servicio y lo fija el servidor */}
+            <p className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-700" aria-live="polite">
+              {!form.serviceId
+                ? language === "en" ? "Select a service to see its price" : "Elige un servicio para ver su precio"
+                : Number(form.totalAmount) === 0
+                  ? language === "en" ? "Free of charge" : "Sin costo"
+                  : `${language === "en" ? "Price" : "Precio"}: ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(form.totalAmount))}`}
+            </p>
           </div>
 
           <textarea
@@ -685,7 +697,15 @@ export default function ClienteCitasPage() {
           {appointments.map((appointment) => (
             <div key={appointment.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-slate-800">{appointment.service_name}</p>
+                <p className="font-semibold text-slate-800">
+                  {appointment.service_name}
+                  {appointment.stylist_first_name ? (
+                    <span className="font-normal text-slate-500">
+                      {" · "}
+                      {language === "en" ? "with" : "con"} {appointment.stylist_first_name} {appointment.stylist_last_name ?? ""}
+                    </span>
+                  ) : null}
+                </p>
                 <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-bold uppercase text-slate-700">
                   {appointment.status}
                 </span>
@@ -743,9 +763,14 @@ export default function ClienteCitasPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">{language === "en" ? "Reschedule appointment" : "Reagendar cita"}</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     <input
-                      type="datetime-local"
-                      value={editScheduledAt}
-                      onChange={(event) => setEditScheduledAt(event.target.value)}
+                      type="date"
+                      value={editDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      aria-label={language === "en" ? "New date" : "Nueva fecha"}
+                      onChange={(event) => {
+                        setEditDate(event.target.value);
+                        setEditScheduledAt("");
+                      }}
                       className="h-10 rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
                     />
                     <input
@@ -755,8 +780,27 @@ export default function ClienteCitasPage() {
                       className="h-10 rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
                     />
                   </div>
+                  {editDate && appointment.service_id ? (
+                    <div className="mt-2">
+                      <TimeSlotPicker
+                        key={`${appointment.id}-${editDate}`}
+                        businessUserId={appointment.business_user_id}
+                        serviceId={appointment.service_id}
+                        branchId={appointment.branch_id}
+                        selectedDate={editDate}
+                        onSelectTime={(iso) => setEditScheduledAt(iso)}
+                      />
+                    </div>
+                  ) : null}
+                  {!appointment.service_id ? (
+                    <p className="mt-2 text-xs text-rose-700">
+                      {language === "en" ? "This appointment has no service linked; contact the salon to change it." : "Esta cita no tiene un servicio asociado; comunícate con el salón para cambiarla."}
+                    </p>
+                  ) : null}
                   <p className="mt-2 text-xs text-indigo-700">
-                    {language === "en" ? "Rule: Cannot reschedule to the same day because it's already prepared." : "Regla: no se puede reagendar el mismo día de la cita, porque ya está preparada."}
+                    {language === "en"
+                      ? "You can reschedule or cancel up to 2 hours before the appointment."
+                      : "Puedes reagendar o cancelar hasta 2 horas antes de la cita."}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button
