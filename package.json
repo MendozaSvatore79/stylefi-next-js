@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "crear-admin": "node --env-file=.env.local scripts/crear-admin.mjs"
+    "crear-admin": "node --env-file=.env.local scripts/crear-admin.mjs",
+    "db:arriba": "docker compose up -d --wait postgres",
+    "db:abajo": "docker compose stop postgres"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
