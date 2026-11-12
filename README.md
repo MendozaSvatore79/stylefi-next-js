@@ -1,98 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StyleFi
 
-## Registro con Neon y OTP
+Plataforma de agendamiento de citas para salones y barberías.
 
-El flujo de registro usa Neon como base de datos y envía el OTP por correo.
+## Estructura (monorepo con npm workspaces)
 
-### Variables de entorno
-
-Create a `.env.local` file with:
-
-```bash
-DATABASE_URL="postgresql://..."
-SMTP_HOST="smtp.tu-proveedor.com"
-SMTP_PORT="587"
-SMTP_USER="usuario@tu-dominio.com"
-SMTP_PASSWORD="tu-password"
-SMTP_FROM="STYLEHUB <no-reply@stylehub.com>"
-SMTP_SECURE="false"
+```
+apps/web/         Next.js (front y, por ahora, las rutas app/api). Se despliega en Vercel (Root Directory: apps/web).
+apps/api/         NestJS + Drizzle: el backend nuevo. Se desplegará en AWS junto a la base (RDS).
+packages/shared/  Reglas que usan los dos: horarios libres, zona horaria, estados de cita, plazo de 2 horas.
+compose.yaml      PostgreSQL 17 local (y el API en contenedor, opcional).
 ```
 
-### Cuentas de administración
+Las rutas de `apps/web/app/api` se irán pasando a `apps/api` por grupos; mientras tanto conviven.
 
-Las cuentas de administración son usuarios de la base con tipo `admin` (ya no se usan
-`ADMIN_EMAIL`/`ADMIN_PASSWORD`). Para crear una, o ponerle contraseña nueva:
+## Levantar todo en local
+
+Requisitos: Node 24 o más nuevo y Docker.
+
+```bash
+npm install
+npm run db:arriba                              # PostgreSQL en 127.0.0.1:54329
+cp apps/web/.env.example apps/web/.env.local   # y completa NEXTAUTH_SECRET (openssl rand -hex 32)
+cp apps/api/.env.example apps/api/.env.local
+npm run db:migrar                              # crea o actualiza las tablas
+npm run dev                                    # front en http://localhost:3000
+npm run dev:api                                # API en http://localhost:4000 (GET /health)
+npm run demo                                   # datos de demostración; muestra las contraseñas una vez
+```
+
+Otros comandos (desde la raíz):
+
+| Comando | Qué hace |
+|---|---|
+| `npm test` | Pruebas de los tres paquetes (Vitest). |
+| `npm run lint` | ESLint del front. |
+| `npm run build` | Compila el front (y `packages/shared` antes). |
+| `npm run api:docker` | Construye y levanta el API en un contenedor, junto a la base. |
+| `npm run crear-admin -- correo@dominio.com "Nombre"` | Crea una cuenta de administración (o le pone contraseña nueva). |
+| `npm run db:abajo` | Apaga la base local sin borrar datos. |
+
+## Base de datos: esquema y migraciones
+
+El esquema vive en `apps/api/src/db/schema.ts` (Drizzle) y cambia **solo con migraciones** en
+`apps/api/drizzle/`:
+
+1. Edita `schema.ts`.
+2. `npm run db:generar -w @stylefi/api -- --name descripcion_del_cambio` genera la migración SQL; revísala.
+3. `npm run db:migrar` la aplica (en producción, antes de arrancar la versión nueva:
+   `node apps/api/dist/db/migrar.js` dentro de la imagen del API).
+
+Lo que Drizzle no expresa (extensiones, la restricción `EXCLUDE` que impide citas encimadas) va como SQL
+a mano dentro de la migración.
+
+Una base que ya creó la versión anterior de la app (con `ensureStylehubSchema`) no se migra desde cero: se
+registra como "ya en la versión 0000" sin tocar tablas, con `npm run db:migrar -- --marcar-base` (se niega si
+la base está incompleta o ya marcada).
+
+`apps/web/lib/db-init.ts` está **congelado**: no le agregues tablas ni columnas; se borra cuando todas las
+rutas estén en el API. `db/schema.sql` está desactualizado y también se borrará.
+
+Pruebas de migraciones contra PostgreSQL real (crean y borran bases temporales; solo con una base local):
+
+```bash
+PRUEBAS_ADMIN_DATABASE_URL=postgres://stylefi:stylefi-local@127.0.0.1:54329/stylefi npm test -w @stylefi/api
+```
+
+## Conexión a la base
+
+- Front en Vercel (`apps/web/lib/db.ts`): cliente `postgres`, máximo 2 conexiones por instancia, SSL obligatorio.
+- API (`apps/api/src/db/conexion.ts`): pool de 10 conexiones, SSL obligatorio.
+- Solo `localhost` (y `postgres`, dentro de Docker) se conectan sin SSL.
+- Con RDS Proxy hay que agregar `prepare: false` en ambos.
+
+## Cuentas de administración
+
+Son usuarios de la base con tipo `admin` (ya no se usan `ADMIN_EMAIL`/`ADMIN_PASSWORD`):
 
 ```bash
 npm run crear-admin -- correo@dominio.com "Nombre"
 ```
 
-Lee `DATABASE_URL` de `.env.local`. Si no defines `CREAR_ADMIN_PASSWORD` (12+ caracteres), genera una
-contraseña y la muestra una sola vez. Todas las rutas de `app/api/admin/` exigen esa sesión
-(`requireAdmin()` en `lib/admin-auth.ts`).
+Lee `DATABASE_URL` de `apps/web/.env.local`. Si no defines `CREAR_ADMIN_PASSWORD` (12+ caracteres), genera una
+contraseña y la muestra una sola vez. Todas las rutas de `app/api/admin/` exigen esa sesión (`requireAdmin()`
+en `apps/web/lib/admin-auth.ts`).
 
-### Archivos subidos
+## Archivos subidos
 
-Los comprobantes de propiedad y las imágenes de sucursal se guardan en Postgres (tabla
-`stylehub_files`, módulo `lib/storage.ts`), nunca en `public/`. El tipo se valida por el contenido
-del archivo: comprobantes en PDF, JPG, PNG o WebP; imágenes en JPG, PNG o WebP; hasta 4 MB.
-Se sirven desde `/api/files/[id]`: las imágenes son públicas y los comprobantes solo los ven el
-negocio dueño y la administración. Para pasar a un bucket (S3 o R2) basta con cambiar `lib/storage.ts`.
+Los comprobantes de propiedad y las imágenes de sucursal se guardan en Postgres (tabla `stylehub_files`,
+`apps/web/lib/storage.ts`), nunca en `public/`. El tipo se valida por el contenido: comprobantes en PDF, JPG,
+PNG o WebP; imágenes en JPG, PNG o WebP; hasta 4 MB. Se sirven desde `/api/files/[id]`: las imágenes son
+públicas y los comprobantes solo los ven el negocio dueño y la administración.
 
-### Pruebas
+## Pruebas
 
-```bash
-npm test
-```
-
-Usan Vitest y no necesitan base de datos. `tests/admin-auth.test.ts` descubre todas las rutas de
-`app/api/admin/` y falla si alguna no exige una sesión de administración.
-
-### Esquema de Neon
-
-Ejecuta el contenido de `db/schema.sql` en tu proyecto de Neon para crear:
-
-- `stylehub_users`
-- `stylehub_otps`
-
-### Flujo
-
-1. Completa el registro en `/register`.
-2. El servidor guarda el usuario en Neon y envía un OTP al correo.
-3. Verifica el código en `/register/otp`.
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# stylefi-next-js
+`npm test` corre Vitest en los tres paquetes; no necesitan base de datos (las que sí, se saltan si no hay
+una configurada). `apps/web/tests/admin-auth.test.ts` descubre todas las rutas de `app/api/admin/` y falla si
+alguna no exige una sesión de administración.

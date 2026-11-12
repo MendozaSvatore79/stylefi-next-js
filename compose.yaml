@@ -1,7 +1,11 @@
 # PostgreSQL para desarrollo local (misma versión mayor que usaremos en AWS RDS).
 #   npm run db:arriba   → enciende la base (los datos quedan en el volumen stylefi-pg)
 #   npm run db:abajo    → la apaga sin borrar datos
+#   npm run api:docker  → construye y levanta el API (NestJS) en un contenedor, junto a la base
 # Solo escucha en 127.0.0.1: la contraseña de abajo es de desarrollo, no se usa en ningún otro lado.
+# Nombre fijo del proyecto: el mismo contenedor y volumen sin importar en qué carpeta esté el repo.
+name: stylefi-next-js
+
 services:
   postgres:
     image: postgres:17
@@ -20,6 +24,22 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: stylefi-api
+    profiles: ["api"]
+    environment:
+      DATABASE_URL: postgres://stylefi:stylefi-local@postgres:5432/stylefi
+      PORT: "4000"
+      WEB_ORIGIN: http://localhost:3000
+    ports:
+      - "127.0.0.1:4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   stylefi-pg:
