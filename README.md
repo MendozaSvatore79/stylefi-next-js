@@ -31,6 +31,14 @@ Lee `DATABASE_URL` de `.env.local`. Si no defines `CREAR_ADMIN_PASSWORD` (12+ ca
 contraseña y la muestra una sola vez. Todas las rutas de `app/api/admin/` exigen esa sesión
 (`requireAdmin()` en `lib/admin-auth.ts`).
 
+### Archivos subidos
+
+Los comprobantes de propiedad y las imágenes de sucursal se guardan en Postgres (tabla
+`stylehub_files`, módulo `lib/storage.ts`), nunca en `public/`. El tipo se valida por el contenido
+del archivo: comprobantes en PDF, JPG, PNG o WebP; imágenes en JPG, PNG o WebP; hasta 4 MB.
+Se sirven desde `/api/files/[id]`: las imágenes son públicas y los comprobantes solo los ven el
+negocio dueño y la administración. Para pasar a un bucket (S3 o R2) basta con cambiar `lib/storage.ts`.
+
 ### Pruebas
 
 ```bash

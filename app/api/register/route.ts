@@ -5,7 +5,6 @@ import { ensureStylehubSchema } from "@/lib/db-init";
 import { sendOtpEmail } from "@/lib/email";
 import { OTP_TTL_MINUTES, createOtpSalt, generateOtpCode, hashOtpCode } from "@/lib/otp";
 import { hashPassword } from "@/lib/password";
-import { saveProfileImage } from "@/lib/profile-image";
 
 export const runtime = "nodejs";
 
@@ -28,7 +27,6 @@ export async function POST(request: Request) {
     const phone = getFormText(formData, "phone");
     const email = getFormText(formData, "email").toLowerCase();
     const password = getFormText(formData, "password");
-    const profileImageEntry = formData.get("profileImage");
 
     if (!email || !phone || !password) {
       return NextResponse.json({ error: "Completa correo, teléfono y contraseña." }, { status: 400 });
@@ -44,11 +42,6 @@ export async function POST(request: Request) {
 
     const db = getDb();
     await ensureStylehubSchema();
-
-    let profileImageName: string | null = null;
-    if (profileImageEntry instanceof File && profileImageEntry.size > 0) {
-      profileImageName = await saveProfileImage(profileImageEntry);
-    }
 
     const existingUsers = (await db`
       SELECT email_verified
@@ -73,7 +66,6 @@ export async function POST(request: Request) {
         phone,
         email,
         password_hash,
-        profile_image_name,
         email_verified,
         updated_at
       )
@@ -86,7 +78,6 @@ export async function POST(request: Request) {
         ${phone},
         ${email},
         ${passwordHash},
-        ${profileImageName},
         FALSE,
         NOW()
       )
@@ -98,7 +89,6 @@ export async function POST(request: Request) {
         rfc = EXCLUDED.rfc,
         phone = EXCLUDED.phone,
         password_hash = EXCLUDED.password_hash,
-        profile_image_name = COALESCE(EXCLUDED.profile_image_name, stylehub_users.profile_image_name),
         email_verified = FALSE,
         updated_at = NOW(),
         verified_at = NULL

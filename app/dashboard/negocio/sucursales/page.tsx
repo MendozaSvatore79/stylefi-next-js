@@ -451,16 +451,22 @@ export default function NegocioSucursalesPage() {
           <input
             value={form.imageUrl}
             onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-            placeholder={language === "en" ? "Image URL (optional, if you don't upload a file)" : "URL imagen (opcional, si no subes archivo)"}
+            placeholder={language === "en" ? "Image URL starting with https:// (optional, if you don't upload a file)" : "URL de imagen con https:// (opcional, si no subes archivo)"}
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
+
+          <p className="text-xs text-slate-500">
+            {language === "en"
+              ? "Image: JPG, PNG or WebP. Ownership proof: PDF or image. Up to 4 MB each. Only you and the administration can see the proof."
+              : "Imagen: JPG, PNG o WebP. Comprobante: PDF o imagen. Hasta 4 MB cada uno. El comprobante solo lo ven tú y la administración."}
+          </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
               <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">{language === "en" ? "Branch image" : "Imagen sucursal"}</span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={(event) => setBranchImageFile(event.target.files?.[0] ?? null)}
                 className="block w-full text-xs text-slate-600"
               />
@@ -470,7 +476,7 @@ export default function NegocioSucursalesPage() {
               <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">{language === "en" ? "Ownership proof *" : "Comprobante de propiedad *"}</span>
               <input
                 type="file"
-                accept=".pdf,.doc,.docx,image/*"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
                 onChange={(event) => setOwnershipProofFile(event.target.files?.[0] ?? null)}
                 className="block w-full text-xs text-slate-600"
                 required

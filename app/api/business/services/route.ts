@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentBusinessUser } from "@/app/api/business/_current-user";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
+import { urlDeImagenValida } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -63,6 +64,10 @@ export async function POST(request: Request) {
     const price = Number(payload.price ?? 0);
     const durationMinutes = Number(payload.durationMinutes ?? 0) || null;
     const imageUrl = payload.imageUrl?.trim() || null;
+
+    if (!urlDeImagenValida(imageUrl)) {
+      return NextResponse.json({ error: "La URL de la imagen debe empezar con https://" }, { status: 400 });
+    }
     const branchId = payload.branchId?.trim();
 
     if (!serviceName) {
@@ -154,6 +159,10 @@ export async function PUT(request: Request) {
     const price = Number(payload.price ?? 0);
     const durationMinutes = Number(payload.durationMinutes ?? 0) || null;
     const imageUrl = payload.imageUrl?.trim() || null;
+
+    if (!urlDeImagenValida(imageUrl)) {
+      return NextResponse.json({ error: "La URL de la imagen debe empezar con https://" }, { status: 400 });
+    }
     const branchId = payload.branchId?.trim();
 
     if (!id || !serviceName) {

@@ -28,7 +28,6 @@ export default function Register() {
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [profileImage, setProfileImage] = useState<File | null>(null);
     const [form, setForm] = useState<RegisterFormState>({
         firstName: "",
         lastName: "",
@@ -66,10 +65,6 @@ export default function Register() {
             payloadFormData.append("phone", form.phone);
             payloadFormData.append("email", form.email);
             payloadFormData.append("password", form.password);
-
-            if (profileImage) {
-                payloadFormData.append("profileImage", profileImage);
-            }
 
             const response = await fetch("/api/register", {
                 method: "POST",
@@ -271,18 +266,6 @@ export default function Register() {
                                             value={form.email}
                                             onChange={updateField("email")}
                                             className="h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-blue-300 focus:ring"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                            {language === "en" ? "Profile image" : "Imagen de perfil"}
-                                        </label>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(event) => setProfileImage(event.target.files?.[0] ?? null)}
-                                            className="block w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 p-2 text-sm text-slate-600"
                                         />
                                     </div>
 

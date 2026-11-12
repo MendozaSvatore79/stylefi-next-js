@@ -142,3 +142,17 @@ ON stylehub_user_two_factor_challenges(user_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_stylehub_two_factor_challenges_expires
 ON stylehub_user_two_factor_challenges(expires_at DESC);
+
+-- Archivos subidos (lib/storage.ts): comprobantes privados e imágenes públicas, hasta 4 MB.
+-- Se sirven desde /api/files/[id]; nunca desde public/.
+CREATE TABLE IF NOT EXISTS stylehub_files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id UUID NOT NULL REFERENCES stylehub_users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('branch_image', 'branch_proof')),
+  content_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 4194304),
+  data BYTEA NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stylehub_files_owner ON stylehub_files(owner_user_id);
