@@ -74,7 +74,7 @@ export async function GET(request: Request) {
         AND br.id IS NOT NULL
       `;
 
-      const business = (result as Array<{ id: string } & Record<string, unknown>>)[0];
+      const business = (result as unknown as Array<{ id: string } & Record<string, unknown>>)[0];
 
       if (!business) {
         return NextResponse.json({ error: "Negocio no encontrado" }, { status: 404 });

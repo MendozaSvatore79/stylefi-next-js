@@ -37,7 +37,8 @@ vi.mock("@/lib/db", () => ({
       estado.queries.push(q);
       return Promise.resolve(responder(q));
     };
-    sql.transaction = async (consultas: Promise<unknown[]>[]) => {
+    sql.begin = async (fn: (tx: typeof sql) => Promise<unknown[]>[]) => {
+      const consultas = fn(sql);
       const desde = estado.queries.length - consultas.length;
       estado.transacciones.push(estado.queries.slice(desde));
       return Promise.all(consultas);

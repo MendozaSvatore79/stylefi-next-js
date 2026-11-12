@@ -8,7 +8,7 @@ import {
   ZONA_HORARIA,
 } from "@/lib/availability";
 
-/** Función de consulta con plantillas (la de @neondatabase/serverless o una transacción). */
+/** Función de consulta con plantillas (la del cliente postgres o la de una transacción). */
 export type Sql = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown[]>;
 
 export type ServicioReservable = { id: string; service_name: string; price: string; duration_minutes: number };
@@ -144,8 +144,11 @@ export class SaldoInsuficiente extends Error {
   }
 }
 
-/** Función de consulta de Neon con transacciones no interactivas (sql.transaction([...])). */
-export type SqlTx = Sql & { transaction: (consultas: Promise<unknown[]>[]) => Promise<unknown[][]> };
+/**
+ * Cliente con transacciones (sql.begin del paquete postgres): el callback recibe la conexión de la
+ * transacción y devuelve la lista de consultas, que se envían juntas entre BEGIN y COMMIT.
+ */
+export type SqlTx = Sql & { begin: (fn: (tx: Sql) => Promise<unknown[]>[]) => Promise<unknown[][]> };
 
 const VIOLACION_DE_EXCLUSION = "23P01"; // la restricción stylehub_appointments_no_overlap
 
@@ -196,9 +199,9 @@ export async function reservar(db: SqlTx, d: DatosReserva) {
     const usaMonedero = pago === "wallet";
     let fila: { cita: Record<string, unknown> | null; ocupado: boolean } | undefined;
     try {
-      const [, resultado] = await db.transaction([
-        candado(db, stylistId),
-        db`
+      const [, resultado] = await db.begin((tx) => [
+        candado(tx, stylistId),
+        tx`
           WITH conflicto AS (
             SELECT 1 FROM stylehub_client_appointments
             WHERE stylist_id = ${stylistId}::uuid AND status <> 'cancelled'
@@ -353,9 +356,9 @@ export async function reagendarCita(
 
   for (const stylistId of orden) {
     try {
-      const [, filas] = await db.transaction([
-        candado(db, stylistId),
-        db`
+      const [, filas] = await db.begin((tx) => [
+        candado(tx, stylistId),
+        tx`
           UPDATE stylehub_client_appointments
           SET scheduled_at = ${d.nuevoInicio.toISOString()}::timestamptz, ends_at = ${fin.toISOString()}::timestamptz,
               stylist_id = ${stylistId}::uuid, updated_at = NOW()
