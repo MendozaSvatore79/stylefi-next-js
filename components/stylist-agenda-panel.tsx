@@ -74,7 +74,7 @@ export default function StylistAgendaPanel({
   const dias = DIAS[en ? "en" : "es"];
 
   return (
-    <div className="mt-4 space-y-5 rounded-2xl border border-slate-200 bg-white p-4">
+    <div className="mt-4 min-w-0 space-y-5 rounded-2xl border border-slate-200 bg-white p-4">
       <section>
         <h3 className="text-sm font-bold text-slate-800">{en ? "Services this stylist offers" : "Servicios que hace"}</h3>
         {disponibles.length === 0 ? (
@@ -114,18 +114,18 @@ export default function StylistAgendaPanel({
         </p>
         <div className="mt-3 grid gap-2">
           {dias.map((nombre, dia) => (
-            <div key={dia} className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+            <div key={dia} className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
               <span className="w-24 shrink-0 text-sm font-semibold text-slate-700">{nombre}</span>
               {bloques.map((b, i) =>
                 b.dayOfWeek !== dia ? null : (
-                  <span key={i} className="flex items-center gap-1">
+                  <span key={i} className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-1 sm:flex sm:w-auto">
                     <input
                       type="time"
                       step={300}
                       value={b.start}
                       aria-label={`${nombre} ${en ? "start" : "inicio"}`}
                       onChange={(e) => setBloques((bs) => bs.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))}
-                      className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                      className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-1.5 text-xs sm:w-auto sm:px-2 sm:text-sm"
                     />
                     <span className="text-slate-400">–</span>
                     <input
@@ -134,7 +134,7 @@ export default function StylistAgendaPanel({
                       value={b.end}
                       aria-label={`${nombre} ${en ? "end" : "fin"}`}
                       onChange={(e) => setBloques((bs) => bs.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))}
-                      className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                      className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-1.5 text-xs sm:w-auto sm:px-2 sm:text-sm"
                     />
                     <button
                       type="button"
@@ -209,10 +209,10 @@ export default function StylistAgendaPanel({
           ))}
           {ausencias.length === 0 && <li className="text-sm text-slate-500">{en ? "No upcoming time off." : "Sin ausencias próximas."}</li>}
         </ul>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-          <input type="datetime-local" step={300} value={nueva.startsAt} aria-label={en ? "From" : "Desde"} onChange={(e) => setNueva({ ...nueva, startsAt: e.target.value })} className="h-9 rounded-lg border border-slate-200 px-2 text-sm" />
-          <input type="datetime-local" step={300} value={nueva.endsAt} aria-label={en ? "Until" : "Hasta"} onChange={(e) => setNueva({ ...nueva, endsAt: e.target.value })} className="h-9 rounded-lg border border-slate-200 px-2 text-sm" />
-          <input value={nueva.reason} maxLength={120} placeholder={en ? "Reason (optional)" : "Motivo (opcional)"} onChange={(e) => setNueva({ ...nueva, reason: e.target.value })} className="h-9 rounded-lg border border-slate-200 px-2 text-sm" />
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input type="datetime-local" step={300} value={nueva.startsAt} aria-label={en ? "From" : "Desde"} onChange={(e) => setNueva({ ...nueva, startsAt: e.target.value })} className="h-9 w-full min-w-0 rounded-lg border border-slate-200 px-2 text-sm" />
+          <input type="datetime-local" step={300} value={nueva.endsAt} aria-label={en ? "Until" : "Hasta"} onChange={(e) => setNueva({ ...nueva, endsAt: e.target.value })} className="h-9 w-full min-w-0 rounded-lg border border-slate-200 px-2 text-sm" />
+          <input value={nueva.reason} maxLength={120} placeholder={en ? "Reason (optional)" : "Motivo (opcional)"} onChange={(e) => setNueva({ ...nueva, reason: e.target.value })} className="h-9 w-full min-w-0 rounded-lg border border-slate-200 px-2 text-sm" />
           <button
             type="button"
             disabled={guardando !== null || !nueva.startsAt || !nueva.endsAt}
@@ -227,7 +227,7 @@ export default function StylistAgendaPanel({
                 en ? "Time off added." : "Ausencia agregada.",
               )
             }
-            className="rounded-lg bg-slate-800 px-3 text-xs font-semibold text-white hover:bg-slate-900 disabled:opacity-60"
+            className="h-9 rounded-lg bg-slate-800 px-3 text-xs font-semibold text-white hover:bg-slate-900 disabled:opacity-60"
           >
             {en ? "Add" : "Agregar"}
           </button>

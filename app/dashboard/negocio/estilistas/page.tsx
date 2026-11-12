@@ -142,7 +142,7 @@ export default function NegocioEstilistasPage() {
 
   return (
     <section className="grid gap-6 xl:grid-cols-[1.15fr_1fr]">
-      <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <article className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Team" : "Equipo"}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Register stylist" : "Registrar estilista"}</h2>
 
@@ -218,7 +218,7 @@ export default function NegocioEstilistasPage() {
         </form>
       </article>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <article className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("business.stylists")}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Your team" : "Tu equipo"}</h2>
 
