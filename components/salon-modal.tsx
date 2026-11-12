@@ -55,6 +55,7 @@ type Stylist = {
   image_url: string;
   available: boolean;
   branch_id?: string | null;
+  service_ids?: string[];
 };
 
 type PaymentMethod = {
@@ -77,13 +78,14 @@ export default function SalonModal({
   const router = useRouter();
   const { status } = useSession();
   const { showToast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [business, setBusiness] = useState<BusinessDetail | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  // Las tarjetas guardadas ya no se usan para citas; se conservan para Pagos
+  const [, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"servicios" | "estilistas" | "ubicacion">("servicios");
@@ -98,8 +100,9 @@ export default function SalonModal({
     serviceId: "",
     scheduledAt: "",
     notes: "",
-    paymentProvider: "cash" as "cash" | "wallet" | "card",
-    paymentMethodId: "",
+    // La opción "tarjeta" se quitó: solo guardaba la tarjeta elegida y nunca cobraba (decisión del 2026-11-12)
+    paymentProvider: "cash" as "cash" | "wallet",
+    stylistId: "",
   });
 
   useEffect(() => {
@@ -164,7 +167,10 @@ export default function SalonModal({
   const stylistsForBranch = selectedBranchId
     ? stylists.filter((stylist) => stylist.branch_id ? String(stylist.branch_id) === String(selectedBranchId) : false)
     : stylists;
-  const savedCardMethods = paymentMethods.filter((method) => method.provider === "card");
+  // Estilistas que hacen el servicio elegido en esa sucursal ("" = cualquiera)
+  const stylistsForService = stylistsForBranch.filter(
+    (stylist) => stylist.available && (stylist.service_ids ?? []).includes(bookingForm.serviceId),
+  );
 
   useEffect(() => {
     if (!bookingForm.serviceId) {
@@ -214,27 +220,6 @@ export default function SalonModal({
       return;
     }
 
-    if (!sinCosto && bookingForm.paymentProvider === "card" && !bookingForm.paymentMethodId) {
-      showToast({
-        type: "error",
-        title: "Selecciona una tarjeta",
-        message: "Debes elegir una tarjeta guardada para continuar.",
-      });
-      return;
-    }
-
-    if (!sinCosto && bookingForm.paymentProvider === "card") {
-      const selectedCard = savedCardMethods.find((method) => method.id === bookingForm.paymentMethodId);
-      if (!selectedCard) {
-        showToast({
-          type: "error",
-          title: "Tarjeta no válida",
-          message: "La tarjeta seleccionada no está disponible.",
-        });
-        return;
-      }
-    }
-
     setIsBooking(true);
 
     try {
@@ -247,7 +232,7 @@ export default function SalonModal({
           serviceId: selectedService.id,
           scheduledAt: bookingForm.scheduledAt,
           paymentProvider: bookingForm.paymentProvider,
-          paymentMethodId: bookingForm.paymentProvider === "card" ? bookingForm.paymentMethodId : null,
+          stylistId: bookingForm.stylistId || null,
           notes: bookingForm.notes || null,
         }),
       });
@@ -275,8 +260,6 @@ export default function SalonModal({
       setIsBooking(false);
     }
   };
-
-  const selectedCard = savedCardMethods.find((method) => method.id === bookingForm.paymentMethodId) ?? null;
 
   useEffect(() => {
     if (view !== "booking" || bookingStep !== "payment") {
@@ -577,7 +560,7 @@ export default function SalonModal({
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.service")}</label>
                   <select
                     value={bookingForm.serviceId}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, serviceId: event.target.value }))}
+                    onChange={(event) => setBookingForm((current) => ({ ...current, serviceId: event.target.value, stylistId: "", scheduledAt: "" }))}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
                   >
                     <option value="">{t("modal.selectService")}</option>
@@ -588,6 +571,26 @@ export default function SalonModal({
                     ))}
                   </select>
                 </div>
+
+                {bookingForm.serviceId ? (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {language === "en" ? "Stylist" : "Estilista"}
+                    </label>
+                    <select
+                      value={bookingForm.stylistId}
+                      onChange={(event) => setBookingForm((current) => ({ ...current, stylistId: event.target.value, scheduledAt: "" }))}
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                    >
+                      <option value="">{language === "en" ? "Anyone available" : "Cualquiera disponible"}</option>
+                      {stylistsForService.map((stylist) => (
+                        <option key={stylist.id} value={stylist.id}>
+                          {stylist.first_name} {stylist.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
 
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.dateTime")}</label>
@@ -606,9 +609,11 @@ export default function SalonModal({
 
                 {bookingForm.serviceId && selectedDate ? (
                   <TimeSlotPicker
-                    key={`${bookingForm.serviceId}-${selectedDate}`}
+                    key={`${bookingForm.serviceId}-${bookingForm.stylistId}-${selectedDate}`}
                     businessUserId={business.id}
                     serviceId={bookingForm.serviceId}
+                    branchId={selectedBranchId}
+                    stylistId={bookingForm.stylistId || null}
                     selectedDate={selectedDate}
                     serviceDuration={selectedService?.duration_minutes ?? 30}
                     onSelectTime={(isoDateTime) => {
@@ -640,10 +645,10 @@ export default function SalonModal({
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Paso 2 de 2</p>
                         <p className="text-xs text-slate-500">Último paso para confirmar</p>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
-                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "cash", paymentMethodId: "" }))}
+                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "cash" }))}
                           className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                             bookingForm.paymentProvider === "cash"
                               ? "border-indigo-600 bg-indigo-50 text-indigo-700"
@@ -654,7 +659,7 @@ export default function SalonModal({
                         </button>
                         <button
                           type="button"
-                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "wallet", paymentMethodId: "" }))}
+                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "wallet" }))}
                           className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                             bookingForm.paymentProvider === "wallet"
                               ? "border-emerald-600 bg-emerald-50 text-emerald-700"
@@ -663,17 +668,6 @@ export default function SalonModal({
                         >
                           Saldo wallet
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "card" }))}
-                          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                            bookingForm.paymentProvider === "card"
-                              ? "border-blue-600 bg-blue-50 text-blue-700"
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          Tarjeta guardada
-                        </button>
                       </div>
                       {bookingForm.paymentProvider === "wallet" ? (
                         <p className="mt-2 text-xs text-slate-600">
@@ -681,30 +675,6 @@ export default function SalonModal({
                             ? `${t("modal.availableBalance")} $${walletBalance.toFixed(2)}`
                             : t("modal.noBalance")}
                         </p>
-                      ) : bookingForm.paymentProvider === "card" ? (
-                        <div className="mt-2 space-y-2">
-                          <select
-                            value={bookingForm.paymentMethodId}
-                            onChange={(event) => setBookingForm((current) => ({ ...current, paymentMethodId: event.target.value }))}
-                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                          >
-                            <option value="">Selecciona una tarjeta guardada</option>
-                            {savedCardMethods.map((method) => (
-                              <option key={method.id} value={method.id}>
-                                {`${(method.card_brand || "Tarjeta").toUpperCase()} •••• ${method.card_last4 || "0000"}`}
-                              </option>
-                            ))}
-                          </select>
-                          {selectedCard ? (
-                            <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                              Se cobrará directamente a {`${(selectedCard.card_brand || "tarjeta").toUpperCase()} •••• ${selectedCard.card_last4 || "0000"}`}
-                            </p>
-                          ) : (
-                            <p className="text-xs text-slate-600">
-                              No hay tarjetas guardadas disponibles. Ve a Pagos para agregar una.
-                            </p>
-                          )}
-                        </div>
                       ) : (
                         <p className="mt-2 text-xs text-slate-600">{t("modal.payAtSalon")}</p>
                       )}

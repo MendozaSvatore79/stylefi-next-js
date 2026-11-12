@@ -11,6 +11,8 @@ type Slot = {
 interface TimeSlotPickerProps {
   businessUserId: string;
   serviceId: string;
+  branchId?: string | null;
+  stylistId?: string | null; // null o vacío = cualquiera
   selectedDate: string; // YYYY-MM-DD
   onSelectTime: (isoDateTime: string) => void;
   isLoading?: boolean;
@@ -20,6 +22,8 @@ interface TimeSlotPickerProps {
 export default function TimeSlotPicker({
   businessUserId,
   serviceId,
+  branchId = null,
+  stylistId = null,
   selectedDate,
   onSelectTime,
   isLoading = false,
@@ -39,10 +43,10 @@ export default function TimeSlotPicker({
     const loadSlots = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          `/api/client/appointments/availability?businessUserId=${businessUserId}&serviceId=${serviceId}&date=${selectedDate}`,
-          { cache: "no-store" },
-        );
+        const params = new URLSearchParams({ businessUserId, serviceId, date: selectedDate });
+        if (branchId) params.set("branchId", branchId);
+        if (stylistId) params.set("stylistId", stylistId);
+        const response = await fetch(`/api/client/appointments/availability?${params}`, { cache: "no-store" });
         if (!response.ok) {
           return;
         }
@@ -57,7 +61,7 @@ export default function TimeSlotPicker({
     };
 
     void loadSlots();
-  }, [businessUserId, serviceId, selectedDate, serviceDuration]);
+  }, [businessUserId, serviceId, branchId, stylistId, selectedDate, serviceDuration]);
 
   const handleSelectTime = (slot: Slot) => {
     if (!slot.isAvailable) return;
