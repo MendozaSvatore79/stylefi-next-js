@@ -17,9 +17,6 @@
     "demo": "npm run demo -w @stylefi/web",
     "crear-admin": "npm run crear-admin -w @stylefi/web --",
     "db:arriba": "docker compose up -d --wait postgres",
-    "db:abajo": "docker compose stop postgres",
-    "api:docker": "docker compose --profile api up -d --build --wait api",
-    "dev:api": "npm run dev -w @stylefi/api",
-    "db:migrar": "npm run db:migrar -w @stylefi/api --"
+    "db:abajo": "docker compose stop postgres"
   }
 }
