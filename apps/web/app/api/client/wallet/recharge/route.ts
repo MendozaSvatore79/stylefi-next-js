@@ -4,6 +4,8 @@ import Stripe from "stripe";
 import { getCurrentClientUser } from "@/app/api/client/_current-user";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
+import type { Sql } from "@/lib/booking";
+import { recargaCompletada } from "@/lib/recargas";
 import { getStripeClient } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -127,36 +129,16 @@ export async function POST(request: Request) {
     }
 
     if (isMockMode) {
-      const [updatedWallet] = (await db`
-        UPDATE stylehub_client_wallets
-        SET balance = balance + ${amount},
-            updated_at = NOW()
-        WHERE id = ${wallet.id}
-        RETURNING id, balance, currency
-      `) as Array<{ id: string; balance: string; currency: string }>;
-
-      await db`
-        INSERT INTO stylehub_client_wallet_transactions (
-          wallet_id,
-          user_id,
-          transaction_type,
-          amount,
-          payment_method_id,
-          payment_provider,
-          status,
-          notes
-        )
-        VALUES (
-          ${wallet.id},
-          ${auth.userId},
-          'recharge',
-          ${amount},
-          ${payload.paymentMethodId?.trim() || null},
-          'mock',
-          'completed',
-          ${payload.notes?.trim() || "Recarga simulada (modo mock)"}
-        )
-      `;
+      // Suma el saldo y registra el movimiento en una sola sentencia
+      const updatedWallet = await recargaCompletada(db as unknown as Sql, {
+        walletId: wallet.id,
+        userId: auth.userId,
+        monto: amount,
+        paymentMethodId: payload.paymentMethodId?.trim() || null,
+        proveedor: "mock",
+        referencia: null,
+        notas: payload.notes?.trim() || "Recarga simulada (modo mock)",
+      });
 
       return NextResponse.json({ wallet: updatedWallet, mode: "mock" }, { status: 201 });
     }
@@ -180,38 +162,16 @@ export async function POST(request: Request) {
         });
 
         if (intent.status === "succeeded") {
-          const [updatedWallet] = (await db`
-            UPDATE stylehub_client_wallets
-            SET balance = balance + ${amount},
-                updated_at = NOW()
-            WHERE id = ${wallet.id}
-            RETURNING id, balance, currency
-          `) as Array<{ id: string; balance: string; currency: string }>;
-
-          await db`
-            INSERT INTO stylehub_client_wallet_transactions (
-              wallet_id,
-              user_id,
-              transaction_type,
-              amount,
-              payment_method_id,
-              payment_provider,
-              status,
-              external_reference,
-              notes
-            )
-            VALUES (
-              ${wallet.id},
-              ${auth.userId},
-              'recharge',
-              ${amount},
-              ${selectedMethod.id},
-              'stripe',
-              'completed',
-              ${intent.id},
-              ${payload.notes?.trim() || "Recarga con tarjeta guardada"}
-            )
-          `;
+          // Suma el saldo y registra el movimiento en una sola sentencia
+          const updatedWallet = await recargaCompletada(db as unknown as Sql, {
+            walletId: wallet.id,
+            userId: auth.userId,
+            monto: amount,
+            paymentMethodId: selectedMethod.id,
+            proveedor: "stripe",
+            referencia: intent.id,
+            notas: payload.notes?.trim() || "Recarga con tarjeta guardada",
+          });
 
           return NextResponse.json({ wallet: updatedWallet, mode: "stripe-direct" }, { status: 201 });
         }
