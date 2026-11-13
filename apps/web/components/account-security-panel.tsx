@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { signOut } from "next-auth/react";
+import { useCerrarSesion } from "@/lib/sesion-cliente";
 
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
@@ -44,6 +44,7 @@ type SecurityApiResponse = {
 export default function AccountSecurityPanel({ title }: { title: string }) {
   const { showToast } = useToast();
   const { t } = useLanguage();
+  const cerrarSesion = useCerrarSesion();
   const [security, setSecurity] = useState<AccountSecurity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
@@ -388,7 +389,7 @@ export default function AccountSecurityPanel({ title }: { title: string }) {
         message: t("security.deleteSuccessMsg"),
       });
 
-      await signOut({ callbackUrl: "/" });
+      await cerrarSesion("/");
     } catch (error) {
       showToast({
         type: "error",

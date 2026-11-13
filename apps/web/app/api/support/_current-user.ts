@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 
-import { authConfig } from "@/lib/auth";
+import { obtenerSesion } from "@/lib/sesion";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
@@ -15,7 +14,7 @@ export type SupportCurrentUser = {
 // Solo clientes y negocios: los tickets de soporte no aceptan otro tipo de cuenta, así que una
 // cuenta de administración usa el soporte como visitante.
 export async function getCurrentSupportUser(): Promise<SupportCurrentUser> {
-  const session = await getServerSession(authConfig);
+  const session = await obtenerSesion();
 
   if (!session?.user) {
     return null;

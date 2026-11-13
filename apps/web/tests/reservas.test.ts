@@ -27,7 +27,7 @@ const estado = vi.hoisted(() => ({
   citaGuardada: null as null | Record<string, unknown>,
 }));
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn(async () => estado.sesion), default: vi.fn() }));
+vi.mock("@/lib/sesion", () => ({ obtenerSesion: vi.fn(async () => estado.sesion) }));
 vi.mock("@/lib/db-init", () => ({ ensureStylehubSchema: vi.fn(async () => undefined) }));
 vi.mock("@/lib/email", () => ({ sendAppointmentConfirmationEmails: vi.fn(async () => undefined) }));
 vi.mock("@/lib/db", () => ({

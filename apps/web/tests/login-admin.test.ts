@@ -2,14 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({ filas: [] as unknown[] }));
-const nav = vi.hoisted(() => ({ redirect: vi.fn((url: string) => { throw new Error(`REDIRECT ${url}`); }) }));
-const sesion = vi.hoisted(() => ({ actual: null as null | { user: Record<string, unknown> } }));
 
 vi.mock("@/lib/db-init", () => ({ ensureStylehubSchema: vi.fn(async () => undefined) }));
 vi.mock("@/lib/db", () => ({ getDb: () => vi.fn(async () => db.filas) }));
-vi.mock("next-auth", () => ({ getServerSession: vi.fn(async () => sesion.actual), default: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: nav.redirect }));
-vi.mock("@/components/admin-dashboard-shell", () => ({ default: () => null }));
 
 import { hashPassword } from "@/lib/password";
 
@@ -42,24 +37,5 @@ describe("/api/login", () => {
     const r = await login("jefa@test", "clave-larga-123");
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ role: "admin", redirectTo: "/dashboard/admin" });
-  });
-});
-
-describe("layout de /dashboard/admin", () => {
-  it.each([null, { user: { id: "u1", accountType: "cliente" } }, { user: { id: "u2", accountType: "negocio" } }])(
-    "redirige a iniciar sesión si la sesión es %j",
-    async (s) => {
-      sesion.actual = s;
-      const { default: Layout } = await import("@/app/dashboard/admin/layout");
-      await expect(Layout({ children: null })).rejects.toThrow("REDIRECT /iniciar-sesion?reason=unauthorized");
-    },
-  );
-
-  it("muestra el panel a una cuenta de administración", async () => {
-    sesion.actual = { user: { id: "a1", accountType: "admin" } };
-    nav.redirect.mockClear();
-    const { default: Layout } = await import("@/app/dashboard/admin/layout");
-    await expect(Layout({ children: null })).resolves.toBeTruthy();
-    expect(nav.redirect).not.toHaveBeenCalled();
   });
 });

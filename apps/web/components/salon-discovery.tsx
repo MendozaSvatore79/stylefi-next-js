@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSesion } from "@/lib/sesion-cliente";
 import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import SalonModal from "@/components/salon-modal";
@@ -39,7 +39,7 @@ function normalizeText(value: string) {
 }
 
 export default function SalonDiscovery() {
-  const { status } = useSession();
+  const { status } = useSesion();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [draftServiceQuery, setDraftServiceQuery] = useState("");
   const [draftBusinessQuery, setDraftBusinessQuery] = useState("");

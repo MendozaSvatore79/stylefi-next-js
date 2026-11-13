@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { useCerrarSesion, useSesion } from "@/lib/sesion-cliente";
 import { CalendarCheck2, ChevronRight, LayoutDashboard, Lightbulb, Menu, Settings2, Store, WalletCards, type LucideIcon } from "lucide-react";
 
 
@@ -47,7 +47,8 @@ const MENU_ITEMS: MenuItem[] = [
 
 export default function ClientDashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session } = useSesion();
+  const cerrarSesion = useCerrarSesion();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moduleAccess, setModuleAccess] = useState<ModuleAccessResponse | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -304,7 +305,7 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
                         title: "Cerrando sesión",
                         message: "Redirigiendo al inicio de sesión...",
                       });
-                      await signOut({ callbackUrl: "/iniciar-sesion" });
+                      await cerrarSesion("/iniciar-sesion");
                     } finally {
                       setLoggingOut(false);
                     }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authConfig } from "@/lib/auth";
+import { obtenerSesion } from "@/lib/sesion";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 import { sendAccountDeletionTokenEmail, sendTwoFactorCodeEmail } from "@/lib/email";
@@ -59,7 +58,7 @@ type TwoFactorChallengeRow = {
 };
 
 async function resolveCurrentUser() {
-  const session = await getServerSession(authConfig);
+  const session = await obtenerSesion();
 
   if (!session?.user) {
     return { error: NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 }) } as const;

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSesion } from "@/lib/sesion-cliente";
 
 import { useToast } from "@/components/toast";
 
@@ -60,7 +60,7 @@ function getUnreadSupportMessages(messages: OracleMessage[], lastSeenAt: string 
 
 export default function OracleSupportWidget() {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSesion();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);

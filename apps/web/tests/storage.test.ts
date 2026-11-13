@@ -30,7 +30,7 @@ const estado = vi.hoisted(() => ({
   sucursal: null as null | { image_url: string | null; ownership_proof_url: string | null },
 }));
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn(async () => estado.sesion), default: vi.fn() }));
+vi.mock("@/lib/sesion", () => ({ obtenerSesion: vi.fn(async () => estado.sesion) }));
 vi.mock("@/lib/db-init", () => ({ ensureStylehubSchema: vi.fn(async () => undefined) }));
 vi.mock("@/lib/db", () => ({
   getDb: () => (strings: TemplateStringsArray, ...values: unknown[]) => {
