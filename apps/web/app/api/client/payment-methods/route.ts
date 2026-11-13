@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentClientUser } from "@/app/api/client/_current-user";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
+import { reconciliarRecargas } from "@/lib/cobro-directo";
 import { getStripeClient } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -22,6 +23,12 @@ export async function GET() {
   try {
     await ensureStylehubSchema();
     const db = getDb();
+
+    // Completa las recargas con tarjeta que quedaron «En proceso» (no cobra de nuevo; nunca lanza)
+    const pagosSimulados = (process.env.PAYMENTS_MODE || "").trim().toLowerCase() === "mock";
+    if (!pagosSimulados && process.env.STRIPE_SECRET_KEY) {
+      await reconciliarRecargas(db, getStripeClient(), auth.userId);
+    }
 
     const methods = await db`
       SELECT
@@ -46,7 +53,8 @@ export async function GET() {
     `) as Array<{ id: string; balance: string; currency: string }>;
 
     const transactions = await db`
-      SELECT id, transaction_type, amount, payment_provider, status, notes, created_at
+      SELECT id, transaction_type, amount, payment_provider, status, notes, created_at,
+        COALESCE(external_reference LIKE 'recarga-%', FALSE) AS cobro_directo
       FROM stylehub_client_wallet_transactions
       WHERE user_id = ${auth.userId}
       ORDER BY created_at DESC

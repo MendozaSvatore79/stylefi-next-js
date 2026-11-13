@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { useToast } from "@/components/toast";
+import { estadoDeMovimiento, intentoDeRecarga, type Intento } from "@/lib/intento-recarga";
 import { useLanguage } from "@/lib/language-context";
 import StripeCardSetupForm from "./StripeCardSetupForm";
 
@@ -30,6 +31,7 @@ type WalletTransaction = {
   status: "pending" | "completed" | "failed";
   notes: string | null;
   created_at: string;
+  cobro_directo?: boolean;
 };
 
 export default function ClientePagosPage() {
@@ -58,6 +60,8 @@ export default function ClientePagosPage() {
     amount: "",
     paymentMethodId: "",
   });
+  // Clave del intento de recarga: se reutiliza si la persona reintenta la misma recarga (no hay doble cargo)
+  const intentoRef = useRef<Intento | null>(null);
 
   const loadMethods = async () => {
     try {
@@ -196,24 +200,44 @@ export default function ClientePagosPage() {
 
     try {
       const amount = Number(recharge.amount);
+      const intento = intentoDeRecarga(intentoRef.current, amount, recharge.paymentMethodId);
+      intentoRef.current = intento;
       const response = await fetch("/api/client/wallet/recharge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
           paymentMethodId: recharge.paymentMethodId || undefined,
+          requestId: intento.id,
         }),
       });
 
       const payload = (await response.json()) as {
         error?: string;
+        message?: string;
         checkoutUrl?: string;
-        mode?: "mock" | "stripe-direct" | "stripe";
+        mode?: "mock" | "stripe-direct" | "stripe" | "stripe-processing";
         wallet?: { balance: string; currency: string };
       };
 
       if (!response.ok) {
+        // 409: esa clave ya se usó con otro monto; el siguiente intento lleva una clave nueva
+        if (response.status === 409) intentoRef.current = null;
         throw new Error(payload.error ?? "No se pudo recargar la wallet.");
+      }
+      // La recarga terminó (completada, en proceso o abierta en Checkout): la próxima es otra recarga
+      intentoRef.current = null;
+
+      // Stripe cobró pero el saldo aún no se suma: se completa solo, sin otro cargo
+      if (payload.mode === "stripe-processing") {
+        showToast({
+          type: "info",
+          title: language === "en" ? "Recharge in process" : "Recarga en proceso",
+          message: payload.message ?? "",
+        });
+        setRecharge({ amount: "", paymentMethodId: "" });
+        await loadMethods();
+        return;
       }
 
       // Caso 1: Pago directo exitoso (tarjeta guardada o mock)
@@ -621,7 +645,7 @@ export default function ClientePagosPage() {
                   {transaction.transaction_type.toUpperCase()} · ${Number(transaction.amount).toFixed(2)}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {transaction.payment_provider ? `Proveedor: ${transaction.payment_provider}` : "Proveedor no especificado"} · Estado: {transaction.status}
+                  {transaction.payment_provider ? `Proveedor: ${transaction.payment_provider}` : "Proveedor no especificado"} · Estado: {estadoDeMovimiento(transaction, language)}
                 </p>
                 <p className="text-xs text-slate-500">{transaction.notes || "Sin notas"}</p>
               </div>
