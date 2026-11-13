@@ -45,7 +45,7 @@ export default function SalonesPage() {
       try {
         const [businessesRes, favoritesRes, onboardingRes] = await Promise.all([
           api("/api/businesses", { cache: "no-store" }),
-          fetch("/api/client/favorites", { cache: "no-store" }),
+          api("/api/client/favorites", { cache: "no-store" }),
           fetch("/api/client/onboarding", { cache: "no-store" }),
         ]);
 
@@ -104,7 +104,7 @@ export default function SalonesPage() {
       setFavoriteLoadingId(businessId);
       const isFavorite = favoriteIds.has(businessId);
 
-      const response = await fetch("/api/client/favorites", {
+      const response = await api("/api/client/favorites", {
         method: isFavorite ? "DELETE" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ businessUserId: businessId }),

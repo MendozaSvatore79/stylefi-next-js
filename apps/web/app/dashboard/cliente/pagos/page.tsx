@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import StripeCardSetupForm from "./StripeCardSetupForm";
+import { api } from "@/lib/api";
 
 type PaymentMethod = {
   id: string;
@@ -61,7 +62,7 @@ export default function ClientePagosPage() {
 
   const loadMethods = async () => {
     try {
-      const response = await fetch("/api/client/payment-methods", { cache: "no-store" });
+      const response = await api("/api/client/payment-methods", { cache: "no-store" });
       const payload = (await response.json()) as {
         methods?: PaymentMethod[];
         wallet?: Wallet;
@@ -101,7 +102,7 @@ export default function ClientePagosPage() {
 
     const confirmRecharge = async () => {
       try {
-        const response = await fetch("/api/client/wallet/recharge/confirm", {
+        const response = await api("/api/client/wallet/recharge/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId }),
@@ -155,7 +156,7 @@ export default function ClientePagosPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/client/payment-methods", {
+      const response = await api("/api/client/payment-methods", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -196,7 +197,7 @@ export default function ClientePagosPage() {
 
     try {
       const amount = Number(recharge.amount);
-      const response = await fetch("/api/client/wallet/recharge", {
+      const response = await api("/api/client/wallet/recharge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -266,7 +267,7 @@ export default function ClientePagosPage() {
   const saveEditMethod = async (methodId: string) => {
     setIsSavingMethod(true);
     try {
-      const response = await fetch("/api/client/payment-methods", {
+      const response = await api("/api/client/payment-methods", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -304,7 +305,7 @@ export default function ClientePagosPage() {
   const deleteMethod = async (methodId: string) => {
     setDeletingMethodId(methodId);
     try {
-      const response = await fetch("/api/client/payment-methods", {
+      const response = await api("/api/client/payment-methods", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ methodId }),
@@ -344,7 +345,7 @@ export default function ClientePagosPage() {
 
     setIsClearingRecharges(true);
     try {
-      const response = await fetch("/api/client/wallet/recharges", { method: "DELETE" });
+      const response = await api("/api/client/wallet/recharges", { method: "DELETE" });
       const payload = (await response.json()) as { error?: string; deletedCount?: number };
 
       if (!response.ok) {

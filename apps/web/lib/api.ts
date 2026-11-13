@@ -19,6 +19,12 @@ const RUTAS_EN_API = [
   "/api/business/stylists",
   "/api/business/branches",
   "/api/files/",
+  // Grupo 2: reservas y pagos (el webhook de Stripe no se llama desde el navegador)
+  "/api/client/appointments",
+  "/api/client/favorites",
+  "/api/client/wallet",
+  "/api/client/payment-methods",
+  "/api/business/appointments",
 ];
 
 function vaAlBackend(ruta: string) {

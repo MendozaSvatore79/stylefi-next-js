@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import PlatformOnboardingModal from "@/components/platform-onboarding-modal";
 import { colorEstado, etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
+import { api } from "@/lib/api";
 
 type Appointment = {
   id: string;
@@ -28,8 +29,8 @@ export default function ClienteDashboardPage() {
   useEffect(() => {
     void (async () => {
       const [appointmentsResponse, methodsResponse, onboardingResponse] = await Promise.all([
-        fetch("/api/client/appointments", { cache: "no-store" }),
-        fetch("/api/client/payment-methods", { cache: "no-store" }),
+        api("/api/client/appointments", { cache: "no-store" }),
+        api("/api/client/payment-methods", { cache: "no-store" }),
         fetch("/api/onboarding", { cache: "no-store" }),
       ]);
 
