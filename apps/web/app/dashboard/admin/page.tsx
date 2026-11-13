@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { abrirArchivoPrivado, urlArchivo } from "@/lib/api";
 
 type BranchVerification = {
   id: string;
@@ -504,14 +505,21 @@ export default function AdminDashboardPage() {
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
                           {branch.image_url ? (
-                            <a href={branch.image_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-indigo-700 hover:underline">
+                            <a href={urlArchivo(branch.image_url)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-indigo-700 hover:underline">
                               Imagen
                             </a>
                           ) : null}
                           {branch.ownership_proof_url ? (
-                            <a href={branch.ownership_proof_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-slate-700 hover:underline">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const url = branch.ownership_proof_url;
+                                if (url) void abrirArchivoPrivado(url).catch(() => alert("No se pudo abrir el comprobante."));
+                              }}
+                              className="text-xs font-semibold text-slate-700 hover:underline"
+                            >
                               Comprobante
-                            </a>
+                            </button>
                           ) : (
                             <Badge variant="danger">Sin comprobante</Badge>
                           )}
