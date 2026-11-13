@@ -1,5 +1,5 @@
-// CONGELADO desde la fase 0: el esquema ahora vive en apps/api (Drizzle) y cambia solo con migraciones
-// (npm run db:generar / db:migrar). Este archivo se mantiene igual hasta que se borre en la fase 4;
+// CONGELADO desde la fase 0: el esquema ahora vive en el repo synova-backend (Drizzle) y cambia solo con
+// sus migraciones (npm run db:generar / db:migrar allá). Este archivo se mantiene igual hasta que se borre en la fase 4;
 // no le agregues tablas ni columnas.
 import { getDb } from "@/lib/db";
 
