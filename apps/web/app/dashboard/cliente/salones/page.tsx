@@ -46,7 +46,7 @@ export default function SalonesPage() {
         const [businessesRes, favoritesRes, onboardingRes] = await Promise.all([
           api("/api/businesses", { cache: "no-store" }),
           api("/api/client/favorites", { cache: "no-store" }),
-          fetch("/api/client/onboarding", { cache: "no-store" }),
+          api("/api/client/onboarding", { cache: "no-store" }),
         ]);
 
         if (businessesRes.ok) {
@@ -147,7 +147,7 @@ export default function SalonesPage() {
 
   const completeOnboarding = async () => {
     try {
-      await fetch("/api/client/onboarding", {
+      await api("/api/client/onboarding", {
         method: "POST",
       });
     } catch (error) {

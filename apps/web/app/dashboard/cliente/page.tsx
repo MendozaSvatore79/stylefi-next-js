@@ -31,7 +31,7 @@ export default function ClienteDashboardPage() {
       const [appointmentsResponse, methodsResponse, onboardingResponse] = await Promise.all([
         api("/api/client/appointments", { cache: "no-store" }),
         api("/api/client/payment-methods", { cache: "no-store" }),
-        fetch("/api/onboarding", { cache: "no-store" }),
+        api("/api/onboarding", { cache: "no-store" }),
       ]);
 
       if (appointmentsResponse.ok) {
@@ -53,7 +53,7 @@ export default function ClienteDashboardPage() {
 
   const closeOnboarding = async () => {
     try {
-      await fetch("/api/onboarding", { method: "POST" });
+      await api("/api/onboarding", { method: "POST" });
     } catch (error) {
       console.error("No se pudo actualizar onboarding global", error);
     } finally {
