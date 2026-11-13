@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 type Slot = {
   time: string;
@@ -46,7 +47,7 @@ export default function TimeSlotPicker({
         const params = new URLSearchParams({ businessUserId, serviceId, date: selectedDate });
         if (branchId) params.set("branchId", branchId);
         if (stylistId) params.set("stylistId", stylistId);
-        const response = await fetch(`/api/client/appointments/availability?${params}`, { cache: "no-store" });
+        const response = await api(`/api/client/appointments/availability?${params}`, { cache: "no-store" });
         if (!response.ok) {
           return;
         }
