@@ -4,6 +4,8 @@ import Stripe from "stripe";
 import { getCurrentClientUser } from "@/app/api/client/_current-user";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
+import type { Sql } from "@/lib/booking";
+import { acreditarRecargaPendiente } from "@/lib/recargas";
 import { getStripeClient } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -76,29 +78,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, completed: true, alreadyCompleted: true }, { status: 200 });
     }
 
-    const updatedTx = (await db`
-      UPDATE stylehub_client_wallet_transactions
-      SET status = 'completed',
-          external_reference = ${session.id},
-          notes = COALESCE(notes, 'Recarga confirmada desde retorno de checkout')
-      WHERE id = ${tx.id}
-        AND user_id = ${auth.userId}
-        AND status = 'pending'
-      RETURNING id, wallet_id, user_id, amount
-    `) as Array<{ id: string; wallet_id: string; user_id: string; amount: string }>;
+    // Marca el movimiento y suma el saldo en una sola sentencia (solo si sigue pendiente)
+    const settledTx = await acreditarRecargaPendiente(db as unknown as Sql, {
+      txId: tx.id,
+      userId: auth.userId,
+      sessionId: session.id,
+      nota: "Recarga confirmada desde retorno de checkout",
+    });
 
-    if (updatedTx.length === 0) {
+    if (!settledTx) {
       return NextResponse.json({ ok: true, completed: true, alreadyCompleted: true }, { status: 200 });
     }
-
-    const settledTx = updatedTx[0];
-
-    await db`
-      UPDATE stylehub_client_wallets
-      SET balance = balance + ${settledTx.amount},
-          updated_at = NOW()
-      WHERE id = ${settledTx.wallet_id}
-    `;
 
     const paymentIntent =
       session.payment_intent && typeof session.payment_intent !== "string"
