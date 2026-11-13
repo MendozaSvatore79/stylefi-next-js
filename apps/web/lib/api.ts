@@ -26,10 +26,21 @@ function vaAlBackend(ruta: string) {
   return RUTAS_EN_API.some((r) => (r.endsWith("/") ? sinQuery.startsWith(r) : sinQuery === r || sinQuery.startsWith(`${r}/`)));
 }
 
-type ClerkGlobal = { session?: { getToken: () => Promise<string | null> } | null };
+type ClerkGlobal = { loaded?: boolean; session?: { getToken: () => Promise<string | null> } | null };
 
+const ESPERA_CLERK_MS = 10_000;
+
+/**
+ * Token de sesión de Clerk. Las pantallas piden sus datos al montarse, a veces antes de que Clerk termine de
+ * cargar en el navegador: se espera a que cargue (hasta 10 s) para no mandar la petición sin token.
+ */
 async function tokenDeClerk(): Promise<string | null> {
-  const clerk = (globalThis as { Clerk?: ClerkGlobal }).Clerk;
+  const fin = Date.now() + ESPERA_CLERK_MS;
+  let clerk = (globalThis as { Clerk?: ClerkGlobal }).Clerk;
+  while (!clerk?.loaded && Date.now() < fin) {
+    await new Promise((r) => setTimeout(r, 50));
+    clerk = (globalThis as { Clerk?: ClerkGlobal }).Clerk;
+  }
   return (await clerk?.session?.getToken()) ?? null;
 }
 

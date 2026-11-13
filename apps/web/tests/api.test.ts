@@ -13,7 +13,7 @@ beforeEach(() => {
       return new Response("{}");
     }),
   );
-  vi.stubGlobal("Clerk", { session: { getToken: async () => "token-de-clerk" } });
+  vi.stubGlobal("Clerk", { loaded: true, session: { getToken: async () => "token-de-clerk" } });
 });
 
 afterEach(() => {
@@ -35,6 +35,18 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     const { api } = await import("@/lib/api");
     await api(ruta, { method: "POST", headers: { "Content-Type": "application/json" } });
     expect(llamadas).toEqual([{ url: esperada, auth: "Bearer token-de-clerk" }]);
+  });
+
+  it("si Clerk todavía no termina de cargar, espera y manda el token (no la petición sin token)", async () => {
+    const sinCargar: { loaded: boolean; session: null | { getToken: () => Promise<string> } } = { loaded: false, session: null };
+    vi.stubGlobal("Clerk", sinCargar);
+    setTimeout(() => {
+      sinCargar.loaded = true;
+      sinCargar.session = { getToken: async () => "token-tardio" };
+    }, 120);
+    const { api } = await import("@/lib/api");
+    await api("/api/business/summary");
+    expect(llamadas).toEqual([{ url: "http://localhost:4000/business/summary", auth: "Bearer token-tardio" }]);
   });
 
   it.each(["/api/client/appointments", "/api/business/appointments", "/api/admin/users", "/api/businessesx"])(
