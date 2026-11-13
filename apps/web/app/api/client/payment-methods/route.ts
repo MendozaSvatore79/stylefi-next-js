@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentClientUser } from "@/app/api/client/_current-user";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
+import { reconciliarRecargas } from "@/lib/cobro-directo";
 import { getStripeClient } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -22,6 +23,12 @@ export async function GET() {
   try {
     await ensureStylehubSchema();
     const db = getDb();
+
+    // Completa las recargas con tarjeta que quedaron «En proceso» (no cobra de nuevo; nunca lanza)
+    const pagosSimulados = (process.env.PAYMENTS_MODE || "").trim().toLowerCase() === "mock";
+    if (!pagosSimulados && process.env.STRIPE_SECRET_KEY) {
+      await reconciliarRecargas(db, getStripeClient(), auth.userId);
+    }
 
     const methods = await db`
       SELECT

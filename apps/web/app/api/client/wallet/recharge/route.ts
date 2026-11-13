@@ -5,6 +5,7 @@ import { getCurrentClientUser } from "@/app/api/client/_current-user";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 import type { Sql } from "@/lib/booking";
+import { cobroDirecto, mensajeEnProceso, RecargaDistinta } from "@/lib/cobro-directo";
 import { recargaCompletada } from "@/lib/recargas";
 import { getStripeClient } from "@/lib/stripe";
 
@@ -83,6 +84,7 @@ export async function POST(request: Request) {
       amount?: number;
       paymentMethodId?: string;
       notes?: string;
+      requestId?: string;
     };
 
     const amount = Number(payload.amount);
@@ -147,41 +149,25 @@ export async function POST(request: Request) {
     const { customerId, email } = await ensureStripeCustomer(db, stripe, auth.userId);
 
     if (selectedMethod?.provider === "card" && selectedMethod.token_reference) {
-      try {
-        const intent = await stripe.paymentIntents.create({
-          amount: Math.round(amount * 100),
-          currency: "mxn",
-          customer: customerId,
-          payment_method: selectedMethod.token_reference,
-          off_session: true,
-          confirm: true,
-          metadata: {
-            userId: auth.userId,
-            walletId: wallet.id,
-          },
-        });
+      // Sin doble cargo: clave por intento, registro antes de cobrar y nunca Checkout si Stripe ya cobró
+      const resultado = await cobroDirecto(db, stripe, {
+        userId: auth.userId,
+        walletId: wallet.id,
+        monto: amount,
+        metodo: { id: selectedMethod.id, token: selectedMethod.token_reference },
+        customerId,
+        requestId: payload.requestId,
+        notas: payload.notes?.trim() || "Recarga con tarjeta guardada",
+      });
 
-        if (intent.status === "succeeded") {
-          // Suma el saldo y registra el movimiento en una sola sentencia
-          const updatedWallet = await recargaCompletada(db as unknown as Sql, {
-            walletId: wallet.id,
-            userId: auth.userId,
-            monto: amount,
-            paymentMethodId: selectedMethod.id,
-            proveedor: "stripe",
-            referencia: intent.id,
-            notas: payload.notes?.trim() || "Recarga con tarjeta guardada",
-          });
-
-          return NextResponse.json({ wallet: updatedWallet, mode: "stripe-direct" }, { status: 201 });
-        }
-
-        // Si el intento no fue exitoso (requiere autenticación, etc), abre Checkout como fallback
-        console.log(`Direct charge intent status: ${intent.status}, falling back to checkout`);
-      } catch (error) {
-        // Si el cobro directo falla, cae a checkout automáticamente
-        console.log(`Direct charge failed, falling back to checkout:`, error);
+      if (resultado === "acreditada") {
+        const [updatedWallet] = await db`SELECT id, balance, currency FROM stylehub_client_wallets WHERE id = ${wallet.id}`;
+        return NextResponse.json({ wallet: updatedWallet, mode: "stripe-direct" }, { status: 201 });
       }
+      if (resultado === "en-proceso") {
+        return NextResponse.json({ mode: "stripe-processing", message: mensajeEnProceso(amount) }, { status: 202 });
+      }
+      // "no-cobrada": Stripe no cobró (rechazada, pide autenticación…): se abre Checkout como antes
     }
 
     const [pendingTx] = (await db`
@@ -246,6 +232,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checkoutUrl: checkoutSession.url, mode: "stripe" }, { status: 201 });
   } catch (error) {
+    if (error instanceof RecargaDistinta) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     console.error(error);
     return NextResponse.json({ error: "No se pudo procesar la recarga." }, { status: 500 });
   }
