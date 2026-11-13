@@ -33,3 +33,30 @@ describe("portada y panel en vivo", () => {
     expect(fuente.indexOf('apiServidor("/live-dashboard")')).toBeLessThan(fuente.indexOf("getLiveDashboardPayload()"));
   });
 });
+
+describe("todas las pantallas", () => {
+  it("ninguna llama con fetch() a una ruta que ya vive en el backend (deben usar api(), que lleva el token)", async () => {
+    const { readdirSync, statSync } = await import("node:fs");
+    const { vaAlBackend } = await import("@/lib/api");
+    const raiz = path.resolve(import.meta.dirname, "..");
+    const archivos: string[] = [];
+    const recorrer = (dir: string) => {
+      for (const nombre of readdirSync(dir)) {
+        const completo = path.join(dir, nombre);
+        if (statSync(completo).isDirectory()) {
+          if (completo !== path.join(raiz, "app", "api")) recorrer(completo);
+        } else if (/\.(tsx?|jsx?)$/.test(nombre)) archivos.push(completo);
+      }
+    };
+    for (const dir of ["app", "components", "lib"]) recorrer(path.join(raiz, dir));
+    const malas: string[] = [];
+    for (const archivo of archivos) {
+      const fuente = readFileSync(archivo, "utf8");
+      for (const m of fuente.matchAll(/\bfetch\(\s*[`"'](\/api\/[^`"'?$]*)/g)) {
+        if (vaAlBackend(m[1])) malas.push(`${path.relative(raiz, archivo)}: ${m[1]}`);
+      }
+    }
+    expect(archivos.length).toBeGreaterThan(20);
+    expect(malas).toEqual([]);
+  });
+});

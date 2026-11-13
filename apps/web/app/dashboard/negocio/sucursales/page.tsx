@@ -73,7 +73,7 @@ export default function NegocioSucursalesPage() {
       setIsResolvingAddress(true);
 
       try {
-        const response = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`, {
+        const response = await api(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`, {
           method: "GET",
           cache: "no-store",
         });

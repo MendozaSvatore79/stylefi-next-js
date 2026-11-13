@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { useCerrarSesion } from "@/lib/sesion-cliente";
+import { api } from "@/lib/api";
 
 type AccountSecurity = {
   email: string;
@@ -46,7 +47,7 @@ export default function AccountSecurityPanel({ title }: { title: string }) {
 
   const loadSecurity = useCallback(async () => {
     try {
-      const response = await fetch("/api/account/security", { cache: "no-store" });
+      const response = await api("/api/account/security", { cache: "no-store" });
       const payload = (await response.json()) as AccountSecurity & { error?: string };
       if (!response.ok) {
         throw new Error(payload.error ?? t("security.cantLoad"));
@@ -74,7 +75,7 @@ export default function AccountSecurityPanel({ title }: { title: string }) {
     }
     setIsDeleting(true);
     try {
-      const response = await fetch("/api/account/security", {
+      const response = await api("/api/account/security", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmation: deleteForm.confirmation, token: deleteForm.token }),
@@ -105,7 +106,7 @@ export default function AccountSecurityPanel({ title }: { title: string }) {
     }
     setIsSendingDeleteToken(true);
     try {
-      const response = await fetch("/api/account/security", {
+      const response = await api("/api/account/security", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmation: deleteForm.confirmation }),
