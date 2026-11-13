@@ -53,7 +53,8 @@ export async function GET() {
     `) as Array<{ id: string; balance: string; currency: string }>;
 
     const transactions = await db`
-      SELECT id, transaction_type, amount, payment_provider, status, notes, created_at
+      SELECT id, transaction_type, amount, payment_provider, status, notes, created_at,
+        COALESCE(external_reference LIKE 'recarga-%', FALSE) AS cobro_directo
       FROM stylehub_client_wallet_transactions
       WHERE user_id = ${auth.userId}
       ORDER BY created_at DESC
