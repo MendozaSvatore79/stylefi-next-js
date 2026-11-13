@@ -9,6 +9,11 @@
  */
 const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || null;
 
+/** URL del backend o null si no está configurado (entonces todo sigue en las rutas de Next.js). */
+export function urlDelBackend() {
+  return BASE;
+}
+
 /** Rutas ya movidas al backend (se van agregando por grupo; las de app/api se borran en la fase 4). */
 const RUTAS_EN_API = [
   // Grupo 1: negocios y catálogo
@@ -25,9 +30,22 @@ const RUTAS_EN_API = [
   "/api/client/wallet",
   "/api/client/payment-methods",
   "/api/business/appointments",
+  // Grupo 3: admin, panel en vivo, bienvenida, sesión, registro, cuenta y geocodificación (soporte aún no: B3)
+  "/api/admin/users",
+  "/api/admin/branch-verifications",
+  "/api/admin/live-dashboard",
+  "/api/live-dashboard",
+  "/api/onboarding",
+  "/api/client/onboarding",
+  "/api/sesion",
+  "/api/entrar",
+  "/api/registro/completar",
+  "/api/account/security",
+  "/api/geocode/reverse",
 ];
 
-function vaAlBackend(ruta: string) {
+/** ¿Esta ruta de app/api ya vive en el backend (con NEXT_PUBLIC_API_URL definida)? */
+export function vaAlBackend(ruta: string) {
   const sinQuery = ruta.split("?")[0];
   return RUTAS_EN_API.some((r) => (r.endsWith("/") ? sinQuery.startsWith(r) : sinQuery === r || sinQuery.startsWith(`${r}/`)));
 }
