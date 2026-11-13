@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import SalonModal from "@/components/salon-modal";
 import { useLanguage } from "@/lib/language-context";
+import { api, urlArchivo } from "@/lib/api";
 
 type Business = {
   id: string;
@@ -43,7 +44,7 @@ export default function SalonesPage() {
     const fetchInitialData = async () => {
       try {
         const [businessesRes, favoritesRes, onboardingRes] = await Promise.all([
-          fetch("/api/businesses", { cache: "no-store" }),
+          api("/api/businesses", { cache: "no-store" }),
           fetch("/api/client/favorites", { cache: "no-store" }),
           fetch("/api/client/onboarding", { cache: "no-store" }),
         ]);
@@ -249,7 +250,7 @@ export default function SalonesPage() {
               <div className="relative h-48 overflow-hidden bg-linear-to-br from-indigo-100 to-purple-100">
                 {business.image_url ? (
                   <img
-                    src={business.image_url}
+                    src={urlArchivo(business.image_url)}
                     alt={business.salon_name}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />

@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast";
 import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
+import { api } from "@/lib/api";
 
 type Business = {
   id: string;
@@ -97,7 +98,7 @@ export default function ClienteCitasPage() {
     }
 
     try {
-      const response = await fetch(`/api/businesses?businessId=${businessId}`, { cache: "no-store" });
+      const response = await api(`/api/businesses?businessId=${businessId}`, { cache: "no-store" });
       if (!response.ok) {
         return;
       }
@@ -116,7 +117,7 @@ export default function ClienteCitasPage() {
 
   const loadData = async () => {
     const [businessesResponse, methodsResponse, appointmentsResponse] = await Promise.all([
-      fetch("/api/businesses", { cache: "no-store" }),
+      api("/api/businesses", { cache: "no-store" }),
       fetch("/api/client/payment-methods", { cache: "no-store" }),
       fetch("/api/client/appointments", { cache: "no-store" }),
     ]);

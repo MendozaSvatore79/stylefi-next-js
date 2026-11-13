@@ -5,6 +5,7 @@ import { Building2, CreditCard, ShieldCheck } from "lucide-react";
 
 import AccountSecurityPanel from "@/components/account-security-panel";
 import { useToast } from "@/components/toast";
+import { api } from "@/lib/api";
 
 type BusinessProfile = {
   business_name: string | null;
@@ -46,7 +47,7 @@ export default function NegocioConfiguracionPage() {
 
   useEffect(() => {
     void (async () => {
-      const response = await fetch("/api/business/profile", { cache: "no-store" });
+      const response = await api("/api/business/profile", { cache: "no-store" });
       if (!response.ok) {
         return;
       }
@@ -80,7 +81,7 @@ export default function NegocioConfiguracionPage() {
     setIsSaving(true);
 
     try {
-      const response = await fetch("/api/business/profile", {
+      const response = await api("/api/business/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

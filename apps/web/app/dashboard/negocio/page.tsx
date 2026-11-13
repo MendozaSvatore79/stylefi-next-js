@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PlatformOnboardingModal from "@/components/platform-onboarding-modal";
 import { useLanguage } from "@/lib/language-context";
+import { api } from "@/lib/api";
 
 type Summary = {
   services: number;
@@ -29,7 +30,7 @@ export default function NegocioDashboardPage() {
   useEffect(() => {
     void (async () => {
       const [summaryResponse, onboardingResponse] = await Promise.all([
-        fetch("/api/business/summary", { cache: "no-store" }),
+        api("/api/business/summary", { cache: "no-store" }),
         fetch("/api/onboarding", { cache: "no-store" }),
       ]);
 
