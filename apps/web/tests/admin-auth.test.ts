@@ -13,7 +13,7 @@ const sesion = vi.hoisted(() => ({ actual: null as null | { user: Record<string,
 const db = vi.hoisted(() => ({ handler: (() => []) as (q: { text: string; values: unknown[] }) => unknown[] }));
 let queries: Query[] = [];
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn(async () => sesion.actual), default: vi.fn() }));
+vi.mock("@/lib/sesion", () => ({ obtenerSesion: vi.fn(async () => sesion.actual) }));
 vi.mock("@/lib/db-init", () => ({ ensureStylehubSchema: vi.fn(async () => undefined) }));
 vi.mock("@/lib/db", () => ({
   // Imita la función con plantillas de Neon: guarda cada consulta y responde con db.handler

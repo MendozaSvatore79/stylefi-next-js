@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import AdminDashboardShell from "@/components/admin-dashboard-shell";
-import { authConfig } from "@/lib/auth";
+import { accesoAlPanel } from "@/lib/sesion";
 
 /**
  * Redirige a quien no es administrador. Es solo para la experiencia: el layout no se vuelve a
@@ -11,11 +10,8 @@ import { authConfig } from "@/lib/auth";
  * dentro de cada ruta de app/api/admin/.
  */
 export default async function AdminDashboardLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession(authConfig);
-
-  if (!session?.user || session.user.accountType !== "admin") {
-    redirect("/iniciar-sesion?reason=unauthorized");
-  }
+  const acceso = await accesoAlPanel("admin");
+  if ("redirigir" in acceso) redirect(acceso.redirigir);
 
   return <AdminDashboardShell>{children}</AdminDashboardShell>;
 }
