@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { abrirArchivoPrivado, urlArchivo } from "@/lib/api";
+import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
 
 type BranchVerification = {
   id: string;
@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
   const [editUserForm, setEditUserForm] = useState<EditUserFormState | null>(null);
 
   const loadBranches = async () => {
-    const response = await fetch("/api/admin/branch-verifications?status=pending", { cache: "no-store" });
+    const response = await api("/api/admin/branch-verifications?status=pending", { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -163,7 +163,7 @@ export default function AdminDashboardPage() {
     setLiveLoading(true);
 
     try {
-      const response = await fetch("/api/admin/live-dashboard", { cache: "no-store" });
+      const response = await api("/api/admin/live-dashboard", { cache: "no-store" });
 
       if (!response.ok) {
         return;
@@ -198,7 +198,7 @@ export default function AdminDashboardPage() {
         pageSize: String(pageSize),
       });
 
-      const response = await fetch(`/api/admin/users?${params.toString()}`, { cache: "no-store" });
+      const response = await api(`/api/admin/users?${params.toString()}`, { cache: "no-store" });
       if (!response.ok) {
         return;
       }
@@ -276,7 +276,7 @@ export default function AdminDashboardPage() {
   const reviewBranch = async (branchId: string, status: "approved" | "rejected") => {
     try {
       setLoadingId(branchId);
-      const response = await fetch("/api/admin/branch-verifications", {
+      const response = await api("/api/admin/branch-verifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -299,7 +299,7 @@ export default function AdminDashboardPage() {
   const updateLiveModule = async (moduleKey: string, updates: { isEnabled?: boolean; isMaintenance?: boolean }) => {
     try {
       setLiveSavingKey(moduleKey);
-      const response = await fetch("/api/admin/live-dashboard", {
+      const response = await api("/api/admin/live-dashboard", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ moduleKey, ...updates }),
@@ -328,7 +328,7 @@ export default function AdminDashboardPage() {
 
     try {
       setUserSavingId(editUserForm.id);
-      const response = await fetch("/api/admin/users", {
+      const response = await api("/api/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -359,12 +359,12 @@ export default function AdminDashboardPage() {
 
       const response =
         action === "delete"
-          ? await fetch("/api/admin/users", {
+          ? await api("/api/admin/users", {
               method: "DELETE",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ userId }),
             })
-          : await fetch("/api/admin/users", {
+          : await api("/api/admin/users", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ userId, action }),
@@ -848,11 +848,11 @@ export default function AdminDashboardPage() {
                       onChange={(event) => setEditUserForm((current) => (current ? { ...current, phone: event.target.value } : null))}
                       placeholder="Teléfono"
                     />
-                    <Input
-                      value={editUserForm.email}
-                      onChange={(event) => setEditUserForm((current) => (current ? { ...current, email: event.target.value } : null))}
-                      placeholder="Correo"
-                    />
+                    <div className="space-y-1">
+                      {/* El correo lo administra Clerk: el backend rechaza cambiarlo desde aquí */}
+                      <Input value={editUserForm.email} readOnly aria-readonly="true" className="bg-slate-100 text-slate-500" placeholder="Correo" />
+                      <p className="text-xs text-slate-500">El correo lo cambia la persona desde su cuenta.</p>
+                    </div>
                   </div>
                   <div className="mt-3 flex justify-end gap-2">
                     <Button variant="outline" onClick={() => setEditUserForm(null)}>
