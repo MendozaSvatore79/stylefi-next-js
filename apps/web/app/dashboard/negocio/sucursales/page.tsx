@@ -259,6 +259,29 @@ export default function NegocioSucursalesPage() {
     }
   };
 
+  /** «Hacer principal»: no vuelve a mandar la sucursal a validación. */
+  const hacerPrincipal = async (id: string) => {
+    try {
+      const response = await api("/api/business/branches/principal", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const datos = await leerJson(response);
+      if (!response.ok) {
+        throw new Error(typeof datos.error === "string" && datos.error ? datos.error : language === "en" ? "Try again" : "Intenta de nuevo");
+      }
+      showToast({ type: "success", title: language === "en" ? "Primary branch updated" : "Sucursal principal actualizada" });
+      await loadBranches();
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Could not change the primary branch" : "No se pudo cambiar la sucursal principal",
+        message: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
   const guardarHorario = async () => {
     if (!editandoHorario) return;
     if (diasInvalidos(editandoHorario.horario).length > 0) {
@@ -555,11 +578,19 @@ export default function NegocioSucursalesPage() {
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <input
                 type="checkbox"
-                checked={form.isPrimary}
+                // La primera sucursal siempre es la principal (el backend la marca sola)
+                checked={form.isPrimary || branches.length === 0}
+                disabled={branches.length === 0}
                 onChange={(event) => setForm((current) => ({ ...current, isPrimary: event.target.checked }))}
                 className="h-4 w-4 shrink-0"
               />
-              {en ? "Mark as primary branch" : "Marcar como sucursal principal"}
+              {branches.length === 0
+                ? en
+                  ? "Primary branch (your first branch always is)"
+                  : "Sucursal principal (la primera siempre lo es)"
+                : en
+                  ? "Mark as primary branch"
+                  : "Marcar como sucursal principal"}
             </label>
 
             <button
@@ -655,6 +686,15 @@ export default function NegocioSucursalesPage() {
                     <p className="mt-1 text-xs text-slate-500">{language === "en" ? "Notes:" : "Notas:"} {branch.validation_notes}</p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-2">
+                    {!branch.is_primary ? (
+                      <button
+                        type="button"
+                        onClick={() => void hacerPrincipal(branch.id)}
+                        className="rounded-lg border border-indigo-200 bg-white px-2 py-1 text-[11px] font-semibold text-indigo-700"
+                      >
+                        {language === "en" ? "Make primary" : "Hacer principal"}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>
@@ -702,7 +742,18 @@ export default function NegocioSucursalesPage() {
               {confirmando === branch.id ? (
                 <ConfirmarEliminar
                   nombre={branch.branch_name}
-                  aviso={avisoDeSucursal()}
+                  aviso={
+                    <>
+                      <p>{avisoDeSucursal()}</p>
+                      {branch.is_primary && branches.length > 1 ? (
+                        <p className="mt-1">
+                          {language === "en"
+                            ? "It is your primary branch: the oldest approved one (or the oldest) will become primary."
+                            : "Es tu sucursal principal: pasará a serlo la aprobada más antigua (o la más antigua)."}
+                        </p>
+                      ) : null}
+                    </>
+                  }
                   idioma={language}
                   onCancelar={() => setConfirmando(null)}
                   onConfirmar={async () => {
