@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import HorarioSemanal from "@/components/horario-semanal";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
+import { diasInvalidos, horarioAnterior, horarioPorOmision, leerHorario, resumenHorario, type DiaHorario } from "@/lib/horario";
 import { aplicarDireccion, coordenadasValidas, leerJson, mensajeErrorUbicacion, obtenerPosicion } from "@/lib/ubicacion";
 
 type Branch = {
@@ -26,6 +28,7 @@ type Branch = {
   verified_at: string | null;
   opening_hours: string | null;
   closing_hours: string | null;
+  weekly_hours: unknown;
   is_primary: boolean;
 };
 
@@ -36,6 +39,11 @@ export default function NegocioSucursalesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+  /** Horario semanal de la sucursal nueva (decisión de producto: informativo; por omisión L–V 9–20, S 9–16, D cerrado). */
+  const [weeklyHours, setWeeklyHours] = useState<DiaHorario[]>(horarioPorOmision);
+  /** «Editar horario» de una tarjeta: se edita dentro de la tarjeta (sin modal) y se guarda solo el horario. */
+  const [editandoHorario, setEditandoHorario] = useState<{ id: string; horario: DiaHorario[] } | null>(null);
+  const [guardandoHorario, setGuardandoHorario] = useState(false);
   /** Línea de estado de la ubicación: queda visible (no desaparece como un toast) hasta la siguiente acción. */
   const [estadoUbicacion, setEstadoUbicacion] = useState<{ tipo: "cargando" | "error" | "exito"; texto: string } | null>(null);
   const [branchImageFile, setBranchImageFile] = useState<File | null>(null);
@@ -52,8 +60,6 @@ export default function NegocioSucursalesPage() {
     phone: "",
     website: "",
     imageUrl: "",
-    openingHours: "",
-    closingHours: "",
     isPrimary: false,
   });
 
@@ -166,6 +172,15 @@ export default function NegocioSucursalesPage() {
       return;
     }
 
+    if (diasInvalidos(weeklyHours).length > 0) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Check the hours" : "Revisa el horario",
+        message: language === "en" ? "On each open day, opening must be before closing." : "En cada día abierto, la apertura debe ser antes del cierre.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -184,8 +199,7 @@ export default function NegocioSucursalesPage() {
           payload.append("phone", form.phone);
           payload.append("website", form.website);
           payload.append("imageUrl", form.imageUrl);
-          payload.append("openingHours", form.openingHours);
-          payload.append("closingHours", form.closingHours);
+          payload.append("weeklyHours", JSON.stringify(weeklyHours));
           payload.append("isPrimary", form.isPrimary ? "true" : "false");
 
           if (branchImageFile) {
@@ -223,10 +237,9 @@ export default function NegocioSucursalesPage() {
         phone: "",
         website: "",
         imageUrl: "",
-        openingHours: "",
-        closingHours: "",
         isPrimary: false,
       });
+      setWeeklyHours(horarioPorOmision());
       setBranchImageFile(null);
       setOwnershipProofFile(null);
 
@@ -239,6 +252,41 @@ export default function NegocioSucursalesPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const guardarHorario = async () => {
+    if (!editandoHorario) return;
+    if (diasInvalidos(editandoHorario.horario).length > 0) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Check the hours" : "Revisa el horario",
+        message: language === "en" ? "On each open day, opening must be before closing." : "En cada día abierto, la apertura debe ser antes del cierre.",
+      });
+      return;
+    }
+    setGuardandoHorario(true);
+    try {
+      const response = await api("/api/business/branches/horario", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editandoHorario.id, weeklyHours: editandoHorario.horario }),
+      });
+      const datos = await leerJson(response);
+      if (!response.ok) {
+        throw new Error(typeof datos.error === "string" && datos.error ? datos.error : language === "en" ? "Could not save the hours." : "No se pudo guardar el horario.");
+      }
+      showToast({ type: "success", title: language === "en" ? "Hours saved" : "Horario guardado" });
+      setEditandoHorario(null);
+      await loadBranches();
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Could not save the hours" : "No se pudo guardar el horario",
+        message: error instanceof Error ? error.message : language === "en" ? "Try again" : "Intenta de nuevo",
+      });
+    } finally {
+      setGuardandoHorario(false);
     }
   };
 
@@ -399,20 +447,7 @@ export default function NegocioSucursalesPage() {
             </p>
           </div>
 
-          <div className="grid gap-3 @sm:grid-cols-2">
-            <input
-              value={form.openingHours}
-              onChange={(event) => setForm((current) => ({ ...current, openingHours: event.target.value }))}
-              placeholder={language === "en" ? "Opening time" : "Horario apertura"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              value={form.closingHours}
-              onChange={(event) => setForm((current) => ({ ...current, closingHours: event.target.value }))}
-              placeholder={language === "en" ? "Closing time" : "Horario cierre"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-          </div>
+          <HorarioSemanal valor={weeklyHours} onChange={setWeeklyHours} idioma={language} />
 
           <input
             value={form.imageUrl}
@@ -536,10 +571,40 @@ export default function NegocioSucursalesPage() {
                     {branch.city ? ` · ${branch.city}` : ""}
                   </p>
                   {branch.phone ? <p className="mt-1 text-sm text-slate-500">📱 {branch.phone}</p> : null}
+                  {(() => {
+                    const horario = leerHorario(branch.weekly_hours);
+                    if (horario) {
+                      return (
+                        <ul data-horario-sucursal className="mt-2 space-y-0.5 text-xs text-slate-600">
+                          {resumenHorario(horario, language).map((linea) => (
+                            <li key={linea}>🕒 {linea}</li>
+                          ))}
+                        </ul>
+                      );
+                    }
+                    const anterior = horarioAnterior(branch.opening_hours, branch.closing_hours);
+                    return anterior ? (
+                      <p data-horario-anterior className="mt-2 text-xs text-slate-500">
+                        🕒 {language === "en" ? "Previous hours:" : "Horario anterior:"} {anterior}
+                      </p>
+                    ) : null;
+                  })()}
                   {branch.validation_notes ? (
                     <p className="mt-1 text-xs text-slate-500">{language === "en" ? "Notes:" : "Notas:"} {branch.validation_notes}</p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditandoHorario(
+                          editandoHorario?.id === branch.id ? null : { id: branch.id, horario: leerHorario(branch.weekly_hours) ?? horarioPorOmision() },
+                        )
+                      }
+                      aria-expanded={editandoHorario?.id === branch.id}
+                      className="rounded-lg border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800"
+                    >
+                      {language === "en" ? "Edit hours" : "Editar horario"}
+                    </button>
                     {branch.image_url ? (
                       <a
                         href={urlArchivo(branch.image_url)}
@@ -572,6 +637,33 @@ export default function NegocioSucursalesPage() {
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
               </div>
+              {editandoHorario?.id === branch.id ? (
+                <div className="mt-3 space-y-3 border-t border-slate-200 pt-3">
+                  <HorarioSemanal
+                    valor={editandoHorario.horario}
+                    onChange={(horario) => setEditandoHorario({ id: branch.id, horario })}
+                    idioma={language}
+                  />
+                  <div className="flex flex-col gap-2 @sm:flex-row @sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setEditandoHorario(null)}
+                      disabled={guardandoHorario}
+                      className="h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-70"
+                    >
+                      {language === "en" ? "Cancel" : "Cancelar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void guardarHorario()}
+                      disabled={guardandoHorario}
+                      className="h-10 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {guardandoHorario ? (language === "en" ? "Saving..." : "Guardando...") : language === "en" ? "Save hours" : "Guardar horario"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ))}
 
