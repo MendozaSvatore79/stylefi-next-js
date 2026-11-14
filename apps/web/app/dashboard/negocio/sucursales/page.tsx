@@ -367,9 +367,20 @@ export default function NegocioSucursalesPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("business.branches")}</p>
             <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Branch registration" : "Alta de sucursal"}</h2>
           </div>
-          <div className="self-start rounded-2xl bg-emerald-50 px-4 py-3 @xs:shrink-0 @xs:text-right">
-            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">{language === "en" ? "Available" : "Disponibles"}</p>
-            <p className="text-2xl font-black text-emerald-900">{remaining}</p>
+          {/* Antes decía «Disponibles N» (cupos restantes) y se leía como «N sucursales» */}
+          <div data-cupo-sucursales className="self-start rounded-2xl bg-emerald-50 px-4 py-3 @xs:shrink-0 @xs:text-right">
+            <p className="text-2xl font-black text-emerald-900">
+              {branches.length} <span className="text-sm font-semibold text-emerald-700">{language === "en" ? "of 3 branches" : "de 3 sucursales"}</span>
+            </p>
+            <p className="text-xs font-medium text-emerald-700">
+              {remaining === 0
+                ? language === "en"
+                  ? "Limit reached"
+                  : "Límite alcanzado"
+                : language === "en"
+                  ? `You can add ${remaining} more`
+                  : `Puedes agregar ${remaining} más`}
+            </p>
           </div>
         </div>
 
@@ -575,6 +586,13 @@ export default function NegocioSucursalesPage() {
       <article className="@container min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "List" : "Listado"}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Your branches" : "Tus sucursales"}</h2>
+        {branches.length > 0 && !branches.some((b) => b.validation_status === "approved") ? (
+          <p role="status" data-aviso-visibilidad className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {language === "en"
+              ? "Your business is not visible in the catalog until the administration approves one of your branches."
+              : "Tu negocio no aparece en el catálogo hasta que la administración apruebe alguna de tus sucursales."}
+          </p>
+        ) : null}
 
         <div className="mt-5 space-y-3">
           {branches.map((branch) => (

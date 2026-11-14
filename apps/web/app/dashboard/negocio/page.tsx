@@ -13,10 +13,13 @@ type Summary = {
   monthlyRevenue: number;
   clients: number;
   branches: number;
+  /** Sin ninguna aprobada el negocio no aparece en el catálogo. */
+  approvedBranches: number;
 };
 
 export default function NegocioDashboardPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [cargado, setCargado] = useState(false);
   const [summary, setSummary] = useState<Summary>({
     services: 0,
     stylists: 0,
@@ -24,6 +27,7 @@ export default function NegocioDashboardPage() {
     monthlyRevenue: 0,
     clients: 0,
     branches: 0,
+    approvedBranches: 0,
   });
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -37,6 +41,7 @@ export default function NegocioDashboardPage() {
       if (summaryResponse.ok) {
         const payload = (await summaryResponse.json()) as { summary: Summary };
         setSummary(payload.summary);
+        setCargado(true);
       }
 
       if (onboardingResponse.ok) {
@@ -60,12 +65,18 @@ export default function NegocioDashboardPage() {
     () => [
       { labelKey: "dashboard.business.services", value: String(summary.services), tone: "from-emerald-500 to-teal-600" },
       { labelKey: "dashboard.business.stylists", value: String(summary.stylists), tone: "from-cyan-500 to-sky-600" },
-      { labelKey: "dashboard.business.branches", value: String(summary.branches), tone: "from-violet-500 to-fuchsia-600" },
+      {
+        labelKey: "dashboard.business.branches",
+        value: String(summary.branches),
+        // Cuántas ve el cliente: solo las aprobadas aparecen en el catálogo
+        detalle: language === "en" ? `${summary.approvedBranches} approved` : `${summary.approvedBranches} aprobada${summary.approvedBranches === 1 ? "" : "s"}`,
+        tone: "from-violet-500 to-fuchsia-600",
+      },
       { labelKey: "dashboard.business.upcoming", value: String(summary.upcomingAppointments), tone: "from-indigo-500 to-purple-600" },
       { labelKey: "dashboard.business.clients", value: String(summary.clients), tone: "from-amber-500 to-orange-600" },
       { labelKey: "dashboard.business.revenueMonth", value: `$${summary.monthlyRevenue.toFixed(2)}`, tone: "from-fuchsia-500 to-pink-600" },
     ],
-    [summary],
+    [summary, language],
   );
 
   return (
@@ -76,12 +87,33 @@ export default function NegocioDashboardPage() {
         <p className="mt-2 text-slate-600">{t("dashboard.business.subtitle")}</p>
       </div>
 
+      {cargado && summary.approvedBranches === 0 ? (
+        <div role="status" data-aviso-visibilidad className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <p className="font-semibold">
+            {language === "en" ? "Your business is not visible in the catalog yet." : "Tu negocio todavía no aparece en el catálogo."}
+          </p>
+          <p className="mt-1">
+            {summary.branches === 0
+              ? language === "en"
+                ? "Register your first branch; it will appear once the administration approves it."
+                : "Registra tu primera sucursal; aparecerá cuando la administración la apruebe."
+              : language === "en"
+                ? "It will appear once the administration approves one of your branches."
+                : "Aparecerá cuando la administración apruebe alguna de tus sucursales."}{" "}
+            <Link href="/dashboard/negocio/sucursales" className="font-semibold underline">
+              {language === "en" ? "Go to Branches" : "Ir a Sucursales"}
+            </Link>
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map((item) => (
           <article key={item.labelKey} className={`rounded-2xl bg-linear-to-br ${item.tone} p-px shadow-lg`}>
             <div className="rounded-2xl bg-white/95 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t(item.labelKey)}</p>
               <p className="mt-2 text-2xl font-black text-[#151138]">{item.value}</p>
+              {"detalle" in item && item.detalle ? <p className="mt-1 text-xs font-medium text-slate-500">{item.detalle}</p> : null}
             </div>
           </article>
         ))}
