@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 
+import { apiServidor } from "@/lib/api-servidor";
 import { getDb } from "@/lib/db";
 
 /**
@@ -92,6 +93,25 @@ export async function obtenerSesion(): Promise<Sesion | null> {
 }
 
 /**
+ * Con el backend configurado (NEXT_PUBLIC_API_URL), a dónde va quien hace la petición según el backend (GET /entrar,
+ * que también vincula cuentas existentes): así estas páginas no consultan la base desde Vercel. null sin backend.
+ */
+async function destinoDelBackend(): Promise<string | null> {
+  const r = await apiServidor("/entrar");
+  if (!r) return null;
+  if (!r.ok) throw new Error(`El backend no respondió a /entrar (${r.status}).`);
+  const { destino } = (await r.json()) as { destino?: string };
+  if (!destino?.startsWith("/")) throw new Error("El backend respondió /entrar sin destino.");
+  return destino;
+}
+
+const TIPO_POR_PANEL: Record<string, Sesion["user"]["accountType"]> = {
+  "/dashboard/admin": "admin",
+  "/dashboard/negocio": "negocio",
+  "/dashboard/cliente": "cliente",
+};
+
+/**
  * Para la pantalla de registro: "sin-sesion" (no entró a Clerk), "sin-registro" (entró a Clerk pero aún no eligió
  * cliente o negocio), "baneada", o "lista" con su tipo de cuenta.
  */
@@ -101,6 +121,15 @@ export async function estadoDeRegistro(): Promise<
   | { estado: "lista"; accountType: Sesion["user"]["accountType"] }
   | { estado: "sin-registro"; clerk: NonNullable<Awaited<ReturnType<typeof datosDeClerk>>> }
 > {
+  const destino = await destinoDelBackend();
+  if (destino !== null) {
+    if (destino === "/iniciar-sesion") return { estado: "sin-sesion" };
+    if (destino === "/cuenta-suspendida") return { estado: "baneada" };
+    const tipo = TIPO_POR_PANEL[destino];
+    if (tipo) return { estado: "lista", accountType: tipo };
+    const datos = await datosDeClerk();
+    return datos ? { estado: "sin-registro", clerk: datos } : { estado: "sin-sesion" };
+  }
   const { userId } = await auth();
   if (!userId) return { estado: "sin-sesion" };
   const { fila, clerk } = await filaDeClerk(userId);
@@ -122,7 +151,13 @@ export function inicioPorTipo(accountType: Sesion["user"]["accountType"]) {
  */
 export async function accesoAlPanel(
   tipo: Sesion["user"]["accountType"],
-): Promise<{ sesion: Sesion } | { redirigir: string }> {
+): Promise<{ sesion: Sesion | null } | { redirigir: string }> {
+  // Con backend: una sola pregunta a /entrar (la sesión completa la arma el navegador con /sesion)
+  const destino = await destinoDelBackend();
+  if (destino !== null) {
+    if (destino === inicioPorTipo(tipo)) return { sesion: null };
+    return { redirigir: destino === "/iniciar-sesion" ? "/iniciar-sesion?reason=unauthorized" : destino };
+  }
   const sesion = await obtenerSesion();
   if (sesion?.user.accountType === tipo) return { sesion };
   if (sesion) return { redirigir: inicioPorTipo(sesion.user.accountType) };

@@ -1,9 +1,13 @@
 "use client";
 
-import { useAuth, useClerk } from "@clerk/nextjs";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
+import { api } from "@/lib/api";
 import type { Sesion } from "@/lib/sesion";
+
+/** Lo que /sesion devuelve: el backend ya no manda la foto ni si entró con Google (salen de Clerk, aquí). */
+type SesionSinClerk = { user: Omit<Sesion["user"], "image" | "authProvider"> & Partial<Pick<Sesion["user"], "image" | "authProvider">> };
 
 type Estado = "loading" | "authenticated" | "unauthenticated";
 type Valor = { data: Sesion | null; status: Estado };
@@ -13,29 +17,46 @@ const Contexto = createContext<Valor>({ data: null, status: "loading" });
 /**
  * Sesión de la app en el navegador, con la misma forma que useSession de NextAuth ({ data, status }).
  * Se vuelve a pedir a /api/sesion cada vez que cambia el usuario de Clerk (entrar, salir, cambiar de cuenta).
+ * La foto y si entró con Google se toman del usuario de Clerk que ya cargó el navegador.
  */
 export function SesionProvider({ children }: { children: ReactNode }) {
   const { isLoaded, userId } = useAuth();
+  const { user: usuarioClerk } = useUser();
   // Resultado de /api/sesion para un usuario de Clerk concreto (si cambia el usuario, se vuelve a pedir).
-  const [pedida, setPedida] = useState<{ userId: string; data: Sesion | null } | null>(null);
+  const [pedida, setPedida] = useState<{ userId: string; data: SesionSinClerk | null } | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     let vigente = true;
-    fetch("/api/sesion", { cache: "no-store" })
-      .then((r) => (r.ok ? (r.json() as Promise<Sesion | { user: null }>) : { user: null }))
-      .then((s) => vigente && setPedida({ userId, data: s.user ? (s as Sesion) : null }))
+    api("/api/sesion", { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<SesionSinClerk | { user: null }>) : { user: null }))
+      .then((s) => vigente && setPedida({ userId, data: s.user ? (s as SesionSinClerk) : null }))
       .catch(() => vigente && setPedida({ userId, data: null }));
     return () => {
       vigente = false;
     };
   }, [userId]);
 
-  let valor: Valor;
-  if (!isLoaded) valor = { data: null, status: "loading" };
-  else if (!userId) valor = { data: null, status: "unauthenticated" };
-  else if (pedida?.userId !== userId) valor = { data: null, status: "loading" };
-  else valor = pedida.data ? { data: pedida.data, status: "authenticated" } : { data: null, status: "unauthenticated" };
+  const imagenClerk = usuarioClerk?.imageUrl ?? null;
+  const conGoogle = usuarioClerk?.externalAccounts.some((c) => c.provider.includes("google")) ?? false;
+  // Mismo objeto mientras no cambie nada, para no volver a disparar efectos que dependen de la sesión
+  const valor = useMemo<Valor>(() => {
+    if (!isLoaded) return { data: null, status: "loading" };
+    if (!userId) return { data: null, status: "unauthenticated" };
+    if (pedida?.userId !== userId) return { data: null, status: "loading" };
+    if (!pedida.data) return { data: null, status: "unauthenticated" };
+    return {
+      data: {
+        user: {
+          ...pedida.data.user,
+          // Sin backend, /api/sesion de Next todavía los manda; con backend salen de Clerk
+          image: pedida.data.user.image ?? imagenClerk,
+          authProvider: pedida.data.user.authProvider ?? (conGoogle ? "google" : "credentials"),
+        },
+      },
+      status: "authenticated",
+    };
+  }, [isLoaded, userId, pedida, imagenClerk, conGoogle]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
