@@ -167,3 +167,25 @@ describe("pantalla de Sucursales", () => {
     expect(fuente).toContain("{estadoUbicacion?.texto");
   });
 });
+
+describe("pantalla de Sucursales: diseño responsivo (se mide en Chrome headless; esto evita que vuelva lo de antes)", () => {
+  const fuente = readFileSync(path.resolve(import.meta.dirname, "..", "app/dashboard/negocio/sucursales/page.tsx"), "utf8");
+
+  it("los paneles son contenedores y las columnas dependen del ancho del panel, no de la pantalla", () => {
+    expect(fuente).toContain('className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]"');
+    expect(fuente.match(/<article className="@container min-w-0 /g)).toHaveLength(2);
+    expect(fuente).toContain('<div className="grid gap-3 @sm:grid-cols-2 @lg:grid-cols-3">');
+    expect(fuente).not.toMatch(/[^@]sm:grid-cols-[23]/);
+  });
+
+  it("el checkbox va en su propia fila, separado del botón Guardar (antes ambos inline-flex en la misma línea)", () => {
+    expect(fuente).toMatch(/<div className="flex flex-col gap-4 [^"]*">\s+<label className="flex items-center gap-2[^"]*">\s+<input\s+type="checkbox"/);
+    expect(fuente).not.toContain('<label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">');
+  });
+
+  it("los inputs de archivo ocultan el texto nativo que el navegador cortaba y muestran el nombre completo o con elipsis", () => {
+    expect(fuente.match(/type="file"/g)).toHaveLength(1);
+    expect(fuente).toMatch(/className="block w-full min-w-0 text-xs text-transparent file:/);
+    expect(fuente).toMatch(/data-archivo-elegido className="mt-1 block truncate/);
+  });
+});

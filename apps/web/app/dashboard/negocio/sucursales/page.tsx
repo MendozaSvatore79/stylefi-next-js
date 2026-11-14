@@ -268,14 +268,14 @@ export default function NegocioSucursalesPage() {
   };
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[1.15fr_1fr]">
-      <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <article className="@container min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 @xs:flex-row @xs:items-start @xs:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("business.branches")}</p>
             <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Branch registration" : "Alta de sucursal"}</h2>
           </div>
-          <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-right">
+          <div className="self-start rounded-2xl bg-emerald-50 px-4 py-3 @xs:shrink-0 @xs:text-right">
             <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">{language === "en" ? "Available" : "Disponibles"}</p>
             <p className="text-2xl font-black text-emerald-900">{remaining}</p>
           </div>
@@ -304,65 +304,65 @@ export default function NegocioSucursalesPage() {
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 @sm:grid-cols-2 @lg:grid-cols-3">
             <input
               value={form.city}
               onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
               placeholder={language === "en" ? "City" : "Ciudad"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.state}
               onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
               placeholder={language === "en" ? "State" : "Estado"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.postalCode}
               onChange={(event) => setForm((current) => ({ ...current, postalCode: event.target.value }))}
               placeholder={language === "en" ? "ZIP" : "CP"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 @sm:col-span-2 @lg:col-span-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @sm:grid-cols-2">
             <input
               value={form.phone}
               onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
               placeholder={language === "en" ? "Phone" : "Teléfono"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.website}
               onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
               placeholder={language === "en" ? "Website" : "Sitio web"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @sm:grid-cols-2">
             <input
               value={form.latitude}
               onChange={(event) => setForm((current) => ({ ...current, latitude: event.target.value }))}
               placeholder={language === "en" ? "Latitude" : "Latitud"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.longitude}
               onChange={(event) => setForm((current) => ({ ...current, longitude: event.target.value }))}
               placeholder={language === "en" ? "Longitude" : "Longitud"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
 
           <div className="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p>
+            <div className="flex flex-col gap-3 @lg:flex-row @lg:items-center @lg:justify-between">
+              <p className="min-w-0">
                 {en
                   ? "Press Update location to fill latitude, longitude and address. You can edit them if needed."
                   : "Pulsa Actualizar ubicación para llenar latitud, longitud y dirección. Puedes corregirlas si hace falta."}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 @sm:flex @sm:flex-wrap @lg:shrink-0">
                 <button
                   type="button"
                   onClick={() => void requestCurrentLocation()}
@@ -399,18 +399,18 @@ export default function NegocioSucursalesPage() {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @sm:grid-cols-2">
             <input
               value={form.openingHours}
               onChange={(event) => setForm((current) => ({ ...current, openingHours: event.target.value }))}
               placeholder={language === "en" ? "Opening time" : "Horario apertura"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.closingHours}
               onChange={(event) => setForm((current) => ({ ...current, closingHours: event.target.value }))}
               placeholder={language === "en" ? "Closing time" : "Horario cierre"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
 
@@ -427,69 +427,83 @@ export default function NegocioSucursalesPage() {
               : "Imagen: JPG, PNG o WebP. Comprobante: PDF o imagen. Hasta 4 MB cada uno. El comprobante solo lo ven tú y la administración."}
           </p>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">{language === "en" ? "Branch image" : "Imagen sucursal"}</span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => setBranchImageFile(event.target.files?.[0] ?? null)}
-                className="block w-full text-xs text-slate-600"
-              />
-            </label>
-
-            <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">{language === "en" ? "Ownership proof *" : "Comprobante de propiedad *"}</span>
-              <input
-                type="file"
-                accept="application/pdf,image/jpeg,image/png,image/webp"
-                onChange={(event) => setOwnershipProofFile(event.target.files?.[0] ?? null)}
-                className="block w-full text-xs text-slate-600"
-                required
-              />
-            </label>
+          <div className="grid gap-3 @sm:grid-cols-2">
+            {[
+              {
+                etiqueta: en ? "Branch image" : "Imagen sucursal",
+                accept: "image/jpeg,image/png,image/webp",
+                archivo: branchImageFile,
+                elegir: setBranchImageFile,
+                required: false,
+              },
+              {
+                etiqueta: en ? "Ownership proof *" : "Comprobante de propiedad *",
+                accept: "application/pdf,image/jpeg,image/png,image/webp",
+                archivo: ownershipProofFile,
+                elegir: setOwnershipProofFile,
+                required: true,
+              },
+            ].map((campo) => (
+              <label key={campo.etiqueta} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wide wrap-break-word text-slate-500">{campo.etiqueta}</span>
+                {/* El texto nativo ("Ningún archivo seleccionado") se oculta porque el navegador lo corta; el nombre va abajo. */}
+                <input
+                  type="file"
+                  accept={campo.accept}
+                  onChange={(event) => campo.elegir(event.target.files?.[0] ?? null)}
+                  className="block w-full min-w-0 text-xs text-transparent file:mr-0 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-emerald-700"
+                  required={campo.required}
+                />
+                <span data-archivo-elegido className="mt-1 block truncate text-xs text-slate-600" title={campo.archivo?.name ?? undefined}>
+                  {campo.archivo?.name ?? (en ? "No file chosen" : "Ningún archivo seleccionado")}
+                </span>
+              </label>
+            ))}
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input
-              type="checkbox"
-              checked={form.isPrimary}
-              onChange={(event) => setForm((current) => ({ ...current, isPrimary: event.target.checked }))}
-            />
-            {language === "en" ? "Mark as primary branch" : "Marcar como sucursal principal"}
-          </label>
+          <div className="flex flex-col gap-4 border-t border-slate-100 pt-4 @md:flex-row @md:items-center @md:justify-between">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.isPrimary}
+                onChange={(event) => setForm((current) => ({ ...current, isPrimary: event.target.checked }))}
+                className="h-4 w-4 shrink-0"
+              />
+              {en ? "Mark as primary branch" : "Marcar como sucursal principal"}
+            </label>
 
-          <button
-            type="submit"
-            disabled={isSubmitting || branches.length >= 3}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {branches.length >= 3
-              ? language === "en"
-                ? "3-branch limit reached"
-                : "Límite de 3 alcanzado"
-              : isSubmitting
-                ? language === "en"
-                  ? "Saving..."
-                  : "Guardando..."
-                : language === "en"
-                  ? "Save branch"
-                  : "Guardar sucursal"}
-          </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || branches.length >= 3}
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70 @md:w-auto"
+            >
+              {branches.length >= 3
+                ? en
+                  ? "3-branch limit reached"
+                  : "Límite de 3 alcanzado"
+                : isSubmitting
+                  ? en
+                    ? "Saving..."
+                    : "Guardando..."
+                  : en
+                    ? "Save branch"
+                    : "Guardar sucursal"}
+            </button>
+          </div>
         </form>
       </article>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <article className="@container min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "List" : "Listado"}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Your branches" : "Tus sucursales"}</h2>
 
         <div className="mt-5 space-y-3">
           {branches.map((branch) => (
             <div key={branch.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-slate-800">{branch.branch_name}</p>
+              <div className="flex flex-col gap-3 @sm:flex-row @sm:items-start @sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="min-w-0 font-semibold wrap-break-word text-slate-800">{branch.branch_name}</p>
                     {branch.is_primary ? (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
                         {language === "en" ? "Primary" : "Principal"}
@@ -517,7 +531,7 @@ export default function NegocioSucursalesPage() {
                             : "Pendiente"}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm wrap-break-word text-slate-600">
                     {branch.address || (language === "en" ? "No address" : "Sin dirección")}
                     {branch.city ? ` · ${branch.city}` : ""}
                   </p>
@@ -553,7 +567,7 @@ export default function NegocioSucursalesPage() {
                 <button
                   type="button"
                   onClick={() => void handleDelete(branch.id)}
-                  className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200"
+                  className="self-start rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200 @sm:shrink-0"
                 >
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
