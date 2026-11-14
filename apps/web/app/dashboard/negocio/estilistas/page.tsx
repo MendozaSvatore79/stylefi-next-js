@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import StylistAgendaPanel from "@/components/stylist-agenda-panel";
+import AsignarSucursal from "@/components/asignar-sucursal";
 import ConfirmarEliminar from "@/components/confirmar-eliminar";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
@@ -13,6 +14,8 @@ type Stylist = {
   first_name: string;
   last_name: string;
   email: string | null;
+  phone: string | null;
+  image_url: string | null;
   specialization: string | null;
   years_experience: number | null;
   available: boolean;
@@ -120,6 +123,40 @@ export default function NegocioEstilistasPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  /** Asigna sucursal a un estilista que no tiene (PUT existente: se reenvían sus datos; los servicios no cambian). */
+  const asignarSucursal = async (stylist: Stylist, branchId: string) => {
+    try {
+      const response = await api("/api/business/stylists", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: stylist.id,
+          firstName: stylist.first_name,
+          lastName: stylist.last_name,
+          email: stylist.email ?? "",
+          phone: stylist.phone ?? "",
+          specialization: stylist.specialization ?? "",
+          yearsExperience: stylist.years_experience ?? "",
+          imageUrl: stylist.image_url ?? "",
+          available: stylist.available,
+          branchId,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"));
+      }
+      showToast({ type: "success", title: language === "en" ? "Branch assigned" : "Sucursal asignada" });
+      await loadStylists();
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Could not assign the branch" : "No se pudo asignar la sucursal",
+        message: error instanceof Error ? error.message : undefined,
+      });
     }
   };
 
@@ -236,9 +273,13 @@ export default function NegocioEstilistasPage() {
                     {stylist.first_name} {stylist.last_name}
                   </p>
                   <p className="mt-1 text-sm text-slate-600">{stylist.specialization || (language === "en" ? "No specialization" : "Sin especialidad")}</p>
-                  <p className="mt-1 text-xs font-medium text-indigo-600">
-                    {language === "en" ? "Branch:" : "Sucursal:"} {stylist.branch_name ?? (language === "en" ? "No branch" : "Sin sucursal")}
-                  </p>
+                  {stylist.branch_id ? (
+                    <p className="mt-1 text-xs font-medium text-indigo-600">
+                      {language === "en" ? "Branch:" : "Sucursal:"} {stylist.branch_name}
+                    </p>
+                  ) : (
+                    <AsignarSucursal sucursales={branches} idioma={language} onAsignar={(branchId) => asignarSucursal(stylist, branchId)} />
+                  )}
                   <p className="mt-1 text-xs text-slate-500">
                     {stylist.years_experience
                       ? language === "en"
