@@ -21,6 +21,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
+import { rutaActiva } from "@/lib/ruta-activa";
 
 type AdminDashboardShellProps = {
   children: ReactNode;
@@ -145,9 +146,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive =
-                  (item.href === "/dashboard/admin" && activePath === "/dashboard/admin") ||
-                  (item.href !== "/dashboard/admin" && activePath.startsWith(item.href));
+                const isActive = rutaActiva(activePath, item.href, "/dashboard/admin");
 
                 return (
                   <Link

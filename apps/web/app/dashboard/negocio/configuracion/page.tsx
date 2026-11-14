@@ -138,11 +138,11 @@ export default function NegocioConfiguracionPage() {
           Administra tu perfil de salón, horarios, seguridad y opciones de negocio.
         </p>
 
-        <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setActiveSection("profile")}
-            className={`group relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-center transition-all ${
+            className={`group relative overflow-hidden rounded-2xl border-2 px-2 py-3 text-center sm:px-4 sm:py-4 transition-all ${
               activeSection === "profile"
                 ? "border-emerald-600 bg-emerald-50 shadow-md"
                 : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
@@ -151,7 +151,7 @@ export default function NegocioConfiguracionPage() {
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
               <Building2 className="size-5" />
             </div>
-            <p className={`mt-2 text-sm font-semibold transition ${
+            <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "profile" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
               Perfil
@@ -166,7 +166,7 @@ export default function NegocioConfiguracionPage() {
           <button
             type="button"
             onClick={() => setActiveSection("security")}
-            className={`group relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-center transition-all ${
+            className={`group relative overflow-hidden rounded-2xl border-2 px-2 py-3 text-center sm:px-4 sm:py-4 transition-all ${
               activeSection === "security"
                 ? "border-emerald-600 bg-emerald-50 shadow-md"
                 : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
@@ -175,7 +175,7 @@ export default function NegocioConfiguracionPage() {
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
               <ShieldCheck className="size-5" />
             </div>
-            <p className={`mt-2 text-sm font-semibold transition ${
+            <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "security" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
               Seguridad
@@ -190,7 +190,7 @@ export default function NegocioConfiguracionPage() {
           <button
             type="button"
             onClick={() => setActiveSection("billing")}
-            className={`group relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-center transition-all ${
+            className={`group relative overflow-hidden rounded-2xl border-2 px-2 py-3 text-center sm:px-4 sm:py-4 transition-all ${
               activeSection === "billing"
                 ? "border-emerald-600 bg-emerald-50 shadow-md"
                 : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
@@ -199,7 +199,7 @@ export default function NegocioConfiguracionPage() {
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
               <CreditCard className="size-5" />
             </div>
-            <p className={`mt-2 text-sm font-semibold transition ${
+            <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "billing" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
               Facturación

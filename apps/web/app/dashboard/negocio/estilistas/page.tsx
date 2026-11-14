@@ -222,8 +222,8 @@ export default function NegocioEstilistasPage() {
   };
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[1.15fr_1fr]">
-      <article className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <article className="@container min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Team" : "Equipo"}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Register stylist" : "Registrar estilista"}</h2>
 
@@ -241,18 +241,18 @@ export default function NegocioEstilistasPage() {
             ))}
           </select>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @sm:grid-cols-2">
             <input
               value={form.firstName}
               onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
               placeholder={language === "en" ? "First name" : "Nombre"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.lastName}
               onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
               placeholder={language === "en" ? "Last name" : "Apellido"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
 
@@ -263,12 +263,12 @@ export default function NegocioEstilistasPage() {
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @sm:grid-cols-2">
             <input
               value={form.specialization}
               onChange={(event) => setForm((current) => ({ ...current, specialization: event.target.value }))}
               placeholder={language === "en" ? "Specialization" : "Especialidad"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               type="number"
@@ -276,38 +276,42 @@ export default function NegocioEstilistasPage() {
               value={form.yearsExperience}
               onChange={(event) => setForm((current) => ({ ...current, yearsExperience: event.target.value }))}
               placeholder={language === "en" ? "Years of experience" : "Años experiencia"}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input
-              type="checkbox"
-              checked={form.available}
-              onChange={(event) => setForm((current) => ({ ...current, available: event.target.checked }))}
-            />
-            {language === "en" ? "Available for appointments" : "Disponible para citas"}
-          </label>
+          {/* Checkbox en su propia fila, separado del botón (antes ambos inline-flex en la misma línea) */}
+          <div className="flex flex-col gap-4 border-t border-slate-100 pt-4 @md:flex-row @md:items-center @md:justify-between">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.available}
+                onChange={(event) => setForm((current) => ({ ...current, available: event.target.checked }))}
+                className="h-4 w-4 shrink-0"
+              />
+              {language === "en" ? "Available for appointments" : "Disponible para citas"}
+            </label>
 
-          <button
-            type="submit"
-            disabled={isSubmitting || branches.length === 0 || !form.branchId}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isSubmitting ? (language === "en" ? "Saving..." : "Guardando...") : (language === "en" ? "Save stylist" : "Guardar estilista")}
-          </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || branches.length === 0 || !form.branchId}
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70 @md:w-auto"
+            >
+              {isSubmitting ? (language === "en" ? "Saving..." : "Guardando...") : (language === "en" ? "Save stylist" : "Guardar estilista")}
+            </button>
+          </div>
         </form>
       </article>
 
-      <article className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <article className="@container min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("business.stylists")}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Your team" : "Tu equipo"}</h2>
 
         <div className="mt-5 space-y-3">
           {stylists.map((stylist) => (
             <div key={stylist.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 @sm:flex-row @sm:items-start @sm:justify-between">
+                <div className="min-w-0">
                   <p className="font-semibold text-slate-800">
                     {stylist.first_name} {stylist.last_name}
                   </p>
@@ -350,7 +354,7 @@ export default function NegocioEstilistasPage() {
                         : "No disponible"}
                   </button>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
+                <div className="flex flex-wrap gap-2 @sm:shrink-0 @sm:flex-col @sm:items-end">
                 <button
                   type="button"
                   onClick={() => setAbierto((a) => (a === stylist.id ? null : stylist.id))}
