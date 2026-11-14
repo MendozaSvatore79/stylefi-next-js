@@ -249,6 +249,9 @@ export default function SalonesPage() {
               >
               <div className="relative h-48 overflow-hidden bg-linear-to-br from-indigo-100 to-purple-100">
                 {business.image_url ? (
+                  // La foto la sube el negocio y puede venir de cualquier host https: next/image pediría abrir
+                  // remotePatterns a todos. Se queda <img>.
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={urlArchivo(business.image_url)}
                     alt={business.salon_name}

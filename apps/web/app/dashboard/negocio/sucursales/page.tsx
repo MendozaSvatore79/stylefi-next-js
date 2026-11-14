@@ -117,7 +117,7 @@ export default function NegocioSucursalesPage() {
         setIsResolvingAddress(false);
       }
     },
-    [showToast],
+    [language, showToast],
   );
 
   const requestCurrentLocation = useCallback(
@@ -186,7 +186,7 @@ export default function NegocioSucursalesPage() {
         setIsLocating(false);
       }
     },
-    [resolveAddressFromCoordinates, showToast],
+    [language, resolveAddressFromCoordinates, showToast],
   );
 
   useEffect(() => {
