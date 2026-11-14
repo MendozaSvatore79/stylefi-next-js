@@ -32,3 +32,20 @@ describe("idioma", () => {
     expect(fuente).toContain("useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION)");
   });
 });
+
+describe("dependencias de los efectos sin repetir llamadas", () => {
+  it("`t` y el valor del contexto de idioma son estables mientras no cambie el idioma", () => {
+    const fuente = leer("lib/language-context.tsx");
+    expect(fuente).toMatch(/const t = useCallback\([\s\S]*?\[language\]\);/);
+    expect(fuente).toContain("useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t])");
+    expect(fuente).toContain("value={valor}");
+  });
+
+  it("Pagos: los métodos se cargan con un loadMethods estable y la recarga se confirma una sola vez por sesión", () => {
+    const fuente = leer("app/dashboard/cliente/pagos/page.tsx");
+    expect(fuente).toMatch(/const loadMethods = useCallback\([\s\S]*?\}, \[showToast\]\);/);
+    expect(fuente).toContain("}, [loadMethods]);");
+    expect(fuente).toMatch(/if \(confirmandoSesionRef\.current === sessionId\) \{\s*return;\s*\}\s*confirmandoSesionRef\.current = sessionId;/);
+    expect(fuente).toContain("}, [confirmedSessionId, loadMethods, showToast, t]);");
+  });
+});

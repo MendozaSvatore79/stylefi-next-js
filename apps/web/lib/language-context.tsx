@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useSyncExternalStore } from "react";
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 
 import { crearIdiomaGuardado, IDIOMA_POR_OMISION, type Language } from "@/lib/idioma-guardado";
 
@@ -765,16 +765,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // El servidor (y la hidratación) usan el idioma por omisión; después, el guardado en el navegador.
   const language = useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     idiomaGuardado.guardar(lang);
-  };
+  }, []);
 
-  const t = (key: string): string => {
-    return translations[language][key] ?? key;
-  };
+  // Estable mientras no cambie el idioma: así `t` puede ir en las dependencias de efectos sin repetirlos.
+  const t = useCallback((key: string): string => translations[language][key] ?? key, [language]);
+
+  const valor = useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={valor}>
       {children}
     </LanguageContext.Provider>
   );
