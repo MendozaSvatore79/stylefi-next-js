@@ -16,3 +16,11 @@ describe("bienvenida de la plataforma", () => {
     expect(fuente).toMatch(/const steps =\s+isClient/);
   });
 });
+
+describe("modal del salón", () => {
+  it("los servicios de la sucursal usan su tipo (Service), sin `any`", () => {
+    const fuente = leer("components/salon-modal.tsx");
+    expect(fuente).not.toMatch(/:\s*any\b/);
+    expect(fuente).toContain("servicesForBranch.map((service) => (");
+  });
+});
