@@ -50,6 +50,14 @@ const statusStyles: Record<ModuleStatus, { label: string; badge: string }> = {
   },
 };
 
+/**
+ * Los 4 módulos que caben en la portada. Decisión de producto: los que están en mantenimiento van primero, para que
+ * siempre se vean (antes quedaban al final y fuera de los 4; solo los contaba el contador). El resto conserva su orden.
+ */
+export function modulosDeLaPortada<T extends { isMaintenance: boolean }>(modulos: T[]): T[] {
+  return [...modulos].sort((a, b) => Number(b.isMaintenance) - Number(a.isMaintenance)).slice(0, 4);
+}
+
 export function LiveDashboardPanel() {
   const [dashboard, setDashboard] = useState<LiveDashboardPayload>(fallbackDashboard);
 
@@ -87,10 +95,7 @@ export function LiveDashboardPanel() {
   const activeModulesCount = dashboard.modules.length;
   const maintenanceModulesCount = dashboard.modules.filter((item) => item.isMaintenance).length;
   const onlineModulesCount = dashboard.modules.filter((item) => !item.isMaintenance && item.status === "online").length;
-  // Primero los que están en línea; máximo 4 en la portada
-  const statsModules = [...dashboard.modules]
-    .sort((moduleA, moduleB) => Number(moduleA.isMaintenance) - Number(moduleB.isMaintenance))
-    .slice(0, 4);
+  const statsModules = modulosDeLaPortada(dashboard.modules);
 
   return (
     <div className="relative overflow-hidden rounded-4xl border border-white/15 bg-[#10162f] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-6">
