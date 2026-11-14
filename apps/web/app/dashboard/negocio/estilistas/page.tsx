@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import StylistAgendaPanel from "@/components/stylist-agenda-panel";
+import ConfirmarEliminar from "@/components/confirmar-eliminar";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
@@ -32,6 +33,8 @@ export default function NegocioEstilistasPage() {
   const [stylists, setStylists] = useState<Stylist[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Tarjeta en confirmación de borrado (en línea, sin modal). */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [form, setForm] = useState({
     branchId: "",
@@ -120,7 +123,7 @@ export default function NegocioEstilistasPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string): Promise<boolean> => {
     const response = await api("/api/business/stylists", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -134,11 +137,12 @@ export default function NegocioEstilistasPage() {
         title: t("business.stylists.errorDelete"),
         message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
       });
-      return;
+      return false;
     }
 
     showToast({ type: "success", title: t("business.stylists.successDelete") });
     await loadStylists();
+    return true;
   };
 
   return (
@@ -268,13 +272,28 @@ export default function NegocioEstilistasPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleDelete(stylist.id)}
+                  onClick={() => setConfirmando(stylist.id)}
                   className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200"
                 >
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
                 </div>
               </div>
+              {confirmando === stylist.id ? (
+                <ConfirmarEliminar
+                  nombre={`${stylist.first_name} ${stylist.last_name}`}
+                  aviso={
+                    language === "en"
+                      ? "If they have appointments on record, they can't be deleted."
+                      : "Si tiene citas registradas, no se podrá eliminar."
+                  }
+                  idioma={language}
+                  onCancelar={() => setConfirmando(null)}
+                  onConfirmar={async () => {
+                    if (await handleDelete(stylist.id)) setConfirmando(null);
+                  }}
+                />
+              ) : null}
               {stylist.service_ids.length === 0 || stylist.schedule_blocks === 0 ? (
                 <p className="mt-2 rounded-lg bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
                   {language === "en"

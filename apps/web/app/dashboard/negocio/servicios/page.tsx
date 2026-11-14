@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import ConfirmarEliminar from "@/components/confirmar-eliminar";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
@@ -28,6 +29,8 @@ export default function NegocioServiciosPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Tarjeta en confirmación de borrado (en línea, sin modal). */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
   const [form, setForm] = useState({
     branchId: "",
     serviceName: "",
@@ -112,7 +115,7 @@ export default function NegocioServiciosPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string): Promise<boolean> => {
     const response = await api("/api/business/services", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -126,7 +129,7 @@ export default function NegocioServiciosPage() {
         title: t("business.services.errorDelete"),
         message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
       });
-      return;
+      return false;
     }
 
     showToast({
@@ -135,6 +138,7 @@ export default function NegocioServiciosPage() {
     });
 
     await loadServices();
+    return true;
   };
 
   return (
@@ -230,12 +234,22 @@ export default function NegocioServiciosPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => void handleDelete(service.id)}
+                  onClick={() => setConfirmando(service.id)}
                   className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200"
                 >
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
               </div>
+              {confirmando === service.id ? (
+                <ConfirmarEliminar
+                  nombre={service.service_name}
+                  idioma={language}
+                  onCancelar={() => setConfirmando(null)}
+                  onConfirmar={async () => {
+                    if (await handleDelete(service.id)) setConfirmando(null);
+                  }}
+                />
+              ) : null}
             </div>
           ))}
 
