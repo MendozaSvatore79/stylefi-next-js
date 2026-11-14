@@ -1,56 +1,20 @@
 /**
  * Llamadas del navegador al backend (synova-backend, NestJS).
  *
- * - Si NEXT_PUBLIC_API_URL está definida, las rutas que ya se movieron al backend (RUTAS_EN_API) van allá, con el
- *   token de sesión de Clerk en Authorization. Las demás siguen yendo a las rutas de Next.js (app/api).
- * - Si no está definida (como en producción mientras el backend no esté desplegado), todo sigue igual que antes.
- *
- * Las rutas del backend se llaman igual que las de app/api, sin el prefijo /api, y responden lo mismo.
+ * Desde la fase 4 todas las rutas de datos viven en el backend: api("/api/…") llama a NEXT_PUBLIC_API_URL + "/…"
+ * con el token de sesión de Clerk en Authorization. Las rutas se siguen escribiendo con /api para que las pantallas
+ * no cambien. Sin NEXT_PUBLIC_API_URL no hay a quién llamar (next.config.ts lo exige al compilar).
  */
 const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || null;
 
-/** URL del backend o null si no está configurado (entonces todo sigue en las rutas de Next.js). */
+/** URL del backend o null si no está configurado. */
 export function urlDelBackend() {
   return BASE;
 }
 
-/** Rutas ya movidas al backend (se van agregando por grupo; las de app/api se borran en la fase 4). */
-const RUTAS_EN_API = [
-  // Grupo 1: negocios y catálogo
-  "/api/businesses",
-  "/api/business/profile",
-  "/api/business/summary",
-  "/api/business/services",
-  "/api/business/stylists",
-  "/api/business/branches",
-  "/api/files/",
-  // Grupo 2: reservas y pagos (el webhook de Stripe no se llama desde el navegador)
-  "/api/client/appointments",
-  "/api/client/favorites",
-  "/api/client/wallet",
-  "/api/client/payment-methods",
-  "/api/business/appointments",
-  // Grupo 3: admin, panel en vivo, bienvenida, sesión, registro, cuenta y geocodificación
-  "/api/admin/users",
-  "/api/admin/branch-verifications",
-  "/api/admin/live-dashboard",
-  "/api/live-dashboard",
-  "/api/onboarding",
-  "/api/client/onboarding",
-  "/api/sesion",
-  "/api/entrar",
-  "/api/registro/completar",
-  "/api/account/security",
-  "/api/geocode/reverse",
-  // Grupo 3, B3: soporte con AURA
-  "/api/support/oracle",
-  "/api/admin/support-tickets",
-];
-
-/** ¿Esta ruta de app/api ya vive en el backend (con NEXT_PUBLIC_API_URL definida)? */
+/** ¿Esta ruta va al backend? Todas las de /api/… (ya no quedan rutas de datos en Next). */
 export function vaAlBackend(ruta: string) {
-  const sinQuery = ruta.split("?")[0];
-  return RUTAS_EN_API.some((r) => (r.endsWith("/") ? sinQuery.startsWith(r) : sinQuery === r || sinQuery.startsWith(`${r}/`)));
+  return ruta.startsWith("/api/");
 }
 
 type ClerkGlobal = { loaded?: boolean; session?: { getToken: () => Promise<string | null> } | null };
@@ -71,11 +35,12 @@ async function tokenDeClerk(): Promise<string | null> {
   return (await clerk?.session?.getToken()) ?? null;
 }
 
-/** fetch() para rutas de la app: mismo uso que fetch("/api/..."). */
+/** Como fetch() para las rutas de datos de la app (escritas con /api), pero contra el backend y con el token. */
 export async function api(ruta: string, init: RequestInit = {}): Promise<Response> {
-  if (!BASE || !vaAlBackend(ruta)) {
+  if (!vaAlBackend(ruta)) {
     return fetch(ruta, init);
   }
+  if (!BASE) throw new Error("Falta NEXT_PUBLIC_API_URL: el front necesita el backend.");
   const headers = new Headers(init.headers);
   const token = await tokenDeClerk();
   if (token) headers.set("Authorization", `Bearer ${token}`);

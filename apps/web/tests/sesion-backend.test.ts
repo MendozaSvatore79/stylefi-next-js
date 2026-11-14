@@ -1,6 +1,6 @@
 /**
  * lib/sesion.ts con el backend configurado: los layouts y la página de registro preguntan a GET /entrar del backend
- * (con el token de Clerk de la petición) y NO consultan la base desde Vercel.
+ * (con el token de Clerk de la petición); desde la fase 4 es el único camino.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,29 +8,25 @@ const estado = vi.hoisted(() => ({
   destino: "/iniciar-sesion" as string,
   status: 200,
   pedidas: [] as Array<{ url: string; auth: string | null }>,
-  consultasALaBase: 0,
   clerkUser: null as null | Record<string, unknown>,
+  clerkError: null as null | { status: number },
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(async () => ({ userId: "user_x", getToken: async () => "tok" })),
-  currentUser: vi.fn(async () => estado.clerkUser),
+  currentUser: vi.fn(async () => {
+    if (estado.clerkError) throw Object.assign(new Error("Clerk"), estado.clerkError, { clerkError: true });
+    return estado.clerkUser;
+  }),
 }));
-vi.mock("@/lib/db", () => ({
-  getDb: () => () => {
-    estado.consultasALaBase += 1;
-    return Promise.resolve([]);
-  },
-}));
-
 beforeEach(() => {
   vi.resetModules();
   vi.unstubAllEnvs();
   vi.stubEnv("NEXT_PUBLIC_API_URL", "http://api.prueba");
   estado.pedidas = [];
-  estado.consultasALaBase = 0;
   estado.status = 200;
   estado.clerkUser = null;
+  estado.clerkError = null;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init: RequestInit = {}) => {
@@ -53,7 +49,6 @@ describe("accesoAlPanel con backend", () => {
     const { accesoAlPanel } = await import("@/lib/sesion");
     expect(await accesoAlPanel(tipo)).toEqual(esperado);
     expect(estado.pedidas).toEqual([{ url: "http://api.prueba/entrar", auth: "Bearer tok" }]);
-    expect(estado.consultasALaBase).toBe(0);
   });
 
   it("si el backend falla, lanza (no deja pasar ni manda a registrarse)", async () => {
@@ -72,7 +67,6 @@ describe("estadoDeRegistro con backend", () => {
     expect(await estadoDeRegistro()).toEqual({ estado: "baneada" });
     estado.destino = "/iniciar-sesion";
     expect(await estadoDeRegistro()).toEqual({ estado: "sin-sesion" });
-    expect(estado.consultasALaBase).toBe(0);
   });
 
   it("sin registro: los datos para prellenar salen de Clerk (correo solo si está verificado)", async () => {
@@ -91,6 +85,31 @@ describe("estadoDeRegistro con backend", () => {
       estado: "sin-registro",
       clerk: { correoVerificado: "nueva@prueba.invalid", nombre: "Nora", apellido: "Paz" },
     });
-    expect(estado.consultasALaBase).toBe(0);
+  });
+});
+
+describe("usuario borrado en Clerk", () => {
+  it("si Clerk responde 404 (la cookie es de un usuario que ya no existe): sin sesión, no un error 500", async () => {
+    estado.destino = "/registro/completar";
+    estado.clerkError = { status: 404 };
+    const { estadoDeRegistro, datosDeClerk } = await import("@/lib/sesion");
+    expect(await datosDeClerk()).toBeNull();
+    expect(await estadoDeRegistro()).toEqual({ estado: "sin-sesion" });
+  });
+
+  it("cualquier otro error de Clerk se propaga", async () => {
+    estado.destino = "/registro/completar";
+    estado.clerkError = { status: 500 };
+    const { estadoDeRegistro } = await import("@/lib/sesion");
+    await expect(estadoDeRegistro()).rejects.toThrow("Clerk");
+  });
+});
+
+describe("sin NEXT_PUBLIC_API_URL (fase 4: ya no hay respaldo en la base)", () => {
+  it("los layouts y el registro fallan con un mensaje claro", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "");
+    const { accesoAlPanel, estadoDeRegistro } = await import("@/lib/sesion");
+    await expect(accesoAlPanel("cliente")).rejects.toThrow("Falta NEXT_PUBLIC_API_URL");
+    await expect(estadoDeRegistro()).rejects.toThrow("Falta NEXT_PUBLIC_API_URL");
   });
 });
