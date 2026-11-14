@@ -3,17 +3,13 @@ import { connection } from "next/server";
 
 import { LiveDashboardPanel } from "@/components/live-dashboard-panel";
 import { apiServidor } from "@/lib/api-servidor";
-import { getLiveDashboardPayload } from "@/lib/live-dashboard";
 
-/**
- * ¿La plataforma está en mantenimiento? Con backend (NEXT_PUBLIC_API_URL) se pregunta a GET /live-dashboard (público);
- * sin backend, a la base como antes. Si no se puede saber, se muestra la portada normal.
- */
+/** ¿La plataforma está en mantenimiento? Lo pregunta al backend (GET /live-dashboard, público). Si no se puede saber,
+ * se muestra la portada normal. */
 async function enMantenimiento(): Promise<boolean> {
   try {
     const r = await apiServidor("/live-dashboard");
-    if (r) return r.ok ? Boolean(((await r.json()) as { isMaintenanceMode?: boolean }).isMaintenanceMode) : false;
-    return (await getLiveDashboardPayload()).isMaintenanceMode;
+    return r?.ok ? Boolean(((await r.json()) as { isMaintenanceMode?: boolean }).isMaintenanceMode) : false;
   } catch {
     return false;
   }

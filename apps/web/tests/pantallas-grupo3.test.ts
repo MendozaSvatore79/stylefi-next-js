@@ -27,10 +27,19 @@ describe("portada y panel en vivo", () => {
     expect(fuente).toContain('api("/api/live-dashboard"');
   });
 
-  it("la portada pregunta el modo mantenimiento al backend desde el servidor (y a la base solo sin backend)", () => {
+  it("la portada pregunta el modo mantenimiento al backend desde el servidor (fase 4: sin respaldo en la base)", () => {
     const fuente = leer("app/page.tsx");
     expect(fuente).toContain('apiServidor("/live-dashboard")');
-    expect(fuente.indexOf('apiServidor("/live-dashboard")')).toBeLessThan(fuente.indexOf("getLiveDashboardPayload()"));
+    expect(fuente).not.toContain("getLiveDashboardPayload");
+  });
+
+  it("fase 4: no quedan rutas de datos en Next ni código que lea la base", async () => {
+    const { existsSync } = await import("node:fs");
+    expect(existsSync(path.resolve(import.meta.dirname, "..", "app/api"))).toBe(false);
+    for (const lib of ["db", "db-init", "booking", "stylist-config", "storage", "oracle-support", "email", "otp", "admin-auth", "live-dashboard", "stripe"]) {
+      expect(existsSync(path.resolve(import.meta.dirname, "..", `lib/${lib}.ts`))).toBe(false);
+    }
+    expect(leer("lib/sesion.ts")).not.toMatch(/getDb|@\/lib\/db/);
   });
 });
 
