@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
+import { aplicarDireccion, coordenadasValidas, leerJson, mensajeErrorUbicacion, obtenerPosicion } from "@/lib/ubicacion";
 
 type Branch = {
   id: string;
@@ -35,6 +36,8 @@ export default function NegocioSucursalesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+  /** Línea de estado de la ubicación: queda visible (no desaparece como un toast) hasta la siguiente acción. */
+  const [estadoUbicacion, setEstadoUbicacion] = useState<{ tipo: "cargando" | "error" | "exito"; texto: string } | null>(null);
   const [branchImageFile, setBranchImageFile] = useState<File | null>(null);
   const [ownershipProofFile, setOwnershipProofFile] = useState<File | null>(null);
   const [form, setForm] = useState({
@@ -68,132 +71,86 @@ export default function NegocioSucursalesPage() {
     void loadBranches();
   }, []);
 
-  const resolveAddressFromCoordinates = useCallback(
-    async (latitude: number, longitude: number, showFeedback = false) => {
-      setIsResolvingAddress(true);
+  const en = language === "en";
 
-      try {
-        const response = await api(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`, {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        const payload = (await response.json()) as {
-          address?: string;
-          city?: string;
-          state?: string;
-          postalCode?: string;
-          error?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(payload.error ?? (language === "en" ? "Could not get address." : "No se pudo obtener la dirección."));
-        }
-
-        setForm((current) => ({
-          ...current,
-          address: payload.address || current.address,
-          city: payload.city || current.city,
-          state: payload.state || current.state,
-          postalCode: payload.postalCode || current.postalCode,
-        }));
-
-        if (showFeedback) {
-          showToast({
-            type: "success",
-            title: language === "en" ? "Address updated" : "Dirección actualizada",
-            message: language === "en" ? "Address was auto-filled from detected location." : "Se autocompletó la dirección con la ubicación detectada.",
-          });
-        }
-      } catch (error) {
-        if (showFeedback) {
-          showToast({
-            type: "error",
-            title: language === "en" ? "Could not autocomplete" : "No se pudo autocompletar",
-            message: error instanceof Error ? error.message : (language === "en" ? "You can fill the address manually." : "Puedes llenar la dirección manualmente."),
-          });
-        }
-      } finally {
-        setIsResolvingAddress(false);
+  /** Busca la dirección de unas coordenadas y la pone en el formulario. Devuelve el error, o null si llenó algo. */
+  const resolveAddressFromCoordinates = async (latitude: number, longitude: number): Promise<string | null> => {
+    setIsResolvingAddress(true);
+    setEstadoUbicacion({ tipo: "cargando", texto: en ? "Looking up the address..." : "Buscando la dirección..." });
+    try {
+      const response = await api(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`, { method: "GET", cache: "no-store" });
+      const datos = await leerJson(response);
+      if (!response.ok) {
+        return typeof datos.error === "string" && datos.error ? datos.error : en ? "Could not get the address." : "No se pudo obtener la dirección.";
       }
-    },
-    [language, showToast],
-  );
-
-  const requestCurrentLocation = useCallback(
-    async (showFeedback = false) => {
-      if (typeof window === "undefined" || !("geolocation" in navigator)) {
-        if (showFeedback) {
-          showToast({
-            type: "error",
-            title: language === "en" ? "Location unavailable" : "Ubicación no disponible",
-            message: language === "en" ? "Your browser does not support geolocation." : "Tu navegador no soporta geolocalización.",
-          });
-        }
-        return;
+      // Un 200 sin ningún dato no es éxito: no hay nada que llenar.
+      if (aplicarDireccion(form, datos).llenados === 0) {
+        return en ? "We could not find an address for those coordinates." : "No encontramos una dirección para esas coordenadas.";
       }
-
-      setIsLocating(true);
-
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 12000,
-            maximumAge: 0,
-          });
-        });
-
-        const latitude = position.coords.latitude.toFixed(8);
-        const longitude = position.coords.longitude.toFixed(8);
-        const numericLatitude = Number(latitude);
-        const numericLongitude = Number(longitude);
-
-        setForm((current) => ({
-          ...current,
-          latitude,
-          longitude,
-        }));
-
-        void resolveAddressFromCoordinates(numericLatitude, numericLongitude, showFeedback);
-
-        if (showFeedback) {
-          showToast({
-            type: "success",
-            title: language === "en" ? "Location detected" : "Ubicación detectada",
-            message: language === "en" ? "Latitude and longitude were filled automatically." : "Se completaron latitud y longitud automáticamente.",
-          });
-        }
-      } catch (error) {
-        if (showFeedback) {
-          const locationError = error as GeolocationPositionError;
-          const message =
-            locationError.code === 1
-              ? language === "en"
-                ? "Enable location permission to autocomplete coordinates."
-                : "Activa el permiso de ubicación para autocompletar coordenadas."
-              : language === "en"
-                ? "Could not get your precise location. You can edit coordinates manually."
-                : "No fue posible obtener tu ubicación precisa. Puedes editar las coordenadas manualmente.";
-
-          showToast({
-            type: "error",
-            title: language === "en" ? "Could not get location" : "No se pudo obtener ubicación",
-            message,
-          });
-        }
-      } finally {
-        setIsLocating(false);
-      }
-    },
-    [language, resolveAddressFromCoordinates, showToast],
-  );
-
-  useEffect(() => {
-    if (!form.latitude && !form.longitude) {
-      void requestCurrentLocation(false);
+      setForm((current) => aplicarDireccion(current, datos).form);
+      return null;
+    } catch {
+      return en ? "Could not reach the server to get the address." : "No se pudo contactar al servidor para obtener la dirección.";
+    } finally {
+      setIsResolvingAddress(false);
     }
-  }, [form.latitude, form.longitude, requestCurrentLocation]);
+  };
+
+  const avisar = (tipo: "error" | "exito", texto: string) => {
+    setEstadoUbicacion({ tipo, texto });
+    showToast({
+      type: tipo === "exito" ? "success" : "error",
+      title: tipo === "exito" ? (en ? "Location updated" : "Ubicación actualizada") : en ? "Location" : "Ubicación",
+      message: texto,
+    });
+  };
+
+  /** Solo al pulsar "Actualizar ubicación" (decisión de producto: la página no pide la ubicación al abrirse). */
+  const requestCurrentLocation = async () => {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      avisar("error", en ? "Your browser does not support geolocation. Enter the coordinates manually." : "Tu navegador no soporta geolocalización. Escribe las coordenadas a mano.");
+      return;
+    }
+
+    setIsLocating(true);
+    setEstadoUbicacion({ tipo: "cargando", texto: en ? "Detecting your location..." : "Detectando tu ubicación..." });
+    let position: GeolocationPosition;
+    try {
+      position = await obtenerPosicion(navigator.geolocation);
+    } catch (error) {
+      setIsLocating(false);
+      avisar("error", mensajeErrorUbicacion((error as GeolocationPositionError | undefined)?.code, window.isSecureContext, language));
+      return;
+    }
+    setIsLocating(false);
+
+    const latitude = position.coords.latitude.toFixed(8);
+    const longitude = position.coords.longitude.toFixed(8);
+    setForm((current) => ({ ...current, latitude, longitude }));
+
+    const error = await resolveAddressFromCoordinates(Number(latitude), Number(longitude));
+    if (error) {
+      avisar("error", en ? `Latitude and longitude were filled, but: ${error}` : `Se llenaron latitud y longitud, pero: ${error}`);
+    } else {
+      avisar("exito", en ? "Latitude, longitude and address were filled." : "Se llenaron latitud, longitud y dirección.");
+    }
+  };
+
+  const autocompleteAddress = async () => {
+    const coordenadas = coordenadasValidas(form.latitude, form.longitude);
+    if (!coordenadas) {
+      avisar(
+        "error",
+        en
+          ? "Enter a valid latitude (-90 to 90) and longitude (-180 to 180), or press Update location."
+          : "Escribe una latitud (-90 a 90) y longitud (-180 a 180) válidas, o pulsa Actualizar ubicación.",
+      );
+      return;
+    }
+    const error = await resolveAddressFromCoordinates(coordenadas.latitude, coordenadas.longitude);
+    if (error) avisar("error", error);
+    else avisar("exito", en ? "The address was filled from the coordinates." : "Se llenó la dirección con las coordenadas.");
+  };
 
   const remaining = useMemo(() => Math.max(0, 3 - branches.length), [branches.length]);
 
@@ -398,40 +355,48 @@ export default function NegocioSucursalesPage() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800">
-            <p>{language === "en" ? "Location is detected automatically. You can edit latitude and longitude if needed." : "La ubicación se detecta automáticamente. Puedes editar latitud y longitud si necesitas corregirla."}</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void requestCurrentLocation(true)}
-                disabled={isLocating}
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isLocating ? (language === "en" ? "Detecting..." : "Detectando...") : (language === "en" ? "Update location" : "Actualizar ubicación")}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const latitude = Number(form.latitude);
-                  const longitude = Number(form.longitude);
-
-                  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-                    showToast({
-                      type: "error",
-                      title: language === "en" ? "Invalid coordinates" : "Coordenadas inválidas",
-                      message: language === "en" ? "Enter valid latitude and longitude to autocomplete address." : "Ingresa latitud y longitud válidas para autocompletar la dirección.",
-                    });
-                    return;
-                  }
-
-                  void resolveAddressFromCoordinates(latitude, longitude, true);
-                }}
-                disabled={isResolvingAddress}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isResolvingAddress ? (language === "en" ? "Autocompleting..." : "Autocompletando...") : (language === "en" ? "Autocomplete address" : "Autocompletar dirección")}
-              </button>
+          <div className="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p>
+                {en
+                  ? "Press Update location to fill latitude, longitude and address. You can edit them if needed."
+                  : "Pulsa Actualizar ubicación para llenar latitud, longitud y dirección. Puedes corregirlas si hace falta."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void requestCurrentLocation()}
+                  disabled={isLocating || isResolvingAddress}
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isLocating ? (en ? "Detecting..." : "Detectando...") : en ? "Update location" : "Actualizar ubicación"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void autocompleteAddress()}
+                  disabled={isLocating || isResolvingAddress}
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isResolvingAddress ? (en ? "Autocompleting..." : "Autocompletando...") : en ? "Autocomplete address" : "Autocompletar dirección"}
+                </button>
+              </div>
             </div>
+            <p
+              role="status"
+              aria-live="polite"
+              data-estado-ubicacion={estadoUbicacion?.tipo ?? "vacio"}
+              className={
+                estadoUbicacion?.tipo === "error"
+                  ? "rounded-lg bg-red-50 px-2 py-1 font-medium text-red-700"
+                  : estadoUbicacion?.tipo === "exito"
+                    ? "rounded-lg bg-white px-2 py-1 font-medium text-emerald-800"
+                    : estadoUbicacion
+                      ? "px-2 py-1 text-slate-600"
+                      : "sr-only"
+              }
+            >
+              {estadoUbicacion?.texto ?? ""}
+            </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
