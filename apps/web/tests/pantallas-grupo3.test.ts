@@ -73,3 +73,16 @@ describe("todas las pantallas", () => {
     expect(malas).toEqual([]);
   });
 });
+
+describe("entrar", () => {
+  it("pregunta a /entrar solo con la sesión de Clerk lista; sin sesión espera y luego va al login", () => {
+    const fuente = leer("app/entrar/page.tsx");
+    expect(fuente).toContain("useAuth()");
+    const efectos = fuente.split("useEffect(").slice(1);
+    const conLlamada = efectos.find((e) => e.includes('api("/api/entrar"'));
+    expect(conLlamada).toBeDefined();
+    expect(conLlamada).toMatch(/if \(!isLoaded \|\| !isSignedIn\) return;[\s\S]*api\("\/api\/entrar"/);
+    const deEspera = efectos.find((e) => e.includes("ESPERA_SESION_MS"));
+    expect(deEspera).toMatch(/if \(!isLoaded \|\| isSignedIn\) return;/);
+  });
+});
