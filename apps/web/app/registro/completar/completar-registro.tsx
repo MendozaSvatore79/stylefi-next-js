@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { useLanguage } from "@/lib/language-context";
+import { errorTelefono, errorTexto, LIMITES, limpiarTelefono, primerError } from "@/lib/validacion";
 
 const textos = {
   es: {
@@ -68,12 +69,25 @@ export default function CompletarRegistro({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // El teléfono se limpia al escribir: solo dígitos, sin lada 52 al pegar, máximo 10
   const cambiar = (k: keyof typeof datos) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setDatos((d) => ({ ...d, [k]: e.target.value }));
+    setDatos((d) => ({ ...d, [k]: k === "phone" ? limpiarTelefono(e.target.value) : e.target.value }));
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     if (!tipo) return;
+    // Mismos límites y formatos que el backend (lib/validacion.ts); el teléfono es obligatorio para los dos tipos
+    const idioma = language === "en" ? "en" : "es";
+    const errorDeCampos = primerError(
+      errorTexto(datos.firstName, { es: "El nombre", en: "The first name" }, LIMITES.nombre, idioma, { obligatorio: tipo === "negocio" }),
+      errorTexto(datos.lastName, { es: "Los apellidos", en: "The last name" }, LIMITES.nombre, idioma, { obligatorio: tipo === "negocio" }),
+      tipo === "negocio" ? errorTexto(datos.businessName, { es: "El nombre del negocio", en: "The business name" }, LIMITES.nombreLegal, idioma, { obligatorio: true }) : null,
+      errorTelefono(datos.phone, idioma, { obligatorio: true }),
+    );
+    if (errorDeCampos) {
+      setError(errorDeCampos);
+      return;
+    }
     setEnviando(true);
     setError(null);
     try {
@@ -121,16 +135,16 @@ export default function CompletarRegistro({
         {tipo ? (
           <div className="mt-5 grid gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
-              <input className={campo} placeholder={t.nombre} value={datos.firstName} onChange={cambiar("firstName")} required={tipo === "negocio"} />
-              <input className={campo} placeholder={t.apellidos} value={datos.lastName} onChange={cambiar("lastName")} required={tipo === "negocio"} />
+              <input className={campo} placeholder={t.nombre} value={datos.firstName} onChange={cambiar("firstName")} required={tipo === "negocio"} maxLength={LIMITES.nombre} />
+              <input className={campo} placeholder={t.apellidos} value={datos.lastName} onChange={cambiar("lastName")} required={tipo === "negocio"} maxLength={LIMITES.nombre} />
             </div>
             {tipo === "negocio" ? (
               <>
-                <input className={campo} placeholder={t.nombreNegocio} value={datos.businessName} onChange={cambiar("businessName")} required />
+                <input className={campo} placeholder={t.nombreNegocio} value={datos.businessName} onChange={cambiar("businessName")} required maxLength={LIMITES.nombreLegal} />
                 <input className={campo} placeholder={t.rfc} value={datos.rfc} onChange={cambiar("rfc")} required maxLength={13} />
               </>
             ) : null}
-            <input className={campo} placeholder={t.telefono} value={datos.phone} onChange={cambiar("phone")} required type="tel" />
+            <input className={campo} placeholder={t.telefono} value={datos.phone} onChange={cambiar("phone")} required type="tel" inputMode="numeric" autoComplete="tel" />
           </div>
         ) : null}
 

@@ -7,6 +7,7 @@ import { Building2, CreditCard, ShieldCheck } from "lucide-react";
 import AccountSecurityPanel from "@/components/account-security-panel";
 import { useToast } from "@/components/toast";
 import { api } from "@/lib/api";
+import { errorTelefono, errorTexto, LIMITES, limpiarTelefono, primerError } from "@/lib/validacion";
 
 type BusinessProfile = {
   business_name: string | null;
@@ -32,6 +33,8 @@ export default function NegocioConfiguracionPage() {
   /** Sucursal principal en solo lectura: los datos del salón se editan en Sucursales (lo que ve el cliente). */
   const [primaryBranch, setPrimaryBranch] = useState<{ id: string; branch_name: string; validation_status: string; address: string | null; city: string | null } | null>(null);
   const [cargado, setCargado] = useState(false);
+  /** Teléfono como se cargó: si no se toca, se acepta aunque no cumpla el formato nuevo (igual que el backend). */
+  const [telefonoGuardado, setTelefonoGuardado] = useState("");
   const [form, setForm] = useState({
     businessName: "",
     phone: "",
@@ -63,6 +66,7 @@ export default function NegocioConfiguracionPage() {
         return;
       }
 
+      setTelefonoGuardado(payload.profile.phone ?? "");
       setForm({
         businessName: payload.profile.business_name ?? "",
         phone: payload.profile.phone ?? "",
@@ -84,6 +88,15 @@ export default function NegocioConfiguracionPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Mismos límites y formatos que el backend (lib/validacion.ts)
+    const errorDeCampos = primerError(
+      errorTexto(form.businessName, { es: "El nombre legal del negocio", en: "The legal name" }, LIMITES.nombreLegal, "es"),
+      form.phone === telefonoGuardado ? null : errorTelefono(form.phone, "es"),
+    );
+    if (errorDeCampos) {
+      showToast({ type: "error", title: "Revisa el formulario", message: errorDeCampos });
+      return;
+    }
     setIsSaving(true);
 
     try {
@@ -262,6 +275,7 @@ export default function NegocioConfiguracionPage() {
                   <input
                     value={form.businessName}
                     onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
+                    maxLength={LIMITES.nombreLegal}
                     placeholder="Nombre legal del negocio"
                     className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
                   />
@@ -270,8 +284,10 @@ export default function NegocioConfiguracionPage() {
                   Teléfono de contacto
                   <input
                     value={form.phone}
-                    onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                    placeholder="Teléfono"
+                    onChange={(event) => setForm((current) => ({ ...current, phone: limpiarTelefono(event.target.value) }))}
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder="Teléfono (10 dígitos)"
                     className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
                   />
                 </label>

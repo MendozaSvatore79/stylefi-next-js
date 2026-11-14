@@ -8,6 +8,7 @@ import ConfirmarEliminar from "@/components/confirmar-eliminar";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
+import { ANIOS_MAXIMOS, errorCorreo, errorRango, errorTexto, LIMITES, primerError } from "@/lib/validacion";
 
 type Stylist = {
   id: string;
@@ -76,6 +77,18 @@ export default function NegocioEstilistasPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Mismos límites y formatos que el backend (lib/validacion.ts)
+    const errorDeCampos = primerError(
+      errorTexto(form.firstName, { es: "El nombre", en: "The first name" }, LIMITES.nombre, language, { obligatorio: true }),
+      errorTexto(form.lastName, { es: "El apellido", en: "The last name" }, LIMITES.nombre, language, { obligatorio: true }),
+      errorCorreo(form.email, language),
+      errorTexto(form.specialization, { es: "La especialidad", en: "The specialization" }, LIMITES.nombreCorto, language),
+      errorRango(form.yearsExperience, { es: "Los años de experiencia", en: "Years of experience" }, 0, ANIOS_MAXIMOS, language, { entero: true }),
+    );
+    if (errorDeCampos) {
+      showToast({ type: "error", title: language === "en" ? "Check the form" : "Revisa el formulario", message: errorDeCampos });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -245,12 +258,14 @@ export default function NegocioEstilistasPage() {
             <input
               value={form.firstName}
               onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
+              maxLength={LIMITES.nombre}
               placeholder={language === "en" ? "First name" : "Nombre"}
               className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.lastName}
               onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
+              maxLength={LIMITES.nombre}
               placeholder={language === "en" ? "Last name" : "Apellido"}
               className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
@@ -259,7 +274,9 @@ export default function NegocioEstilistasPage() {
           <input
             value={form.email}
             onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-            placeholder="Email"
+            type="email"
+            maxLength={LIMITES.correo}
+              placeholder="Email"
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
 
@@ -267,12 +284,15 @@ export default function NegocioEstilistasPage() {
             <input
               value={form.specialization}
               onChange={(event) => setForm((current) => ({ ...current, specialization: event.target.value }))}
+              maxLength={LIMITES.nombreCorto}
               placeholder={language === "en" ? "Specialization" : "Especialidad"}
               className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               type="number"
               min="0"
+              max={ANIOS_MAXIMOS}
+              step="1"
               value={form.yearsExperience}
               onChange={(event) => setForm((current) => ({ ...current, yearsExperience: event.target.value }))}
               placeholder={language === "en" ? "Years of experience" : "Años experiencia"}

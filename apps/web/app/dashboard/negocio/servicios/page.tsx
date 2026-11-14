@@ -7,6 +7,7 @@ import ConfirmarEliminar from "@/components/confirmar-eliminar";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
+import { DURACION_MAXIMA, DURACION_MINIMA, errorRango, errorTexto, errorUrl, LIMITES, PRECIO_MAXIMO, primerError } from "@/lib/validacion";
 
 type Service = {
   id: string;
@@ -68,6 +69,18 @@ export default function NegocioServiciosPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Mismos límites y formatos que el backend (lib/validacion.ts)
+    const errorDeCampos = primerError(
+      errorTexto(form.serviceName, { es: "El nombre del servicio", en: "The service name" }, LIMITES.nombreCorto, language, { obligatorio: true }),
+      errorTexto(form.description, { es: "La descripción", en: "The description" }, LIMITES.descripcion, language, { multilinea: true }),
+      errorRango(form.price, { es: "El precio", en: "The price" }, 0, PRECIO_MAXIMO, language, { obligatorio: true, minimoExclusivo: true }),
+      errorRango(form.durationMinutes, { es: "La duración", en: "The duration" }, DURACION_MINIMA, DURACION_MAXIMA, language, { entero: true }),
+      errorUrl(form.imageUrl, { es: "La URL de la imagen", en: "The image URL" }, language, { soloHttps: true }),
+    );
+    if (errorDeCampos) {
+      showToast({ type: "error", title: language === "en" ? "Check the form" : "Revisa el formulario", message: errorDeCampos });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -197,6 +210,7 @@ export default function NegocioServiciosPage() {
           <input
             value={form.serviceName}
             onChange={(event) => setForm((current) => ({ ...current, serviceName: event.target.value }))}
+            maxLength={LIMITES.nombreCorto}
             placeholder={language === "en" ? "Service name" : "Nombre del servicio"}
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
@@ -205,6 +219,7 @@ export default function NegocioServiciosPage() {
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
             rows={3}
+            maxLength={LIMITES.descripcion}
             placeholder={language === "en" ? "Description" : "Descripción"}
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
           />
@@ -212,7 +227,8 @@ export default function NegocioServiciosPage() {
           <div className="grid gap-3 @sm:grid-cols-2">
             <input
               type="number"
-              min="1"
+              min="0.01"
+              max={PRECIO_MAXIMO}
               step="0.01"
               value={form.price}
               onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
@@ -221,7 +237,9 @@ export default function NegocioServiciosPage() {
             />
             <input
               type="number"
-              min="1"
+              min={DURACION_MINIMA}
+              max={DURACION_MAXIMA}
+              step="1"
               value={form.durationMinutes}
               onChange={(event) => setForm((current) => ({ ...current, durationMinutes: event.target.value }))}
               placeholder={language === "en" ? "Duration (min)" : "Duración (min)"}
@@ -232,6 +250,7 @@ export default function NegocioServiciosPage() {
           <input
             value={form.imageUrl}
             onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+            maxLength={LIMITES.url}
             placeholder={language === "en" ? "Image URL (optional)" : "URL de imagen (opcional)"}
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
