@@ -24,3 +24,11 @@ describe("modal del salón", () => {
     expect(fuente).toContain("servicesForBranch.map((service) => (");
   });
 });
+
+describe("idioma", () => {
+  it("el proveedor lee el idioma con useSyncExternalStore (sin setState en un efecto) y el servidor usa el de omisión", () => {
+    const fuente = leer("lib/language-context.tsx");
+    expect(fuente).not.toMatch(/useEffect|useState/);
+    expect(fuente).toContain("useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION)");
+  });
+});

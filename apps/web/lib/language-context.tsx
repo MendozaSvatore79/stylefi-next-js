@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 
-type Language = "es" | "en";
+import { crearIdiomaGuardado, IDIOMA_POR_OMISION, type Language } from "@/lib/idioma-guardado";
 
 type LanguageContextType = {
   language: Language;
@@ -759,20 +759,14 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("es");
+const idiomaGuardado = crearIdiomaGuardado(() => (typeof window === "undefined" ? null : window.localStorage));
 
-  useEffect(() => {
-    // Cargar idioma guardado del localStorage
-    const saved = localStorage.getItem("language") as Language | null;
-    if (saved && (saved === "es" || saved === "en")) {
-      setLanguageState(saved);
-    }
-  }, []);
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  // El servidor (y la hidratación) usan el idioma por omisión; después, el guardado en el navegador.
+  const language = useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION);
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem("language", lang);
+    idiomaGuardado.guardar(lang);
   };
 
   const t = (key: string): string => {
