@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
 
 type SupportTicket = {
   id: string;
@@ -57,7 +58,7 @@ export default function AdminSupportPage() {
   const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/support-tickets?status=${encodeURIComponent(filter)}`, { cache: "no-store" });
+      const response = await api(`/api/admin/support-tickets?status=${encodeURIComponent(filter)}`, { cache: "no-store" });
       if (!response.ok) {
         return;
       }
@@ -73,7 +74,7 @@ export default function AdminSupportPage() {
   }, [filter, selectedTicketId]);
 
   const loadTicket = async (ticketId: string) => {
-    const response = await fetch(`/api/admin/support-tickets?ticketId=${encodeURIComponent(ticketId)}`, { cache: "no-store" });
+    const response = await api(`/api/admin/support-tickets?ticketId=${encodeURIComponent(ticketId)}`, { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -111,7 +112,7 @@ export default function AdminSupportPage() {
 
     setSending(true);
     try {
-      const response = await fetch("/api/admin/support-tickets", {
+      const response = await api("/api/admin/support-tickets", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

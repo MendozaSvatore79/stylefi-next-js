@@ -50,6 +50,8 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     ["/api/registro/completar", "http://localhost:4000/registro/completar"],
     ["/api/account/security", "http://localhost:4000/account/security"],
     ["/api/geocode/reverse?lat=1&lng=2", "http://localhost:4000/geocode/reverse?lat=1&lng=2"],
+    ["/api/support/oracle?ticketId=t1", "http://localhost:4000/support/oracle?ticketId=t1"],
+    ["/api/admin/support-tickets?status=all", "http://localhost:4000/admin/support-tickets?status=all"],
   ])("%s va al backend con el token de Clerk", async (ruta, esperada) => {
     const { api } = await import("@/lib/api");
     await api(ruta, { method: "POST", headers: { "Content-Type": "application/json" } });
@@ -68,7 +70,7 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     expect(llamadas).toEqual([{ url: "http://localhost:4000/business/summary", auth: "Bearer token-tardio" }]);
   });
 
-  it.each(["/api/admin/support-tickets", "/api/support/tickets", "/api/client/walletx", "/api/admin/usersx", "/api/businessesx"])(
+  it.each(["/api/support/oraclex", "/api/support/tickets", "/api/client/walletx", "/api/admin/usersx", "/api/businessesx"])(
     "%s (aún no movida) sigue yendo a Next.js, sin token",
     async (ruta) => {
       const { api } = await import("@/lib/api");

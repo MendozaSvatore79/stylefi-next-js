@@ -34,6 +34,19 @@ describe("portada y panel en vivo", () => {
   });
 });
 
+describe("soporte (AURA)", () => {
+  it("el widget manda el código del ticket en todas sus llamadas, lo guarda al crear y lo olvida si el ticket ya no se puede ver", () => {
+    const fuente = leer("components/oracle-support-widget.tsx");
+    const llamadas = [...fuente.matchAll(/api\((?:`|")\/api\/support\/oracle[\s\S]*?\)\s*;/g)].map((m) => m[0]);
+    expect(llamadas).toHaveLength(3);
+    for (const llamada of llamadas) expect(llamada).toContain("ticketHeaders(");
+    expect(fuente).toContain('"X-Ticket-Key"');
+    expect(fuente).toContain("window.localStorage.setItem(supportTicketKeyStorageKey, payload.accessKey)");
+    expect(fuente).toMatch(/response\.status === 404\)[\s\S]{0,200}forgetStoredTicket\(/);
+    expect(fuente).toContain("maxLength={2000}");
+  });
+});
+
 describe("todas las pantallas", () => {
   it("ninguna llama con fetch() a una ruta que ya vive en el backend (deben usar api(), que lleva el token)", async () => {
     const { readdirSync, statSync } = await import("node:fs");
