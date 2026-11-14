@@ -18,13 +18,17 @@ export default function ConfirmarEliminar({
   aviso?: ReactNode;
   idioma: "es" | "en";
   onCancelar: () => void;
-  /** Al terminar (bien o mal) el padre decide si cierra la confirmación. */
-  onConfirmar: () => Promise<void>;
+  /**
+   * Borra; si no se pudo devuelve el mensaje (por ejemplo, el 409 «tiene N citas próximas»), que se muestra aquí
+   * mismo y la confirmación queda abierta. Si se pudo, el padre la cierra.
+   */
+  onConfirmar: () => Promise<string | void>;
 }) {
   const en = idioma === "en";
   const cancelar = useRef<HTMLButtonElement>(null);
   const titulo = useId();
   const [eliminando, setEliminando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     cancelar.current?.focus();
@@ -44,6 +48,11 @@ export default function ConfirmarEliminar({
         {en ? `Delete “${nombre}”?` : `¿Eliminar «${nombre}»?`}
       </p>
       {aviso ? <div className="mt-1 text-xs text-red-700">{aviso}</div> : null}
+      {error ? (
+        <p role="alert" className="mt-2 rounded-lg bg-white px-2 py-1.5 text-xs font-semibold text-red-800">
+          {error}
+        </p>
+      ) : null}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
         <button
           ref={cancelar}
@@ -58,8 +67,10 @@ export default function ConfirmarEliminar({
           type="button"
           onClick={async () => {
             setEliminando(true);
+            setError(null);
             try {
-              await onConfirmar();
+              const mensaje = await onConfirmar();
+              if (mensaje) setError(mensaje);
             } finally {
               setEliminando(false);
             }

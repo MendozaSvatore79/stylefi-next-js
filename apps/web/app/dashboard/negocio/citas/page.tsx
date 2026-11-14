@@ -16,6 +16,8 @@ type Appointment = {
   payment_provider: string | null;
   stylist_first_name: string | null;
   stylist_last_name: string | null;
+  /** Sucursal de la cita; null si se borró (antes de la regla de citas próximas) o si no tenía. */
+  branch_name?: string | null;
   notes: string | null;
   first_name: string;
   last_name: string;
@@ -148,6 +150,14 @@ export default function NegocioCitasPage() {
                     {language === "en" ? "Client:" : "Cliente:"} {appointment.first_name} {appointment.last_name}
                   </p>
                   <p className="text-sm text-slate-600">{appointment.email}</p>
+                  <p data-sucursal-cita className={`mt-1 text-xs font-medium ${appointment.branch_name ? "text-indigo-600" : "text-amber-700"}`}>
+                    📍{" "}
+                    {appointment.branch_name
+                      ? `${language === "en" ? "Branch:" : "Sucursal:"} ${appointment.branch_name}`
+                      : language === "en"
+                        ? "No branch (deleted)"
+                        : "Sin sucursal (eliminada)"}
+                  </p>
                   <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
                   <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
                 </div>

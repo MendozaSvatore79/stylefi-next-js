@@ -356,7 +356,7 @@ export default function NegocioSucursalesPage() {
       : `Sus ${lista} quedarán sin sucursal y dejarán de verse para los clientes.`;
   };
 
-  const handleDelete = async (id: string): Promise<boolean> => {
+  const handleDelete = async (id: string): Promise<string | null> => {
     const response = await api("/api/business/branches", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -364,13 +364,9 @@ export default function NegocioSucursalesPage() {
     });
 
     if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      showToast({
-        type: "error",
-        title: t("business.branches.errorDelete"),
-        message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
-      });
-      return false;
+      // El mensaje (por ejemplo, el 409 con las citas próximas) se muestra en la confirmación, que queda abierta
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      return payload.error ?? (language === "en" ? "Could not delete. Try again." : "No se pudo eliminar. Intenta de nuevo.");
     }
 
     showToast({
@@ -379,7 +375,7 @@ export default function NegocioSucursalesPage() {
     });
 
     await loadBranches();
-    return true;
+    return null;
   };
 
   return (
@@ -757,7 +753,9 @@ export default function NegocioSucursalesPage() {
                   idioma={language}
                   onCancelar={() => setConfirmando(null)}
                   onConfirmar={async () => {
-                    if (await handleDelete(branch.id)) setConfirmando(null);
+                    const error = await handleDelete(branch.id);
+                    if (error) return error;
+                    setConfirmando(null);
                   }}
                 />
               ) : null}

@@ -147,7 +147,7 @@ export default function NegocioServiciosPage() {
     }
   };
 
-  const handleDelete = async (id: string): Promise<boolean> => {
+  const handleDelete = async (id: string): Promise<string | null> => {
     const response = await api("/api/business/services", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -155,13 +155,9 @@ export default function NegocioServiciosPage() {
     });
 
     if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      showToast({
-        type: "error",
-        title: t("business.services.errorDelete"),
-        message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
-      });
-      return false;
+      // El mensaje (por ejemplo, el 409 con las citas próximas) se muestra en la confirmación, que queda abierta
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      return payload.error ?? (language === "en" ? "Could not delete. Try again." : "No se pudo eliminar. Intenta de nuevo.");
     }
 
     showToast({
@@ -170,7 +166,7 @@ export default function NegocioServiciosPage() {
     });
 
     await loadServices();
-    return true;
+    return null;
   };
 
   return (
@@ -287,7 +283,9 @@ export default function NegocioServiciosPage() {
                   idioma={language}
                   onCancelar={() => setConfirmando(null)}
                   onConfirmar={async () => {
-                    if (await handleDelete(service.id)) setConfirmando(null);
+                    const error = await handleDelete(service.id);
+                    if (error) return error;
+                    setConfirmando(null);
                   }}
                 />
               ) : null}

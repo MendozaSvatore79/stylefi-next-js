@@ -160,7 +160,50 @@ export default function NegocioEstilistasPage() {
     }
   };
 
-  const handleDelete = async (id: string): Promise<boolean> => {
+  /** Disponible / No disponible (PUT existente con sus datos actuales). Uno con citas no se puede borrar: se apaga. */
+  const cambiarDisponible = async (stylist: Stylist) => {
+    try {
+      const response = await api("/api/business/stylists", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: stylist.id,
+          firstName: stylist.first_name,
+          lastName: stylist.last_name,
+          email: stylist.email ?? "",
+          phone: stylist.phone ?? "",
+          specialization: stylist.specialization ?? "",
+          yearsExperience: stylist.years_experience ?? "",
+          imageUrl: stylist.image_url ?? "",
+          available: !stylist.available,
+          branchId: stylist.branch_id,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"));
+      }
+      showToast({
+        type: "success",
+        title: !stylist.available
+          ? language === "en"
+            ? "Stylist available"
+            : "Estilista disponible"
+          : language === "en"
+            ? "Stylist unavailable"
+            : "Estilista no disponible",
+      });
+      await loadStylists();
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Could not change availability" : "No se pudo cambiar la disponibilidad",
+        message: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
+  const handleDelete = async (id: string): Promise<string | null> => {
     const response = await api("/api/business/stylists", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -168,18 +211,14 @@ export default function NegocioEstilistasPage() {
     });
 
     if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      showToast({
-        type: "error",
-        title: t("business.stylists.errorDelete"),
-        message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
-      });
-      return false;
+      // El mensaje (por ejemplo, el 409 con las citas próximas) se muestra en la confirmación, que queda abierta
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      return payload.error ?? (language === "en" ? "Could not delete. Try again." : "No se pudo eliminar. Intenta de nuevo.");
     }
 
     showToast({ type: "success", title: t("business.stylists.successDelete") });
     await loadStylists();
-    return true;
+    return null;
   };
 
   return (
@@ -289,11 +328,19 @@ export default function NegocioEstilistasPage() {
                         ? "Experience not specified"
                         : "Experiencia no indicada"}
                   </p>
-                  <span
-                    className={`mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                      stylist.available ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={stylist.available}
+                    onClick={() => void cambiarDisponible(stylist)}
+                    // Sin sucursal el PUT no se acepta: primero se asigna (aviso ámbar de arriba)
+                    disabled={!stylist.branch_id}
+                    title={language === "en" ? "Change availability" : "Cambiar disponibilidad"}
+                    className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      stylist.available ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                     }`}
                   >
+                    <span aria-hidden className={`h-2 w-2 rounded-full ${stylist.available ? "bg-emerald-500" : "bg-slate-500"}`} />
                     {stylist.available
                       ? language === "en"
                         ? "Available"
@@ -301,7 +348,7 @@ export default function NegocioEstilistasPage() {
                       : language === "en"
                         ? "Unavailable"
                         : "No disponible"}
-                  </span>
+                  </button>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                 <button
@@ -325,13 +372,15 @@ export default function NegocioEstilistasPage() {
                   nombre={`${stylist.first_name} ${stylist.last_name}`}
                   aviso={
                     language === "en"
-                      ? "If they have appointments on record, they can't be deleted."
-                      : "Si tiene citas registradas, no se podrá eliminar."
+                      ? "If they have appointments on record, they can't be deleted: set them as Unavailable instead."
+                      : "Si tiene citas registradas, no se podrá eliminar: en ese caso márcalo como No disponible."
                   }
                   idioma={language}
                   onCancelar={() => setConfirmando(null)}
                   onConfirmar={async () => {
-                    if (await handleDelete(stylist.id)) setConfirmando(null);
+                    const error = await handleDelete(stylist.id);
+                    if (error) return error;
+                    setConfirmando(null);
                   }}
                 />
               ) : null}
