@@ -10,11 +10,15 @@ const estado = vi.hoisted(() => ({
   pedidas: [] as Array<{ url: string; auth: string | null }>,
   consultasALaBase: 0,
   clerkUser: null as null | Record<string, unknown>,
+  clerkError: null as null | { status: number },
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(async () => ({ userId: "user_x", getToken: async () => "tok" })),
-  currentUser: vi.fn(async () => estado.clerkUser),
+  currentUser: vi.fn(async () => {
+    if (estado.clerkError) throw Object.assign(new Error("Clerk"), estado.clerkError, { clerkError: true });
+    return estado.clerkUser;
+  }),
 }));
 vi.mock("@/lib/db", () => ({
   getDb: () => () => {
@@ -31,6 +35,7 @@ beforeEach(() => {
   estado.consultasALaBase = 0;
   estado.status = 200;
   estado.clerkUser = null;
+  estado.clerkError = null;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init: RequestInit = {}) => {
@@ -92,5 +97,22 @@ describe("estadoDeRegistro con backend", () => {
       clerk: { correoVerificado: "nueva@prueba.invalid", nombre: "Nora", apellido: "Paz" },
     });
     expect(estado.consultasALaBase).toBe(0);
+  });
+});
+
+describe("usuario borrado en Clerk", () => {
+  it("si Clerk responde 404 (la cookie es de un usuario que ya no existe): sin sesión, no un error 500", async () => {
+    estado.destino = "/registro/completar";
+    estado.clerkError = { status: 404 };
+    const { estadoDeRegistro, datosDeClerk } = await import("@/lib/sesion");
+    expect(await datosDeClerk()).toBeNull();
+    expect(await estadoDeRegistro()).toEqual({ estado: "sin-sesion" });
+  });
+
+  it("cualquier otro error de Clerk se propaga", async () => {
+    estado.destino = "/registro/completar";
+    estado.clerkError = { status: 500 };
+    const { estadoDeRegistro } = await import("@/lib/sesion");
+    await expect(estadoDeRegistro()).rejects.toThrow("Clerk");
   });
 });
