@@ -30,7 +30,7 @@ const RUTAS_EN_API = [
   "/api/client/wallet",
   "/api/client/payment-methods",
   "/api/business/appointments",
-  // Grupo 3: admin, panel en vivo, bienvenida, sesión, registro, cuenta y geocodificación (soporte aún no: B3)
+  // Grupo 3: admin, panel en vivo, bienvenida, sesión, registro, cuenta y geocodificación
   "/api/admin/users",
   "/api/admin/branch-verifications",
   "/api/admin/live-dashboard",
@@ -42,6 +42,9 @@ const RUTAS_EN_API = [
   "/api/registro/completar",
   "/api/account/security",
   "/api/geocode/reverse",
+  // Grupo 3, B3: soporte con AURA
+  "/api/support/oracle",
+  "/api/admin/support-tickets",
 ];
 
 /** ¿Esta ruta de app/api ya vive en el backend (con NEXT_PUBLIC_API_URL definida)? */

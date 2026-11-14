@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { usePathname } from "next/navigation";
+import { api } from "@/lib/api";
 import { useSesion } from "@/lib/sesion-cliente";
 
 import { useToast } from "@/components/toast";
@@ -26,6 +27,8 @@ type OracleResponse = {
   messages: OracleMessage[];
   oracleReply?: string;
   needsEscalation?: boolean;
+  /** Código del ticket sin cuenta: llega solo al crearlo y se guarda en este navegador. */
+  accessKey?: string;
   error?: string;
 };
 
@@ -34,6 +37,14 @@ function routeAllowed(pathname: string) {
 }
 
 const supportTicketStorageKey = "stylehub-support-ticket-id";
+const supportTicketKeyStorageKey = "stylehub-support-ticket-key";
+
+/** El backend solo deja ver un ticket sin cuenta con su código (encabezado X-Ticket-Key). */
+function ticketHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  if (typeof window === "undefined") return extra;
+  const key = window.localStorage.getItem(supportTicketKeyStorageKey)?.trim();
+  return key ? { ...extra, "X-Ticket-Key": key } : extra;
+}
 
 function getLastSeenKey(ticketId: string) {
   return `stylehub-support-last-seen-${ticketId}`;
@@ -129,9 +140,29 @@ export default function OracleSupportWidget() {
     setUnreadCount(0);
   }, [messages, open, ticketId]);
 
+  const forgetStoredTicket = useCallback((staleTicketId: string) => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(supportTicketStorageKey);
+      window.localStorage.removeItem(supportTicketKeyStorageKey);
+      window.localStorage.removeItem(getLastSeenKey(staleTicketId));
+    }
+    setTicketId(null);
+    setMessages([]);
+    setTicketStatus(null);
+    setUnreadCount(0);
+  }, []);
+
   const refreshTicket = useCallback(async (nextTicketId: string) => {
     try {
-      const response = await fetch(`/api/support/oracle?ticketId=${encodeURIComponent(nextTicketId)}`, { cache: "no-store" });
+      const response = await api(`/api/support/oracle?ticketId=${encodeURIComponent(nextTicketId)}`, {
+        cache: "no-store",
+        headers: ticketHeaders(),
+      });
+      if (response.status === 404) {
+        // Ya no se puede ver (otro navegador o cuenta, o un ticket anterior sin código): se empieza uno nuevo
+        forgetStoredTicket(nextTicketId);
+        return;
+      }
       if (!response.ok) {
         return;
       }
@@ -186,7 +217,7 @@ export default function OracleSupportWidget() {
     } catch {
       // Keep the last known chat state if refresh fails.
     }
-  }, [open]);
+  }, [forgetStoredTicket, open]);
 
   useEffect(() => {
     if (!ticketId) {
@@ -268,9 +299,9 @@ export default function OracleSupportWidget() {
 
     setSending(true);
     try {
-      const response = await fetch("/api/support/oracle", {
+      const response = await api("/api/support/oracle", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: ticketHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           ticketId,
           message: input,
@@ -291,6 +322,9 @@ export default function OracleSupportWidget() {
       setTicketStatus(payload.ticket.status ?? null);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(supportTicketStorageKey, payload.ticket.id);
+        if (payload.accessKey) {
+          window.localStorage.setItem(supportTicketKeyStorageKey, payload.accessKey);
+        }
         window.localStorage.setItem(getLastSeenKey(payload.ticket.id), payload.messages?.at(-1)?.createdAt ?? new Date().toISOString());
       }
       setMessages(payload.messages ?? []);
@@ -344,6 +378,7 @@ export default function OracleSupportWidget() {
     if (typeof window !== "undefined") {
       if (ticketId) {
         window.localStorage.removeItem(supportTicketStorageKey);
+        window.localStorage.removeItem(supportTicketKeyStorageKey);
         window.localStorage.removeItem(getLastSeenKey(ticketId));
       }
     }
@@ -366,9 +401,9 @@ export default function OracleSupportWidget() {
 
     setSending(true);
     try {
-      const response = await fetch("/api/support/oracle", {
+      const response = await api("/api/support/oracle", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: ticketHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           ticketId,
           ticketAction: action,
@@ -554,6 +589,7 @@ export default function OracleSupportWidget() {
                 ) : (
                   <>
                     <textarea
+                      maxLength={2000}
                       value={input}
                       onChange={(event) => setInput(event.target.value)}
                       onKeyDown={handleInputKeyDown}
