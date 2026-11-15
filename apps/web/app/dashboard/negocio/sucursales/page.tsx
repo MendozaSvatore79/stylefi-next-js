@@ -259,6 +259,29 @@ export default function NegocioSucursalesPage() {
     }
   };
 
+  /** «Hacer principal»: no vuelve a mandar la sucursal a validación. */
+  const hacerPrincipal = async (id: string) => {
+    try {
+      const response = await api("/api/business/branches/principal", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const datos = await leerJson(response);
+      if (!response.ok) {
+        throw new Error(typeof datos.error === "string" && datos.error ? datos.error : language === "en" ? "Try again" : "Intenta de nuevo");
+      }
+      showToast({ type: "success", title: language === "en" ? "Primary branch updated" : "Sucursal principal actualizada" });
+      await loadBranches();
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Could not change the primary branch" : "No se pudo cambiar la sucursal principal",
+        message: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
   const guardarHorario = async () => {
     if (!editandoHorario) return;
     if (diasInvalidos(editandoHorario.horario).length > 0) {
@@ -333,7 +356,7 @@ export default function NegocioSucursalesPage() {
       : `Sus ${lista} quedarán sin sucursal y dejarán de verse para los clientes.`;
   };
 
-  const handleDelete = async (id: string): Promise<boolean> => {
+  const handleDelete = async (id: string): Promise<string | null> => {
     const response = await api("/api/business/branches", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -341,13 +364,9 @@ export default function NegocioSucursalesPage() {
     });
 
     if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      showToast({
-        type: "error",
-        title: t("business.branches.errorDelete"),
-        message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
-      });
-      return false;
+      // El mensaje (por ejemplo, el 409 con las citas próximas) se muestra en la confirmación, que queda abierta
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      return payload.error ?? (language === "en" ? "Could not delete. Try again." : "No se pudo eliminar. Intenta de nuevo.");
     }
 
     showToast({
@@ -356,7 +375,7 @@ export default function NegocioSucursalesPage() {
     });
 
     await loadBranches();
-    return true;
+    return null;
   };
 
   return (
@@ -367,9 +386,20 @@ export default function NegocioSucursalesPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("business.branches")}</p>
             <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Branch registration" : "Alta de sucursal"}</h2>
           </div>
-          <div className="self-start rounded-2xl bg-emerald-50 px-4 py-3 @xs:shrink-0 @xs:text-right">
-            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">{language === "en" ? "Available" : "Disponibles"}</p>
-            <p className="text-2xl font-black text-emerald-900">{remaining}</p>
+          {/* Antes decía «Disponibles N» (cupos restantes) y se leía como «N sucursales» */}
+          <div data-cupo-sucursales className="self-start rounded-2xl bg-emerald-50 px-4 py-3 @xs:shrink-0 @xs:text-right">
+            <p className="text-2xl font-black text-emerald-900">
+              {branches.length} <span className="text-sm font-semibold text-emerald-700">{language === "en" ? "of 3 branches" : "de 3 sucursales"}</span>
+            </p>
+            <p className="text-xs font-medium text-emerald-700">
+              {remaining === 0
+                ? language === "en"
+                  ? "Limit reached"
+                  : "Límite alcanzado"
+                : language === "en"
+                  ? `You can add ${remaining} more`
+                  : `Puedes agregar ${remaining} más`}
+            </p>
           </div>
         </div>
 
@@ -544,11 +574,19 @@ export default function NegocioSucursalesPage() {
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <input
                 type="checkbox"
-                checked={form.isPrimary}
+                // La primera sucursal siempre es la principal (el backend la marca sola)
+                checked={form.isPrimary || branches.length === 0}
+                disabled={branches.length === 0}
                 onChange={(event) => setForm((current) => ({ ...current, isPrimary: event.target.checked }))}
                 className="h-4 w-4 shrink-0"
               />
-              {en ? "Mark as primary branch" : "Marcar como sucursal principal"}
+              {branches.length === 0
+                ? en
+                  ? "Primary branch (your first branch always is)"
+                  : "Sucursal principal (la primera siempre lo es)"
+                : en
+                  ? "Mark as primary branch"
+                  : "Marcar como sucursal principal"}
             </label>
 
             <button
@@ -575,6 +613,13 @@ export default function NegocioSucursalesPage() {
       <article className="@container min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "List" : "Listado"}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Your branches" : "Tus sucursales"}</h2>
+        {branches.length > 0 && !branches.some((b) => b.validation_status === "approved") ? (
+          <p role="status" data-aviso-visibilidad className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {language === "en"
+              ? "Your business is not visible in the catalog until the administration approves one of your branches."
+              : "Tu negocio no aparece en el catálogo hasta que la administración apruebe alguna de tus sucursales."}
+          </p>
+        ) : null}
 
         <div className="mt-5 space-y-3">
           {branches.map((branch) => (
@@ -637,6 +682,15 @@ export default function NegocioSucursalesPage() {
                     <p className="mt-1 text-xs text-slate-500">{language === "en" ? "Notes:" : "Notas:"} {branch.validation_notes}</p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-2">
+                    {!branch.is_primary ? (
+                      <button
+                        type="button"
+                        onClick={() => void hacerPrincipal(branch.id)}
+                        className="rounded-lg border border-indigo-200 bg-white px-2 py-1 text-[11px] font-semibold text-indigo-700"
+                      >
+                        {language === "en" ? "Make primary" : "Hacer principal"}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>
@@ -684,11 +738,24 @@ export default function NegocioSucursalesPage() {
               {confirmando === branch.id ? (
                 <ConfirmarEliminar
                   nombre={branch.branch_name}
-                  aviso={avisoDeSucursal()}
+                  aviso={
+                    <>
+                      <p>{avisoDeSucursal()}</p>
+                      {branch.is_primary && branches.length > 1 ? (
+                        <p className="mt-1">
+                          {language === "en"
+                            ? "It is your primary branch: the oldest approved one (or the oldest) will become primary."
+                            : "Es tu sucursal principal: pasará a serlo la aprobada más antigua (o la más antigua)."}
+                        </p>
+                      ) : null}
+                    </>
+                  }
                   idioma={language}
                   onCancelar={() => setConfirmando(null)}
                   onConfirmar={async () => {
-                    if (await handleDelete(branch.id)) setConfirmando(null);
+                    const error = await handleDelete(branch.id);
+                    if (error) return error;
+                    setConfirmando(null);
                   }}
                 />
               ) : null}

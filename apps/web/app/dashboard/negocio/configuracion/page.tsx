@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { Building2, CreditCard, ShieldCheck } from "lucide-react";
 
@@ -28,6 +29,9 @@ export default function NegocioConfiguracionPage() {
   const { showToast } = useToast();
   const [activeSection, setActiveSection] = useState<"profile" | "security" | "billing">("profile");
   const [isSaving, setIsSaving] = useState(false);
+  /** Sucursal principal en solo lectura: los datos del salón se editan en Sucursales (lo que ve el cliente). */
+  const [primaryBranch, setPrimaryBranch] = useState<{ id: string; branch_name: string; validation_status: string; address: string | null; city: string | null } | null>(null);
+  const [cargado, setCargado] = useState(false);
   const [form, setForm] = useState({
     businessName: "",
     phone: "",
@@ -52,7 +56,9 @@ export default function NegocioConfiguracionPage() {
         return;
       }
 
-      const payload = (await response.json()) as { profile: BusinessProfile | null };
+      const payload = (await response.json()) as { profile: BusinessProfile | null; primaryBranch?: typeof primaryBranch };
+      setPrimaryBranch(payload.primaryBranch ?? null);
+      setCargado(true);
       if (!payload.profile) {
         return;
       }
@@ -215,124 +221,61 @@ export default function NegocioConfiguracionPage() {
             </div>
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Perfil</p>
-              <h3 className="mt-2 text-xl font-black text-[#151138]">Datos del salón</h3>
+              <h3 className="mt-2 text-xl font-black text-[#151138]">Datos del negocio</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Configura la información de tu negocio, ubicación, horarios y contacto.
+                El nombre, la dirección, el horario y la foto que ven los clientes son los de cada sucursal.
               </p>
             </div>
           </div>
 
+          <div data-sucursal-principal className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Sucursal principal</p>
+            {primaryBranch ? (
+              <>
+                <p className="mt-1 text-lg font-bold text-[#151138]">{primaryBranch.branch_name}</p>
+                <p className="text-sm text-slate-600">
+                  {[primaryBranch.address, primaryBranch.city].filter(Boolean).join(" · ") || "Sin dirección"}
+                  {" · "}
+                  {primaryBranch.validation_status === "approved"
+                    ? "Aprobada"
+                    : primaryBranch.validation_status === "rejected"
+                      ? "Rechazada"
+                      : "Pendiente de aprobación"}
+                </p>
+              </>
+            ) : cargado ? (
+              <p className="mt-1 text-sm text-slate-600">Todavía no tienes sucursales.</p>
+            ) : null}
+            <Link href="/dashboard/negocio/sucursales" className="mt-2 inline-block text-sm font-semibold text-indigo-700 underline">
+              Editar en Sucursales
+            </Link>
+          </div>
+
+          {/* Los demás campos de stylehub_business_info no los leía nadie más (ni el catálogo ni el admin) y se
+              quitaron de la pantalla (decisión de producto). Se siguen enviando con su valor guardado para no borrarlos. */}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Información General</p>
+              <p className="text-sm font-semibold text-slate-700">Información de la cuenta</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  value={form.businessName}
-                  onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
-                  placeholder="Nombre legal negocio"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-                <input
-                  value={form.salonName}
-                  onChange={(event) => setForm((current) => ({ ...current, salonName: event.target.value }))}
-                  placeholder="Nombre comercial salón"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
+                <label className="text-xs font-medium text-slate-600">
+                  Nombre legal del negocio
+                  <input
+                    value={form.businessName}
+                    onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
+                    placeholder="Nombre legal del negocio"
+                    className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
+                  />
+                </label>
+                <label className="text-xs font-medium text-slate-600">
+                  Teléfono de contacto
+                  <input
+                    value={form.phone}
+                    onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                    placeholder="Teléfono"
+                    className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
+                  />
+                </label>
               </div>
-
-              <textarea
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                rows={3}
-                placeholder="Descripción del salón"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
-              />
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  value={form.phone}
-                  onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                  placeholder="Teléfono"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-                <input
-                  value={form.website}
-                  onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
-                  placeholder="Sitio web"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Ubicación</p>
-              <input
-                value={form.address}
-                onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
-                placeholder="Dirección"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-              />
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <input
-                  value={form.city}
-                  onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-                  placeholder="Ciudad"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-                <input
-                  value={form.state}
-                  onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
-                  placeholder="Estado"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-                <input
-                  value={form.postalCode}
-                  onChange={(event) => setForm((current) => ({ ...current, postalCode: event.target.value }))}
-                  placeholder="CP"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  value={form.latitude}
-                  onChange={(event) => setForm((current) => ({ ...current, latitude: event.target.value }))}
-                  placeholder="Latitud"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-                <input
-                  value={form.longitude}
-                  onChange={(event) => setForm((current) => ({ ...current, longitude: event.target.value }))}
-                  placeholder="Longitud"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Horarios y Media</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  value={form.openingHours}
-                  onChange={(event) => setForm((current) => ({ ...current, openingHours: event.target.value }))}
-                  placeholder="Horario apertura (ej: 09:00)"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-                <input
-                  value={form.closingHours}
-                  onChange={(event) => setForm((current) => ({ ...current, closingHours: event.target.value }))}
-                  placeholder="Horario cierre (ej: 20:00)"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                />
-              </div>
-
-              <input
-                value={form.imageUrl}
-                onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-                placeholder="URL imagen del salón"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-              />
             </div>
 
             <button
