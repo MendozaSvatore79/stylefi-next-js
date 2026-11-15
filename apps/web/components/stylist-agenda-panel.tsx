@@ -70,8 +70,9 @@ export default function StylistAgendaPanel({
     }
   }
 
-  // Servicios de la sucursal del estilista o de todo el negocio
-  const disponibles = servicios.filter((s) => !s.branch_id || s.branch_id === branchId);
+  // Solo los servicios de la sucursal del estilista: uno sin sucursal no lo ve ni lo reserva ningún cliente
+  // (regla de producto: cada servicio pertenece a una sucursal). Sin sucursal, el estilista no tiene servicios.
+  const disponibles = branchId ? servicios.filter((s) => s.branch_id === branchId) : [];
   const dias = DIAS[en ? "en" : "es"];
 
   return (
@@ -79,7 +80,15 @@ export default function StylistAgendaPanel({
       <section>
         <h3 className="text-sm font-bold text-slate-800">{en ? "Services this stylist offers" : "Servicios que hace"}</h3>
         {disponibles.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">{en ? "Add services first." : "Primero da de alta servicios."}</p>
+          <p className="mt-2 text-sm text-slate-500">
+            {!branchId
+              ? en
+                ? "Assign a branch to this stylist first."
+                : "Primero asígnale una sucursal a este estilista."
+              : en
+                ? "This branch has no services yet. Create them in Services."
+                : "Esta sucursal aún no tiene servicios. Créalos en Servicios."}
+          </p>
         ) : (
           <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
             {disponibles.map((s) => (
@@ -98,7 +107,7 @@ export default function StylistAgendaPanel({
           type="button"
           disabled={guardando !== null}
           onClick={() =>
-            void guardar("servicios", () => pedir("/api/business/stylists/services", { method: "PUT", body: JSON.stringify({ stylistId, serviceIds: elegidos }) }), en ? "Services updated." : "Servicios actualizados.")
+            void guardar("servicios", () => pedir("/api/business/stylists/services", { method: "PUT", body: JSON.stringify({ stylistId, serviceIds: elegidos.filter((id) => disponibles.some((s) => s.id === id)) }) }), en ? "Services updated." : "Servicios actualizados.")
           }
           className="mt-3 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
         >

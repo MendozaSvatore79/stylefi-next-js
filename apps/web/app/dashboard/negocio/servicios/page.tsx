@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import AsignarSucursal from "@/components/asignar-sucursal";
+import ConfirmarEliminar from "@/components/confirmar-eliminar";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
@@ -28,6 +30,8 @@ export default function NegocioServiciosPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Tarjeta en confirmación de borrado (en línea, sin modal). */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
   const [form, setForm] = useState({
     branchId: "",
     serviceName: "",
@@ -112,7 +116,38 @@ export default function NegocioServiciosPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  /** Asigna sucursal a un servicio que no tiene (PUT existente: se reenvían sus datos actuales). */
+  const asignarSucursal = async (service: Service, branchId: string) => {
+    try {
+      const response = await api("/api/business/services", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: service.id,
+          serviceName: service.service_name,
+          description: service.description ?? "",
+          price: service.price,
+          durationMinutes: service.duration_minutes ?? "",
+          imageUrl: service.image_url ?? "",
+          branchId,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"));
+      }
+      showToast({ type: "success", title: language === "en" ? "Branch assigned" : "Sucursal asignada" });
+      await loadServices();
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: language === "en" ? "Could not assign the branch" : "No se pudo asignar la sucursal",
+        message: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
+  const handleDelete = async (id: string): Promise<boolean> => {
     const response = await api("/api/business/services", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -126,7 +161,7 @@ export default function NegocioServiciosPage() {
         title: t("business.services.errorDelete"),
         message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
       });
-      return;
+      return false;
     }
 
     showToast({
@@ -135,6 +170,7 @@ export default function NegocioServiciosPage() {
     });
 
     await loadServices();
+    return true;
   };
 
   return (
@@ -156,6 +192,11 @@ export default function NegocioServiciosPage() {
               </option>
             ))}
           </select>
+          <p className="-mt-2 text-xs text-slate-500">
+            {language === "en"
+              ? "Each service belongs to one branch. If you have several, create it in each one."
+              : "Cada servicio pertenece a una sucursal. Si tienes varias, créalo en cada una."}
+          </p>
 
           <input
             value={form.serviceName}
@@ -220,9 +261,13 @@ export default function NegocioServiciosPage() {
                 <div>
                   <p className="font-semibold text-slate-800">{service.service_name}</p>
                   {service.description ? <p className="mt-1 text-sm text-slate-600">{service.description}</p> : null}
-                  <p className="mt-1 text-xs font-medium text-indigo-600">
-                    {language === "en" ? "Branch:" : "Sucursal:"} {service.branch_name ?? (language === "en" ? "No branch" : "Sin sucursal")}
-                  </p>
+                  {service.branch_id ? (
+                    <p className="mt-1 text-xs font-medium text-indigo-600">
+                      {language === "en" ? "Branch:" : "Sucursal:"} {service.branch_name}
+                    </p>
+                  ) : (
+                    <AsignarSucursal sucursales={branches} idioma={language} onAsignar={(branchId) => asignarSucursal(service, branchId)} />
+                  )}
                   <p className="mt-2 text-sm font-semibold text-emerald-700">${Number(service.price).toFixed(2)}</p>
                   {service.duration_minutes ? (
                     <p className="text-xs text-slate-500">{service.duration_minutes} min</p>
@@ -230,12 +275,22 @@ export default function NegocioServiciosPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => void handleDelete(service.id)}
+                  onClick={() => setConfirmando(service.id)}
                   className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200"
                 >
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
               </div>
+              {confirmando === service.id ? (
+                <ConfirmarEliminar
+                  nombre={service.service_name}
+                  idioma={language}
+                  onCancelar={() => setConfirmando(null)}
+                  onConfirmar={async () => {
+                    if (await handleDelete(service.id)) setConfirmando(null);
+                  }}
+                />
+              ) : null}
             </div>
           ))}
 

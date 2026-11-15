@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import ConfirmarEliminar from "@/components/confirmar-eliminar";
 import HorarioSemanal from "@/components/horario-semanal";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
@@ -44,6 +45,9 @@ export default function NegocioSucursalesPage() {
   /** «Editar horario» de una tarjeta: se edita dentro de la tarjeta (sin modal) y se guarda solo el horario. */
   const [editandoHorario, setEditandoHorario] = useState<{ id: string; horario: DiaHorario[] } | null>(null);
   const [guardandoHorario, setGuardandoHorario] = useState(false);
+  /** Sucursal en confirmación de borrado y lo que quedaría sin sucursal (null mientras se cuenta o si falló). */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+  const [dependientes, setDependientes] = useState<{ id: string; servicios: number; estilistas: number } | { id: string; error: true } | null>(null);
   /** Línea de estado de la ubicación: queda visible (no desaparece como un toast) hasta la siguiente acción. */
   const [estadoUbicacion, setEstadoUbicacion] = useState<{ tipo: "cargando" | "error" | "exito"; texto: string } | null>(null);
   const [branchImageFile, setBranchImageFile] = useState<File | null>(null);
@@ -290,7 +294,46 @@ export default function NegocioSucursalesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  /** Abre la confirmación y cuenta los servicios y estilistas de la sucursal (quedarán sin sucursal al borrarla). */
+  const pedirConfirmacion = async (id: string) => {
+    setConfirmando(id);
+    setDependientes(null);
+    try {
+      const pedirLista = async (ruta: string) => {
+        const response = await api(ruta, { cache: "no-store" });
+        if (!response.ok) throw new Error(String(response.status));
+        return leerJson(response);
+      };
+      const [servicios, estilistas] = await Promise.all([pedirLista("/api/business/services"), pedirLista("/api/business/stylists")]);
+      const deLaSucursal = (lista: unknown) => (Array.isArray(lista) ? lista.filter((x) => (x as { branch_id?: string }).branch_id === id).length : 0);
+      setDependientes({ id, servicios: deLaSucursal(servicios.services), estilistas: deLaSucursal(estilistas.stylists) });
+    } catch {
+      setDependientes({ id, error: true });
+    }
+  };
+
+  const avisoDeSucursal = () => {
+    const en = language === "en";
+    // Solo cuenta lo de la sucursal en confirmación (si se abrieron dos seguidas, la respuesta vieja no vale)
+    if (!dependientes || dependientes.id !== confirmando) return en ? "Checking what depends on this branch..." : "Revisando qué depende de esta sucursal...";
+    if ("error" in dependientes) {
+      return en
+        ? "We couldn't check its services and stylists; if it has any, they will be left without a branch."
+        : "No pudimos revisar sus servicios y estilistas; si tiene, quedarán sin sucursal.";
+    }
+    const { servicios, estilistas } = dependientes;
+    if (servicios === 0 && estilistas === 0) return en ? "It has no services or stylists." : "No tiene servicios ni estilistas.";
+    const partes = [
+      servicios > 0 ? (en ? `${servicios} service${servicios === 1 ? "" : "s"}` : `${servicios} servicio${servicios === 1 ? "" : "s"}`) : null,
+      estilistas > 0 ? (en ? `${estilistas} stylist${estilistas === 1 ? "" : "s"}` : `${estilistas} estilista${estilistas === 1 ? "" : "s"}`) : null,
+    ].filter(Boolean);
+    const lista = partes.join(en ? " and " : " y ");
+    return en
+      ? `Its ${lista} will be left without a branch and will no longer be visible to clients.`
+      : `Sus ${lista} quedarán sin sucursal y dejarán de verse para los clientes.`;
+  };
+
+  const handleDelete = async (id: string): Promise<boolean> => {
     const response = await api("/api/business/branches", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -304,7 +347,7 @@ export default function NegocioSucursalesPage() {
         title: t("business.branches.errorDelete"),
         message: payload.error ?? (language === "en" ? "Try again" : "Intenta de nuevo"),
       });
-      return;
+      return false;
     }
 
     showToast({
@@ -313,6 +356,7 @@ export default function NegocioSucursalesPage() {
     });
 
     await loadBranches();
+    return true;
   };
 
   return (
@@ -631,12 +675,23 @@ export default function NegocioSucursalesPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => void handleDelete(branch.id)}
+                  onClick={() => void pedirConfirmacion(branch.id)}
                   className="self-start rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200 @sm:shrink-0"
                 >
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
               </div>
+              {confirmando === branch.id ? (
+                <ConfirmarEliminar
+                  nombre={branch.branch_name}
+                  aviso={avisoDeSucursal()}
+                  idioma={language}
+                  onCancelar={() => setConfirmando(null)}
+                  onConfirmar={async () => {
+                    if (await handleDelete(branch.id)) setConfirmando(null);
+                  }}
+                />
+              ) : null}
               {editandoHorario?.id === branch.id ? (
                 <div className="mt-3 space-y-3 border-t border-slate-200 pt-3">
                   <HorarioSemanal
