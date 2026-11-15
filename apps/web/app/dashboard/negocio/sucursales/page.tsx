@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import ConfirmarEliminar from "@/components/confirmar-eliminar";
+import EditarSucursal from "@/components/editar-sucursal";
 import HorarioSemanal from "@/components/horario-semanal";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
@@ -48,6 +49,8 @@ export default function NegocioSucursalesPage() {
   const [guardandoHorario, setGuardandoHorario] = useState(false);
   /** Sucursal en confirmación de borrado y lo que quedaría sin sucursal (null mientras se cuenta o si falló). */
   const [confirmando, setConfirmando] = useState<string | null>(null);
+  /** Edición en línea de una sucursal. Una sola cosa abierta a la vez: editar, horario o confirmar borrado. */
+  const [editando, setEditando] = useState<string | null>(null);
   const [dependientes, setDependientes] = useState<{ id: string; servicios: number; estilistas: number } | { id: string; error: true } | null>(null);
   /** Línea de estado de la ubicación: queda visible (no desaparece como un toast) hasta la siguiente acción. */
   const [estadoUbicacion, setEstadoUbicacion] = useState<{ tipo: "cargando" | "error" | "exito"; texto: string } | null>(null);
@@ -336,6 +339,8 @@ export default function NegocioSucursalesPage() {
 
   /** Abre la confirmación y cuenta los servicios y estilistas de la sucursal (quedarán sin sucursal al borrarla). */
   const pedirConfirmacion = async (id: string) => {
+    setEditando(null);
+    setEditandoHorario(null);
     setConfirmando(id);
     setDependientes(null);
     try {
@@ -709,6 +714,19 @@ export default function NegocioSucursalesPage() {
                     <p className="mt-1 text-xs text-slate-500">{language === "en" ? "Notes:" : "Notas:"} {branch.validation_notes}</p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const abierta = editando === branch.id;
+                        setEditandoHorario(null);
+                        setConfirmando(null);
+                        setEditando(abierta ? null : branch.id);
+                      }}
+                      aria-expanded={editando === branch.id}
+                      className="rounded-lg border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800"
+                    >
+                      {language === "en" ? "Edit" : "Editar"}
+                    </button>
                     {!branch.is_primary ? (
                       <button
                         type="button"
@@ -720,11 +738,13 @@ export default function NegocioSucursalesPage() {
                     ) : null}
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        setEditando(null);
+                        setConfirmando(null);
                         setEditandoHorario(
                           editandoHorario?.id === branch.id ? null : { id: branch.id, horario: leerHorario(branch.weekly_hours) ?? horarioPorOmision() },
-                        )
-                      }
+                        );
+                      }}
                       aria-expanded={editandoHorario?.id === branch.id}
                       className="rounded-lg border border-emerald-300 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800"
                     >
@@ -762,6 +782,17 @@ export default function NegocioSucursalesPage() {
                   {language === "en" ? "Delete" : "Eliminar"}
                 </button>
               </div>
+              {editando === branch.id ? (
+                <EditarSucursal
+                  sucursal={branch}
+                  idioma={language}
+                  onCancelar={() => setEditando(null)}
+                  onGuardada={async () => {
+                    setEditando(null);
+                    await loadBranches();
+                  }}
+                />
+              ) : null}
               {confirmando === branch.id ? (
                 <ConfirmarEliminar
                   nombre={branch.branch_name}
