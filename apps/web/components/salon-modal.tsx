@@ -7,6 +7,7 @@ import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api, urlArchivo } from "@/lib/api";
+import { horarioAnterior, leerHorario, resumenHorario } from "@/lib/horario";
 
 type BusinessDetail = {
   id: string;
@@ -33,6 +34,9 @@ type Branch = {
   longitude: number | string | null;
   phone: string | null;
   image_url: string | null;
+  opening_hours?: string | null;
+  closing_hours?: string | null;
+  weekly_hours?: unknown;
   is_primary: boolean;
 };
 
@@ -400,6 +404,28 @@ export default function SalonModal({
                     </div>
                   ) : null}
                 </div>
+
+                {/* Horario de la sucursal elegida (informativo: las citas salen del horario de cada estilista) */}
+                {(() => {
+                  if (!selectedBranch) return null;
+                  const horario = leerHorario(selectedBranch.weekly_hours);
+                  const anterior = horario ? null : horarioAnterior(selectedBranch.opening_hours, selectedBranch.closing_hours);
+                  if (!horario && !anterior) return null;
+                  return (
+                    <div data-horario-salon className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">🕒 {language === "en" ? "Hours" : "Horario"}</p>
+                      {horario ? (
+                        <ul className="mt-1 space-y-0.5 text-sm font-medium">
+                          {resumenHorario(horario, language).map((linea) => (
+                            <li key={linea}>{linea}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-1 text-sm font-medium">{anterior}</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-2 rounded-2xl bg-slate-100/90 p-1.5">
