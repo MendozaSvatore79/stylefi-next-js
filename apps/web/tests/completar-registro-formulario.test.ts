@@ -53,3 +53,12 @@ describe("formulario de completar registro", () => {
     expect(orden.indexOf("lastName")).toBe(1);
   });
 });
+
+describe("navegación al terminar el registro", () => {
+  it("recarga la página completa (window.location.replace) para que el panel pida la sesión nueva", () => {
+    expect(fuente).toContain('window.location.replace(cuerpo.redirectTo ?? "/entrar")');
+    // Con navegación interna, SesionProvider conservaba el { user: null } de antes de completar el registro
+    expect(fuente).not.toMatch(/router\.(replace|push|refresh)\(/);
+    expect(fuente).not.toContain("useRouter");
+  });
+});

@@ -1,7 +1,6 @@
 "use client";
 
 import { useClerk } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { api } from "@/lib/api";
@@ -66,7 +65,6 @@ export default function CompletarRegistro({
 }) {
   const { language } = useLanguage();
   const t = textos[language === "en" ? "en" : "es"];
-  const router = useRouter();
   const { signOut } = useClerk();
   const id = useId();
   const [tipo, setTipo] = useState<"cliente" | "negocio" | null>(null);
@@ -103,8 +101,9 @@ export default function CompletarRegistro({
       });
       const cuerpo = (await res.json().catch(() => ({}))) as { error?: string; redirectTo?: string };
       if (!res.ok) throw new Error(cuerpo.error ?? t.error);
-      router.replace(cuerpo.redirectTo ?? "/entrar");
-      router.refresh();
+      // Carga completa (como /entrar): SesionProvider guardó { user: null } mientras la cuenta no existía y solo vuelve
+      // a pedir /sesion si cambia el usuario de Clerk; con router.replace el panel se quedaba en "Usuario".
+      window.location.replace(cuerpo.redirectTo ?? "/entrar");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.error);
       setEnviando(false);
