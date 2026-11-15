@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import AsignarSucursal from "@/components/asignar-sucursal";
 import ConfirmarEliminar from "@/components/confirmar-eliminar";
+import EditarServicio from "@/components/editar-servicio";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
@@ -33,6 +34,8 @@ export default function NegocioServiciosPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   /** Tarjeta en confirmación de borrado (en línea, sin modal). */
   const [confirmando, setConfirmando] = useState<string | null>(null);
+  /** Edición en línea; una sola cosa abierta a la vez (editar o confirmar borrado). */
+  const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState({
     branchId: "",
     serviceName: "",
@@ -288,14 +291,42 @@ export default function NegocioServiciosPage() {
                     <p className="text-xs text-slate-500">{service.duration_minutes} min</p>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setConfirmando(service.id)}
-                  className="self-start rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200 @sm:shrink-0"
-                >
-                  {language === "en" ? "Delete" : "Eliminar"}
-                </button>
+                <div className="flex flex-wrap gap-2 self-start @sm:shrink-0 @sm:flex-col @sm:items-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmando(null);
+                      setEditando(editando === service.id ? null : service.id);
+                    }}
+                    aria-expanded={editando === service.id}
+                    className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-200"
+                  >
+                    {language === "en" ? "Edit" : "Editar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditando(null);
+                      setConfirmando(service.id);
+                    }}
+                    className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200"
+                  >
+                    {language === "en" ? "Delete" : "Eliminar"}
+                  </button>
+                </div>
               </div>
+              {editando === service.id ? (
+                <EditarServicio
+                  servicio={service}
+                  sucursales={branches}
+                  idioma={language}
+                  onCancelar={() => setEditando(null)}
+                  onGuardado={async () => {
+                    setEditando(null);
+                    await loadServices();
+                  }}
+                />
+              ) : null}
               {confirmando === service.id ? (
                 <ConfirmarEliminar
                   nombre={service.service_name}
