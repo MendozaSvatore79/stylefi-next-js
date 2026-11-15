@@ -38,6 +38,24 @@ Otros comandos (desde la raíz):
 | `npm run build` | Compila el front (y `packages/shared` antes). |
 | `npm run db:abajo` | Apaga la base local sin borrar datos. |
 
+## Imagen Docker del frontend
+
+La imagen se construye desde la raíz del monorepo. Exporta antes `NEXT_PUBLIC_API_URL`,
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` en la terminal; son valores públicos
+incorporados al compilar:
+
+```bash
+docker build -t stylefi-web:local \
+  --build-arg NEXT_PUBLIC_API_URL \
+  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
+  --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY .
+docker run --rm -p 3001:3000 -e CLERK_SECRET_KEY stylefi-web:local
+```
+
+Antes de ejecutar el contenedor, configura `CLERK_SECRET_KEY` en el entorno privado de la terminal. La aplicación
+queda en `http://localhost:3001`. Las claves privadas se inyectan solo en ejecución; no deben incluirse en argumentos
+de build ni en la imagen.
+
 ## Cómo llama el front al backend
 
 - `apps/web/lib/api.ts`: `api("/api/…")` llama a `NEXT_PUBLIC_API_URL + "/…"` con el token de sesión de Clerk. Las
