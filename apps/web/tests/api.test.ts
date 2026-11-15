@@ -31,6 +31,13 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     ["/api/business/stylists/schedule?stylistId=1", "http://localhost:4000/business/stylists/schedule?stylistId=1"],
     ["/api/business/branches", "http://localhost:4000/business/branches"],
     ["/api/files/abc", "http://localhost:4000/files/abc"],
+    ["/api/client/appointments", "http://localhost:4000/client/appointments"],
+    ["/api/client/appointments/availability?date=2026-11-20", "http://localhost:4000/client/appointments/availability?date=2026-11-20"],
+    ["/api/client/favorites", "http://localhost:4000/client/favorites"],
+    ["/api/client/wallet/recharge/confirm", "http://localhost:4000/client/wallet/recharge/confirm"],
+    ["/api/client/wallet/recharges", "http://localhost:4000/client/wallet/recharges"],
+    ["/api/client/payment-methods/setup-intent", "http://localhost:4000/client/payment-methods/setup-intent"],
+    ["/api/business/appointments", "http://localhost:4000/business/appointments"],
   ])("%s va al backend con el token de Clerk", async (ruta, esperada) => {
     const { api } = await import("@/lib/api");
     await api(ruta, { method: "POST", headers: { "Content-Type": "application/json" } });
@@ -49,7 +56,7 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     expect(llamadas).toEqual([{ url: "http://localhost:4000/business/summary", auth: "Bearer token-tardio" }]);
   });
 
-  it.each(["/api/client/appointments", "/api/business/appointments", "/api/admin/users", "/api/businessesx"])(
+  it.each(["/api/client/onboarding", "/api/client/walletx", "/api/admin/users", "/api/businessesx"])(
     "%s (aún no movida) sigue yendo a Next.js, sin token",
     async (ruta) => {
       const { api } = await import("@/lib/api");

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { api } from "@/lib/api";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -31,7 +32,7 @@ function CardSetupForm({ onSuccess }: { onSuccess?: () => void | Promise<void> }
       return;
     }
 
-    const res = await fetch("/api/client/payment-methods/setup-intent", { method: "POST" });
+    const res = await api("/api/client/payment-methods/setup-intent", { method: "POST" });
     const setupPayload = (await res.json()) as { clientSecret?: string; error?: string };
 
     if (!res.ok || !setupPayload.clientSecret) {
@@ -55,7 +56,7 @@ function CardSetupForm({ onSuccess }: { onSuccess?: () => void | Promise<void> }
       return;
     }
 
-    const saveRes = await fetch("/api/client/payment-methods", {
+    const saveRes = await api("/api/client/payment-methods", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -118,8 +118,8 @@ export default function ClienteCitasPage() {
   const loadData = async () => {
     const [businessesResponse, methodsResponse, appointmentsResponse] = await Promise.all([
       api("/api/businesses", { cache: "no-store" }),
-      fetch("/api/client/payment-methods", { cache: "no-store" }),
-      fetch("/api/client/appointments", { cache: "no-store" }),
+      api("/api/client/payment-methods", { cache: "no-store" }),
+      api("/api/client/appointments", { cache: "no-store" }),
     ]);
 
     if (businessesResponse.ok) {
@@ -185,7 +185,7 @@ export default function ClienteCitasPage() {
     setIsSavingEdit(true);
 
     try {
-      const response = await fetch("/api/client/appointments", {
+      const response = await api("/api/client/appointments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -228,7 +228,7 @@ export default function ClienteCitasPage() {
     setDeletingAppointmentId(appointmentId);
 
     try {
-      const response = await fetch("/api/client/appointments", {
+      const response = await api("/api/client/appointments", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appointmentId }),
@@ -266,7 +266,7 @@ export default function ClienteCitasPage() {
     setCancellingAppointmentId(appointmentId);
 
     try {
-      const response = await fetch("/api/client/appointments", {
+      const response = await api("/api/client/appointments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -323,7 +323,7 @@ export default function ClienteCitasPage() {
     setIsClearingPastHistory(true);
 
     try {
-      const response = await fetch("/api/client/appointments", {
+      const response = await api("/api/client/appointments", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clearMode: "past" }),
@@ -364,7 +364,7 @@ export default function ClienteCitasPage() {
     setIsDeletingAllAppointments(true);
 
     try {
-      const response = await fetch("/api/client/appointments", {
+      const response = await api("/api/client/appointments", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clearMode: "all" }),
@@ -420,7 +420,7 @@ export default function ClienteCitasPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/client/appointments", {
+      const response = await api("/api/client/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // El precio y el nombre del servicio los fija el servidor; solo se manda qué servicio y cuándo

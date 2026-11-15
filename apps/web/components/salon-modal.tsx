@@ -140,7 +140,7 @@ export default function SalonModal({
           setSelectedBranchId(defaultBranch ? defaultBranch.id : null);
         }
 
-        const paymentMethodsRes = await fetch("/api/client/payment-methods", { cache: "no-store" });
+        const paymentMethodsRes = await api("/api/client/payment-methods", { cache: "no-store" });
         if (paymentMethodsRes.ok) {
           const paymentMethodsData = (await paymentMethodsRes.json()) as {
             methods?: PaymentMethod[];
@@ -223,7 +223,7 @@ export default function SalonModal({
     setIsBooking(true);
 
     try {
-      const response = await fetch("/api/client/appointments", {
+      const response = await api("/api/client/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

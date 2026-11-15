@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
 import { etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
+import { api } from "@/lib/api";
 
 type Appointment = {
   id: string;
@@ -44,7 +45,7 @@ export default function NegocioCitasPage() {
   const [savedStatusId, setSavedStatusId] = useState<string | null>(null);
 
   const loadAppointments = async () => {
-    const response = await fetch("/api/business/appointments", { cache: "no-store" });
+    const response = await api("/api/business/appointments", { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -82,7 +83,7 @@ export default function NegocioCitasPage() {
         ),
       );
 
-      const response = await fetch("/api/business/appointments", {
+      const response = await api("/api/business/appointments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appointmentId, status }),
