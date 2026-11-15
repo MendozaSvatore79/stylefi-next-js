@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import StylistAgendaPanel from "@/components/stylist-agenda-panel";
 import AsignarSucursal from "@/components/asignar-sucursal";
 import ConfirmarEliminar from "@/components/confirmar-eliminar";
+import EditarEstilista from "@/components/editar-estilista";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
@@ -40,6 +41,8 @@ export default function NegocioEstilistasPage() {
   /** Tarjeta en confirmación de borrado (en línea, sin modal). */
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
+  /** Edición en línea; una sola cosa abierta a la vez (editar, horario y servicios, o confirmar borrado). */
+  const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState({
     branchId: "",
     firstName: "",
@@ -377,14 +380,34 @@ export default function NegocioEstilistasPage() {
                 <div className="flex flex-wrap gap-2 @sm:shrink-0 @sm:flex-col @sm:items-end">
                 <button
                   type="button"
-                  onClick={() => setAbierto((a) => (a === stylist.id ? null : stylist.id))}
+                  onClick={() => {
+                    setAbierto(null);
+                    setConfirmando(null);
+                    setEditando(editando === stylist.id ? null : stylist.id);
+                  }}
+                  aria-expanded={editando === stylist.id}
+                  className="rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                >
+                  {language === "en" ? "Edit" : "Editar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditando(null);
+                    setConfirmando(null);
+                    setAbierto((a) => (a === stylist.id ? null : stylist.id));
+                  }}
                   className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-200"
                 >
                   {abierto === stylist.id ? (language === "en" ? "Close" : "Cerrar") : language === "en" ? "Schedule & services" : "Horario y servicios"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setConfirmando(stylist.id)}
+                  onClick={() => {
+                    setEditando(null);
+                    setAbierto(null);
+                    setConfirmando(stylist.id);
+                  }}
                   className="rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-200"
                 >
                   {language === "en" ? "Delete" : "Eliminar"}
@@ -414,6 +437,18 @@ export default function NegocioEstilistasPage() {
                     ? "Without services and a schedule this stylist can't receive appointments."
                     : "Sin servicios ni horario este estilista no puede recibir citas."}
                 </p>
+              ) : null}
+              {editando === stylist.id ? (
+                <EditarEstilista
+                  estilista={stylist}
+                  sucursales={branches}
+                  idioma={language}
+                  onCancelar={() => setEditando(null)}
+                  onGuardado={async () => {
+                    setEditando(null);
+                    await loadStylists();
+                  }}
+                />
               ) : null}
               {abierto === stylist.id ? (
                 <StylistAgendaPanel
