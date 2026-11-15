@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
+import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
 
 type Branch = {
   id: string;
@@ -54,7 +55,7 @@ export default function NegocioSucursalesPage() {
   });
 
   const loadBranches = async () => {
-    const response = await fetch("/api/business/branches", { cache: "no-store" });
+    const response = await api("/api/business/branches", { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -211,7 +212,7 @@ export default function NegocioSucursalesPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/business/branches", {
+      const response = await api("/api/business/branches", {
         method: "POST",
         body: (() => {
           const payload = new FormData();
@@ -285,7 +286,7 @@ export default function NegocioSucursalesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const response = await fetch("/api/business/branches", {
+    const response = await api("/api/business/branches", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
@@ -562,7 +563,7 @@ export default function NegocioSucursalesPage() {
                   <div className="mt-2 flex flex-wrap gap-2">
                     {branch.image_url ? (
                       <a
-                        href={branch.image_url}
+                        href={urlArchivo(branch.image_url)}
                         target="_blank"
                         rel="noreferrer"
                         className="rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700"
@@ -571,14 +572,16 @@ export default function NegocioSucursalesPage() {
                       </a>
                     ) : null}
                     {branch.ownership_proof_url ? (
-                      <a
-                        href={branch.ownership_proof_url}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = branch.ownership_proof_url;
+                          if (url) void abrirArchivoPrivado(url).catch(() => alert(language === "en" ? "Could not open the proof." : "No se pudo abrir el comprobante."));
+                        }}
                         className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700"
                       >
                         {language === "en" ? "View proof" : "Ver comprobante"}
-                      </a>
+                      </button>
                     ) : null}
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import StylistAgendaPanel from "@/components/stylist-agenda-panel";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
+import { api } from "@/lib/api";
 
 type Stylist = {
   id: string;
@@ -43,7 +44,7 @@ export default function NegocioEstilistasPage() {
   });
 
   const loadStylists = async () => {
-    const response = await fetch("/api/business/stylists", { cache: "no-store" });
+    const response = await api("/api/business/stylists", { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -53,7 +54,7 @@ export default function NegocioEstilistasPage() {
   };
 
   const loadBranches = async () => {
-    const response = await fetch("/api/business/branches", { cache: "no-store" });
+    const response = await api("/api/business/branches", { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -72,7 +73,7 @@ export default function NegocioEstilistasPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/business/stylists", {
+      const response = await api("/api/business/stylists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -120,7 +121,7 @@ export default function NegocioEstilistasPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const response = await fetch("/api/business/stylists", {
+    const response = await api("/api/business/stylists", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),

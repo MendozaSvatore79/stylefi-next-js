@@ -7,6 +7,7 @@ import { useSesion } from "@/lib/sesion-cliente";
 import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import SalonModal from "@/components/salon-modal";
+import { api, urlArchivo } from "@/lib/api";
 
 type Business = {
   id: string;
@@ -67,7 +68,7 @@ export default function SalonDiscovery() {
   useEffect(() => {
     const loadBusinesses = async () => {
       try {
-        const response = await fetch("/api/businesses", { cache: "no-store" });
+        const response = await api("/api/businesses", { cache: "no-store" });
         if (!response.ok) {
           return;
         }
@@ -326,7 +327,7 @@ export default function SalonDiscovery() {
                             <div className="relative h-48 overflow-hidden bg-linear-to-br from-indigo-100 to-purple-100">
                               {business.image_url ? (
                                 <Image
-                                  src={business.image_url}
+                                  src={urlArchivo(business.image_url)}
                                   alt={business.salon_name || business.business_name}
                                   fill
                                   unoptimized

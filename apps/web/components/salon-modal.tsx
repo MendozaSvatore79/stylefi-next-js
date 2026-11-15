@@ -6,6 +6,7 @@ import { useSesion } from "@/lib/sesion-cliente";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
+import { api, urlArchivo } from "@/lib/api";
 
 type BusinessDetail = {
   id: string;
@@ -113,7 +114,7 @@ export default function SalonModal({
       }
 
       try {
-        const res = await fetch(`/api/businesses?businessId=${businessId}`, {
+        const res = await api(`/api/businesses?businessId=${businessId}`, {
           cache: "no-store",
         });
 
@@ -329,7 +330,7 @@ export default function SalonModal({
   const displayLatitude = selectedBranch?.latitude ?? business.latitude;
   const displayLongitude = selectedBranch?.longitude ?? business.longitude;
   const displayHasLocation = displayLatitude !== null && displayLongitude !== null && Number.isFinite(Number(displayLatitude)) && Number.isFinite(Number(displayLongitude));
-  const headerImage = selectedBranch?.image_url || business.image_url;
+  const headerImage = urlArchivo(selectedBranch?.image_url || business.image_url);
   const headerLabel = selectedBranch?.branch_name || business.salon_name;
 
   return (

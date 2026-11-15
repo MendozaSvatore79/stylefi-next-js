@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
+import { api } from "@/lib/api";
 
 type Servicio = { id: string; service_name: string; branch_id: string | null; duration_minutes: number | null };
 type Bloque = { dayOfWeek: number; start: string; end: string };
@@ -16,7 +17,7 @@ const DIAS = {
 const fechaHora = new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", dateStyle: "medium", timeStyle: "short" });
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(url, { cache: "no-store", headers: { "Content-Type": "application/json" }, ...init });
+  const r = await api(url, { cache: "no-store", headers: { "Content-Type": "application/json" }, ...init });
   const datos = (await r.json().catch(() => ({}))) as T & { error?: string };
   if (!r.ok) throw new Error(datos.error ?? "Error");
   return datos;

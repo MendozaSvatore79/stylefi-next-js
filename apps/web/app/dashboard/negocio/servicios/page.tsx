@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
+import { api } from "@/lib/api";
 
 type Service = {
   id: string;
@@ -37,7 +38,7 @@ export default function NegocioServiciosPage() {
   });
 
   const loadServices = async () => {
-    const response = await fetch("/api/business/services", { cache: "no-store" });
+    const response = await api("/api/business/services", { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -47,7 +48,7 @@ export default function NegocioServiciosPage() {
   };
 
   const loadBranches = async () => {
-    const response = await fetch("/api/business/branches", { cache: "no-store" });
+    const response = await api("/api/business/branches", { cache: "no-store" });
     if (!response.ok) {
       return;
     }
@@ -66,7 +67,7 @@ export default function NegocioServiciosPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/business/services", {
+      const response = await api("/api/business/services", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,7 +113,7 @@ export default function NegocioServiciosPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const response = await fetch("/api/business/services", {
+    const response = await api("/api/business/services", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
