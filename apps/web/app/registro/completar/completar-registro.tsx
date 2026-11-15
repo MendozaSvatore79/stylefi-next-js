@@ -2,7 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { api } from "@/lib/api";
 import { useLanguage } from "@/lib/language-context";
@@ -18,8 +18,8 @@ const textos = {
     negocioDesc: "Administra tu salón, servicios, estilistas y citas.",
     correo: "Correo",
     sinVerificar: "Tu correo aún no está verificado. Vuelve a entrar y verifica tu correo.",
-    nombre: "Nombre",
-    apellidos: "Apellidos",
+    nombre: "Nombre(s)",
+    apellidos: "Apellido(s)",
     nombreNegocio: "Nombre del negocio",
     rfc: "RFC",
     telefono: "Teléfono",
@@ -37,8 +37,8 @@ const textos = {
     negocioDesc: "Manage your salon, services, stylists and appointments.",
     correo: "Email",
     sinVerificar: "Your email isn't verified yet. Sign in again and verify your email.",
-    nombre: "First name",
-    apellidos: "Last name",
+    nombre: "First name(s)",
+    apellidos: "Last name(s)",
     nombreNegocio: "Business name",
     rfc: "Tax ID (RFC)",
     telefono: "Phone",
@@ -49,7 +49,11 @@ const textos = {
   },
 };
 
-const campo = "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring";
+// Texto oscuro explícito: con el sistema en modo oscuro, globals.css pone el texto del body en #ededed y los inputs
+// (fondo blanco) lo heredaban, ilegible.
+const campo =
+  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-indigo-300 focus:ring";
+const etiqueta = "mb-1 block text-sm font-medium text-slate-700";
 
 export default function CompletarRegistro({
   correo,
@@ -64,6 +68,7 @@ export default function CompletarRegistro({
   const t = textos[language === "en" ? "en" : "es"];
   const router = useRouter();
   const { signOut } = useClerk();
+  const id = useId();
   const [tipo, setTipo] = useState<"cliente" | "negocio" | null>(null);
   const [datos, setDatos] = useState({ firstName: nombre, lastName: apellido, businessName: "", rfc: "", phone: "" });
   const [enviando, setEnviando] = useState(false);
@@ -134,17 +139,33 @@ export default function CompletarRegistro({
 
         {tipo ? (
           <div className="mt-5 grid gap-3">
+            {/* Nombre(s) a la izquierda y Apellido(s) a la derecha; con label visible porque Google los precarga */}
             <div className="grid gap-3 sm:grid-cols-2">
-              <input className={campo} placeholder={t.nombre} value={datos.firstName} onChange={cambiar("firstName")} required={tipo === "negocio"} maxLength={LIMITES.nombre} />
-              <input className={campo} placeholder={t.apellidos} value={datos.lastName} onChange={cambiar("lastName")} required={tipo === "negocio"} maxLength={LIMITES.nombre} />
+              <div>
+                <label htmlFor={`${id}-nombre`} className={etiqueta}>{t.nombre}</label>
+                <input id={`${id}-nombre`} className={campo} placeholder={t.nombre} value={datos.firstName} onChange={cambiar("firstName")} required={tipo === "negocio"} maxLength={LIMITES.nombre} autoComplete="given-name" />
+              </div>
+              <div>
+                <label htmlFor={`${id}-apellidos`} className={etiqueta}>{t.apellidos}</label>
+                <input id={`${id}-apellidos`} className={campo} placeholder={t.apellidos} value={datos.lastName} onChange={cambiar("lastName")} required={tipo === "negocio"} maxLength={LIMITES.nombre} autoComplete="family-name" />
+              </div>
             </div>
             {tipo === "negocio" ? (
               <>
-                <input className={campo} placeholder={t.nombreNegocio} value={datos.businessName} onChange={cambiar("businessName")} required maxLength={LIMITES.nombreLegal} />
-                <input className={campo} placeholder={t.rfc} value={datos.rfc} onChange={cambiar("rfc")} required maxLength={13} />
+                <div>
+                  <label htmlFor={`${id}-negocio`} className={etiqueta}>{t.nombreNegocio}</label>
+                  <input id={`${id}-negocio`} className={campo} placeholder={t.nombreNegocio} value={datos.businessName} onChange={cambiar("businessName")} required maxLength={LIMITES.nombreLegal} autoComplete="organization" />
+                </div>
+                <div>
+                  <label htmlFor={`${id}-rfc`} className={etiqueta}>{t.rfc}</label>
+                  <input id={`${id}-rfc`} className={campo} placeholder={t.rfc} value={datos.rfc} onChange={cambiar("rfc")} required maxLength={13} />
+                </div>
               </>
             ) : null}
-            <input className={campo} placeholder={t.telefono} value={datos.phone} onChange={cambiar("phone")} required type="tel" inputMode="numeric" autoComplete="tel" />
+            <div>
+              <label htmlFor={`${id}-telefono`} className={etiqueta}>{t.telefono}</label>
+              <input id={`${id}-telefono`} className={campo} placeholder={t.telefono} value={datos.phone} onChange={cambiar("phone")} required type="tel" inputMode="numeric" autoComplete="tel" />
+            </div>
           </div>
         ) : null}
 
