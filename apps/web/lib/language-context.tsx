@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 
-type Language = "es" | "en";
+import { crearIdiomaGuardado, IDIOMA_POR_OMISION, type Language } from "@/lib/idioma-guardado";
 
 type LanguageContextType = {
   language: Language;
@@ -759,28 +759,23 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("es");
+const idiomaGuardado = crearIdiomaGuardado(() => (typeof window === "undefined" ? null : window.localStorage));
 
-  useEffect(() => {
-    // Cargar idioma guardado del localStorage
-    const saved = localStorage.getItem("language") as Language | null;
-    if (saved && (saved === "es" || saved === "en")) {
-      setLanguageState(saved);
-    }
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  // El servidor (y la hidratación) usan el idioma por omisión; después, el guardado en el navegador.
+  const language = useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION);
+
+  const setLanguage = useCallback((lang: Language) => {
+    idiomaGuardado.guardar(lang);
   }, []);
 
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem("language", lang);
-  };
+  // Estable mientras no cambie el idioma: así `t` puede ir en las dependencias de efectos sin repetirlos.
+  const t = useCallback((key: string): string => translations[language][key] ?? key, [language]);
 
-  const t = (key: string): string => {
-    return translations[language][key] ?? key;
-  };
+  const valor = useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={valor}>
       {children}
     </LanguageContext.Provider>
   );

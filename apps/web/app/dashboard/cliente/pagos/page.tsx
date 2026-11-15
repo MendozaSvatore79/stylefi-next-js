@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { useToast } from "@/components/toast";
 import { estadoDeMovimiento, intentoDeRecarga, type Intento } from "@/lib/intento-recarga";
@@ -51,6 +51,7 @@ export default function ClientePagosPage() {
   const [editIsDefault, setEditIsDefault] = useState(false);
   const [isClearingRecharges, setIsClearingRecharges] = useState(false);
   const [confirmedSessionId, setConfirmedSessionId] = useState<string | null>(null);
+  const confirmandoSesionRef = useRef<string | null>(null);
   const [form, setForm] = useState({
     provider: "card" as "card" | "paypal" | "transfer" | "cash" | "wallet",
     holderName: "",
@@ -64,7 +65,7 @@ export default function ClientePagosPage() {
   // Clave del intento de recarga: se reutiliza si la persona reintenta la misma recarga (no hay doble cargo)
   const intentoRef = useRef<Intento | null>(null);
 
-  const loadMethods = async () => {
+  const loadMethods = useCallback(async () => {
     try {
       const response = await api("/api/client/payment-methods", { cache: "no-store" });
       const payload = (await response.json()) as {
@@ -89,11 +90,11 @@ export default function ClientePagosPage() {
       });
       setMethods([]);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     void loadMethods();
-  }, []);
+  }, [loadMethods]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -103,6 +104,11 @@ export default function ClientePagosPage() {
     if (rechargeStatus !== "success" || !sessionId || confirmedSessionId === sessionId) {
       return;
     }
+    // Una sola confirmación por sesión de Stripe, aunque el efecto vuelva a correr (p. ej., al cambiar el idioma).
+    if (confirmandoSesionRef.current === sessionId) {
+      return;
+    }
+    confirmandoSesionRef.current = sessionId;
 
     const confirmRecharge = async () => {
       try {
@@ -143,7 +149,7 @@ export default function ClientePagosPage() {
     };
 
     void confirmRecharge();
-  }, [confirmedSessionId, showToast]);
+  }, [confirmedSessionId, loadMethods, showToast, t]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

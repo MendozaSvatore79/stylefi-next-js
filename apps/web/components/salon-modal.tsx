@@ -425,7 +425,7 @@ export default function SalonModal({
               {servicesForBranch.length === 0 ? (
                 <p className="py-8 text-center text-slate-600">{t("modal.noServices")}</p>
               ) : (
-                servicesForBranch.map((service: any) => (
+                servicesForBranch.map((service) => (
                   <div key={service.id} className="rounded-2xl border border-slate-200 bg-linear-to-r from-white to-slate-50 p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">

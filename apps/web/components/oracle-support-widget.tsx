@@ -77,7 +77,7 @@ export default function OracleSupportWidget() {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [messages, setMessages] = useState<OracleMessage[]>([]);
   const [input, setInput] = useState("");
-  const [subject, setSubject] = useState("Soporte AURA");
+  const subject = "Soporte AURA";
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -392,44 +392,6 @@ export default function OracleSupportWidget() {
     previousUnreadCountRef.current = 0;
     initialSyncDoneRef.current = false;
     lastRenderedMessageIdRef.current = null;
-  };
-
-  const updateTicketStatus = async (action: "confirm_close" | "reopen") => {
-    if (!ticketId) {
-      return;
-    }
-
-    setSending(true);
-    try {
-      const response = await api("/api/support/oracle", {
-        method: "POST",
-        headers: ticketHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          ticketId,
-          ticketAction: action,
-        }),
-      });
-
-      const payload = (await response.json()) as OracleResponse;
-      if (!response.ok) {
-        throw new Error(payload.error ?? "No se pudo actualizar el ticket.");
-      }
-
-      setTicketStatus(payload.ticket.status ?? null);
-      setMessages(payload.messages ?? []);
-      setLastSyncedAt(new Date());
-      if (action === "confirm_close") {
-        setUnreadCount(0);
-      }
-    } catch (error) {
-      showToast({
-        type: "error",
-        title: "AURA no pudo actualizar el ticket",
-        message: error instanceof Error ? error.message : "Intenta nuevamente.",
-      });
-    } finally {
-      setSending(false);
-    }
   };
 
   const statusLabel = useMemo(() => {

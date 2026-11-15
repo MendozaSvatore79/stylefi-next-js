@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useLanguage } from "@/lib/language-context";
 
@@ -16,47 +16,45 @@ export default function PlatformOnboardingModal({ accountType, onClose }: Platfo
   const [currentStep, setCurrentStep] = useState(0);
   const { t } = useLanguage();
 
-  const steps = useMemo(
-    () =>
-      isClient
-        ? [
-            {
-              title: t("onboarding.client.step1.title"),
-              description: t("onboarding.client.step1.desc"),
-            },
-            {
-              title: t("onboarding.client.step2.title"),
-              description: t("onboarding.client.step2.desc"),
-            },
-            {
-              title: t("onboarding.client.step3.title"),
-              description: t("onboarding.client.step3.desc"),
-            },
-            {
-              title: t("onboarding.client.step4.title"),
-              description: t("onboarding.client.step4.desc"),
-            },
-          ]
-        : [
-            {
-              title: t("onboarding.business.step1.title"),
-              description: t("onboarding.business.step1.desc"),
-            },
-            {
-              title: t("onboarding.business.step2.title"),
-              description: t("onboarding.business.step2.desc"),
-            },
-            {
-              title: t("onboarding.business.step3.title"),
-              description: t("onboarding.business.step3.desc"),
-            },
-            {
-              title: t("onboarding.business.step4.title"),
-              description: t("onboarding.business.step4.desc"),
-            },
-          ],
-    [isClient],
-  );
+  // Sin useMemo: `t` cambia con el idioma, y los textos deben seguirlo.
+  const steps =
+    isClient
+      ? [
+          {
+            title: t("onboarding.client.step1.title"),
+            description: t("onboarding.client.step1.desc"),
+          },
+          {
+            title: t("onboarding.client.step2.title"),
+            description: t("onboarding.client.step2.desc"),
+          },
+          {
+            title: t("onboarding.client.step3.title"),
+            description: t("onboarding.client.step3.desc"),
+          },
+          {
+            title: t("onboarding.client.step4.title"),
+            description: t("onboarding.client.step4.desc"),
+          },
+        ]
+      : [
+          {
+            title: t("onboarding.business.step1.title"),
+            description: t("onboarding.business.step1.desc"),
+          },
+          {
+            title: t("onboarding.business.step2.title"),
+            description: t("onboarding.business.step2.desc"),
+          },
+          {
+            title: t("onboarding.business.step3.title"),
+            description: t("onboarding.business.step3.desc"),
+          },
+          {
+            title: t("onboarding.business.step4.title"),
+            description: t("onboarding.business.step4.desc"),
+          },
+        ];
 
   const step = steps[currentStep];
   const isFirstStep = currentStep === 0;

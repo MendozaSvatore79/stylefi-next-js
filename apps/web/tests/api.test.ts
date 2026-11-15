@@ -121,7 +121,7 @@ describe("apiServidor (páginas que se arman en el servidor)", () => {
 
   it("con NEXT_PUBLIC_API_URL: llama al backend con el token de Clerk de la petición y sin caché", async () => {
     vi.stubEnv("NEXT_PUBLIC_API_URL", "http://localhost:4000");
-    const espia = vi.fn(async (_url: string, _init: RequestInit = {}) => new Response("{}"));
+    const espia = vi.fn<typeof fetch>(async () => new Response("{}"));
     vi.stubGlobal("fetch", espia);
     const { apiServidor } = await import("@/lib/api-servidor");
     const r = await apiServidor("/entrar");
