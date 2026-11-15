@@ -169,6 +169,6 @@ describe("accesoAlPanel (layouts del panel)", () => {
     estado.filas = [fila({ id: "a1", clerk_user_id: "user_jefa", account_type: "admin" })];
     const { accesoAlPanel } = await import("@/lib/sesion");
     const r = await accesoAlPanel("admin");
-    expect("sesion" in r && r.sesion.user.accountType).toBe("admin");
+    expect("sesion" in r && r.sesion?.user.accountType).toBe("admin");
   });
 });

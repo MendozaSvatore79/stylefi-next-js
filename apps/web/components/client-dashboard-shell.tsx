@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
+import { api } from "@/lib/api";
 
 type MenuItem = {
   href: string;
@@ -68,7 +69,7 @@ export default function ClientDashboardShell({ children }: { children: ReactNode
 
     const loadModuleAccess = async () => {
       try {
-        const response = await fetch(`/api/live-dashboard/module-access?pathname=${encodeURIComponent(pathname)}`, {
+        const response = await api(`/api/live-dashboard/module-access?pathname=${encodeURIComponent(pathname)}`, {
           cache: "no-store",
           signal: controller.signal,
         });

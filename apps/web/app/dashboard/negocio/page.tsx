@@ -31,7 +31,7 @@ export default function NegocioDashboardPage() {
     void (async () => {
       const [summaryResponse, onboardingResponse] = await Promise.all([
         api("/api/business/summary", { cache: "no-store" }),
-        fetch("/api/onboarding", { cache: "no-store" }),
+        api("/api/onboarding", { cache: "no-store" }),
       ]);
 
       if (summaryResponse.ok) {
@@ -48,7 +48,7 @@ export default function NegocioDashboardPage() {
 
   const closeOnboarding = async () => {
     try {
-      await fetch("/api/onboarding", { method: "POST" });
+      await api("/api/onboarding", { method: "POST" });
     } catch (error) {
       console.error("No se pudo actualizar onboarding global", error);
     } finally {

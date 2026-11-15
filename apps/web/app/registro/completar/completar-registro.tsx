@@ -4,6 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { api } from "@/lib/api";
 import { useLanguage } from "@/lib/language-context";
 
 const textos = {
@@ -76,7 +77,7 @@ export default function CompletarRegistro({
     setEnviando(true);
     setError(null);
     try {
-      const res = await fetch("/api/registro/completar", {
+      const res = await api("/api/registro/completar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accountType: tipo, ...datos }),
