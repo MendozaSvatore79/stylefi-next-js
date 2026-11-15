@@ -1,8 +1,7 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin-auth";
-import { authConfig } from "@/lib/auth";
+import { obtenerSesion } from "@/lib/sesion";
 import { esUuid, leerArchivo } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -38,7 +37,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   };
 
   if (archivo.kind === "branch_proof") {
-    const session = await getServerSession(authConfig);
+    const session = await obtenerSesion();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
     }

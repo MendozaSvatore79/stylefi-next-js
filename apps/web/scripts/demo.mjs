@@ -3,14 +3,21 @@
 //
 //   npm run db:arriba && npm run demo
 //
-// Se puede correr varias veces: no duplica nada. En cada corrida genera contraseñas nuevas para las
-// dos cuentas de demostración y las muestra una sola vez. Se niega a correr contra una base que no
-// sea local (localhost / 127.0.0.1), para que nunca llegue a producción.
+// Se puede correr varias veces: no duplica nada. Se niega a correr contra una base que no sea local
+// (localhost / 127.0.0.1), para que nunca llegue a producción.
+//
+// Inicio de sesión (Clerk): si CLERK_SECRET_KEY es de una instancia de DESARROLLO (sk_test_), crea o actualiza
+// las dos cuentas en Clerk con contraseñas nuevas y las muestra una sola vez. Los correos llevan +clerk_test:
+// si Clerk pide un código al entrar, es 424242.
+import crypto from "node:crypto";
 import { pathToFileURL } from "node:url";
 
-import { generarPassword, hashPassword } from "./crear-admin.mjs";
-
 export const CUENTAS = {
+  negocio: "demo-negocio+clerk_test@example.com",
+  cliente: "demo-cliente+clerk_test@example.com",
+};
+/** Correos de versiones anteriores del script: se renombran a los nuevos para no duplicar datos. */
+const CORREOS_ANTERIORES = {
   negocio: "negocio@demo.stylefi.invalid",
   cliente: "cliente@demo.stylefi.invalid",
 };
@@ -37,22 +44,42 @@ export function esBaseLocal(url) {
   return ["localhost", "127.0.0.1", "::1"].includes(host);
 }
 
-async function cuenta(tx, { tipo, email, nombre, apellido, negocio, password }) {
+async function cuenta(tx, { tipo, email, anterior, nombre, apellido, negocio }) {
+  await tx`UPDATE stylehub_users SET email = ${email} WHERE email = ${anterior} AND NOT EXISTS (SELECT 1 FROM stylehub_users WHERE email = ${email})`;
   const [existente] = await tx`SELECT id, account_type FROM stylehub_users WHERE email = ${email}`;
   if (existente && existente.account_type !== tipo) {
     throw new Error(`${email} ya existe como ${existente.account_type}; no se toca.`);
   }
-  const hash = hashPassword(password);
   if (existente) {
-    await tx`UPDATE stylehub_users SET password_hash = ${hash}, email_verified = TRUE, is_banned = FALSE, updated_at = NOW() WHERE id = ${existente.id}`;
+    await tx`UPDATE stylehub_users SET email_verified = TRUE, is_banned = FALSE, updated_at = NOW() WHERE id = ${existente.id}`;
     return existente.id;
   }
   const [nueva] = await tx`
-    INSERT INTO stylehub_users (account_type, first_name, last_name, business_name, email, password_hash, email_verified, verified_at, onboarding_seen)
-    VALUES (${tipo}, ${nombre}, ${apellido}, ${negocio ?? null}, ${email}, ${hash}, TRUE, NOW(), TRUE)
+    INSERT INTO stylehub_users (account_type, first_name, last_name, business_name, email, email_verified, verified_at, onboarding_seen)
+    VALUES (${tipo}, ${nombre}, ${apellido}, ${negocio ?? null}, ${email}, TRUE, NOW(), TRUE)
     RETURNING id
   `;
   return nueva.id;
+}
+
+/** Crea la cuenta en Clerk (instancia de desarrollo) o le pone contraseña nueva. Devuelve su id. */
+export async function cuentaClerk(secretKey, { email, password, nombre, apellido }) {
+  const api = (ruta, init = {}) =>
+    fetch(`https://api.clerk.com/v1${ruta}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
+    });
+  const busqueda = await api(`/users?email_address=${encodeURIComponent(email)}`);
+  if (!busqueda.ok) throw new Error(`Clerk respondió ${busqueda.status} al buscar ${email}.`);
+  const [existente] = await busqueda.json();
+  const r = existente
+    ? await api(`/users/${existente.id}`, { method: "PATCH", body: JSON.stringify({ password, skip_password_checks: true }) })
+    : await api("/users", {
+        method: "POST",
+        body: JSON.stringify({ email_address: [email], password, skip_password_checks: true, first_name: nombre, last_name: apellido }),
+      });
+  if (!r.ok) throw new Error(`Clerk respondió ${r.status} con ${email}.`);
+  return (await r.json()).id;
 }
 
 /** Busca una fila por sus claves; si no existe, la inserta. Devuelve el id. */
@@ -64,13 +91,13 @@ async function buscarOCrear(tx, buscar, crear) {
 }
 
 /** Crea o completa los datos de demostración. Devuelve un resumen. */
-export async function sembrarDemo(sql, passwords) {
+export async function sembrarDemo(sql) {
   return sql.begin(async (tx) => {
     const negocioId = await cuenta(tx, {
-      tipo: "negocio", email: CUENTAS.negocio, nombre: "Dueña", apellido: "Demo", negocio: NEGOCIO, password: passwords.negocio,
+      tipo: "negocio", email: CUENTAS.negocio, anterior: CORREOS_ANTERIORES.negocio, nombre: "Dueña", apellido: "Demo", negocio: NEGOCIO,
     });
     const clienteId = await cuenta(tx, {
-      tipo: "cliente", email: CUENTAS.cliente, nombre: "Cliente", apellido: "Demo", password: passwords.cliente,
+      tipo: "cliente", email: CUENTAS.cliente, anterior: CORREOS_ANTERIORES.cliente, nombre: "Cliente", apellido: "Demo",
     });
 
     const sucursalId = await buscarOCrear(
@@ -154,20 +181,31 @@ async function main() {
   try {
     if (!(await esquemaListo(sql))) {
       // Las tablas las crea la app al arrancar: si está corriendo, una petición basta.
-      const app = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+      const app = "http://localhost:3000";
       await fetch(`${app}/api/businesses`).catch(() => null);
       if (!(await esquemaListo(sql))) {
         console.error(`La base no tiene tablas todavía. Arranca la app (npm run dev), abre ${app} y repite npm run demo.`);
         process.exit(1);
       }
     }
-    const passwords = { negocio: generarPassword(), cliente: generarPassword() };
-    const r = await sembrarDemo(sql, passwords);
+    const r = await sembrarDemo(sql);
     console.log(`Listo: ${r.negocio} · ${r.sucursal} · ${r.servicios} servicios · ${r.estilistas} estilistas (lun–sáb 10–14 y 15–19).`);
-    console.log("Contraseñas nuevas (se muestran solo esta vez; la siguiente corrida las cambia):");
-    console.log(`  Negocio  ${CUENTAS.negocio}  ${passwords.negocio}`);
-    console.log(`  Cliente  ${CUENTAS.cliente}  ${passwords.cliente}  (saldo en monedero: $${r.saldo})`);
-    console.log("Para el panel de administración: npm run crear-admin -- tu-correo@dominio.com \"Tu nombre\"");
+    const secreta = process.env.CLERK_SECRET_KEY;
+    if (!secreta?.startsWith("sk_test_")) {
+      console.log("Sin CLERK_SECRET_KEY de desarrollo (sk_test_): no se crearon las cuentas en Clerk, así que no podrás entrar con ellas.");
+    } else {
+      const claves = { negocio: crypto.randomBytes(18).toString("base64url"), cliente: crypto.randomBytes(18).toString("base64url") };
+      for (const [tipo, nombre] of [["negocio", "Dueña"], ["cliente", "Cliente"]]) {
+        const clerkId = await cuentaClerk(secreta, { email: CUENTAS[tipo], password: claves[tipo], nombre, apellido: "Demo" });
+        await sql`UPDATE stylehub_users SET clerk_user_id = NULL WHERE clerk_user_id = ${clerkId} AND email <> ${CUENTAS[tipo]}`;
+        await sql`UPDATE stylehub_users SET clerk_user_id = ${clerkId} WHERE email = ${CUENTAS[tipo]}`;
+      }
+      console.log("Contraseñas nuevas en Clerk (se muestran solo esta vez; la siguiente corrida las cambia):");
+      console.log(`  Negocio  ${CUENTAS.negocio}  ${claves.negocio}`);
+      console.log(`  Cliente  ${CUENTAS.cliente}  ${claves.cliente}  (saldo en monedero: $${r.saldo})`);
+      console.log("Si Clerk pide un código al entrar, escribe 424242 (correos de prueba +clerk_test).");
+    }
+    console.log('Para el panel de administración: npm run asignar-admin -- tu-correo@dominio.com "Tu nombre"');
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     codigo = 1;

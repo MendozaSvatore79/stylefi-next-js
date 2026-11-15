@@ -6,9 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 
 const estado = vi.hoisted(() => ({ fallarCon: null as null | string }));
 
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(async () => ({ user: { id: "b0000000-0000-0000-0000-000000000001", accountType: "negocio" } })),
-  default: vi.fn(),
+vi.mock("@/lib/sesion", () => ({
+  obtenerSesion: vi.fn(async () => ({ user: { id: "b0000000-0000-0000-0000-000000000001", accountType: "negocio" } })),
 }));
 vi.mock("@/lib/db-init", () => ({ ensureStylehubSchema: vi.fn(async () => undefined) }));
 vi.mock("@/lib/db", () => ({

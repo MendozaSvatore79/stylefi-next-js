@@ -3,9 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 const consultas = vi.hoisted(() => [] as string[]);
 
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(async () => ({ user: { id: "c0000000-0000-0000-0000-000000000001", accountType: "cliente" } })),
-  default: vi.fn(),
+vi.mock("@/lib/sesion", () => ({
+  obtenerSesion: vi.fn(async () => ({ user: { id: "c0000000-0000-0000-0000-000000000001", accountType: "cliente" } })),
 }));
 vi.mock("@/lib/db-init", () => ({ ensureStylehubSchema: vi.fn(async () => undefined) }));
 vi.mock("@/lib/db", () => ({

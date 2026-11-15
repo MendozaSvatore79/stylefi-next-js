@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
-import { authConfig } from "@/lib/auth";
+import { obtenerSesion } from "@/lib/sesion";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
 export async function getCurrentBusinessUser() {
-  const session = await getServerSession(authConfig);
+  const session = await obtenerSesion();
 
   if (!session?.user?.id) {
     return { error: NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 }) };

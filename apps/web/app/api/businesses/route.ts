@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authConfig } from "@/lib/auth";
+import { obtenerSesion } from "@/lib/sesion";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
@@ -17,7 +16,7 @@ export async function GET(request: Request) {
 
     // Si se solicita un negocio específico con detalles
     if (businessId) {
-      const session = await getServerSession(authConfig);
+      const session = await obtenerSesion();
 
       if (!session?.user) {
         return NextResponse.json(

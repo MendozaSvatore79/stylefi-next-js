@@ -1,16 +1,12 @@
 import type { ReactNode } from "react";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import BusinessDashboardShell from "@/components/business-dashboard-shell";
-import { authConfig } from "@/lib/auth";
+import { accesoAlPanel } from "@/lib/sesion";
 
 export default async function NegocioDashboardLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession(authConfig);
-
-  if (!session?.user || session.user.accountType !== "negocio") {
-    redirect("/iniciar-sesion?reason=unauthorized");
-  }
+  const acceso = await accesoAlPanel("negocio");
+  if ("redirigir" in acceso) redirect(acceso.redirigir);
 
   return <BusinessDashboardShell>{children}</BusinessDashboardShell>;
 }

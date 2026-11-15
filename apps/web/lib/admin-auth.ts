@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
-import { authConfig } from "@/lib/auth";
+import { obtenerSesion } from "@/lib/sesion";
 import { getDb } from "@/lib/db";
 import { ensureStylehubSchema } from "@/lib/db-init";
 
@@ -20,7 +19,7 @@ export type AdminUser = { id: string; email: string };
  * La prueba `tests/admin-auth.test.ts` falla si alguna ruta de administración no la usa.
  */
 export async function requireAdmin(): Promise<{ admin: AdminUser } | { error: NextResponse }> {
-  const session = await getServerSession(authConfig);
+  const session = await obtenerSesion();
 
   if (!session?.user?.id) {
     return { error: NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 }) };

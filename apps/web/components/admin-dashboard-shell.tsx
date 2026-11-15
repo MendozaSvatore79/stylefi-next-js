@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BarChart3, Bell, ChevronRight, LayoutDashboard, LifeBuoy, Menu, Settings2, ShieldCheck, Sparkles, X } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { useCerrarSesion, useSesion } from "@/lib/sesion-cliente";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,8 @@ const navItems: NavItem[] = [
 
 export default function AdminDashboardShell({ children }: AdminDashboardShellProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session } = useSesion();
+  const cerrarSesion = useCerrarSesion();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -286,7 +287,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                         title: "Cerrando sesión",
                         message: "Redirigiendo al inicio de sesión...",
                       });
-                      await signOut({ callbackUrl: "/iniciar-sesion" });
+                      await cerrarSesion("/iniciar-sesion");
                     } finally {
                       setLoggingOut(false);
                     }

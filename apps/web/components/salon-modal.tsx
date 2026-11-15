@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSesion } from "@/lib/sesion-cliente";
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
@@ -75,7 +75,7 @@ export default function SalonModal({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const { status } = useSession();
+  const { status } = useSesion();
   const { showToast } = useToast();
   const { t, language } = useLanguage();
   const [business, setBusiness] = useState<BusinessDetail | null>(null);

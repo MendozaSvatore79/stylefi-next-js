@@ -21,7 +21,7 @@ Requisitos: Node 24 o más nuevo y Docker. Clona también `synova-backend` (tien
 ```bash
 npm install
 npm run db:arriba                              # PostgreSQL en 127.0.0.1:54329
-cp apps/web/.env.example apps/web/.env.local   # y completa NEXTAUTH_SECRET (openssl rand -hex 32)
+cp apps/web/.env.example apps/web/.env.local   # y pon las llaves de Clerk (instancia de desarrollo)
 # En synova-backend: npm install && cp .env.example .env.local && npm run db:migrar
 npm run dev                                    # front en http://localhost:3000
 npm run demo                                   # datos de demostración; muestra las contraseñas una vez
@@ -38,7 +38,7 @@ Otros comandos (desde la raíz):
 | `npm test` | Pruebas del front y de `packages/shared` (Vitest). |
 | `npm run lint` | ESLint del front. |
 | `npm run build` | Compila el front (y `packages/shared` antes). |
-| `npm run crear-admin -- correo@dominio.com "Nombre"` | Crea una cuenta de administración (o le pone contraseña nueva). |
+| `npm run asignar-admin -- correo@dominio.com "Nombre"` | Da el rol de administración a un correo (solo desde la terminal). |
 | `npm run db:abajo` | Apaga la base local sin borrar datos. |
 
 ## Base de datos: esquema y migraciones
@@ -53,17 +53,33 @@ rutas estén en el API. `db/schema.sql` está desactualizado y también se borra
   Solo `localhost` se conecta sin SSL. Con RDS Proxy hay que agregar `prepare: false`.
 - El API (`synova-backend`) tiene su propia configuración de conexión; ver su README.
 
+## Inicio de sesión (Clerk)
+
+Clerk se encarga de entrar, registrarse, Google, verificar el correo, la contraseña y su recuperación. Los
+**permisos** (cliente, negocio, admin, baneo) están en nuestra base (`stylehub_users`, columna `clerk_user_id`):
+
+- `apps/web/lib/sesion.ts`: `obtenerSesion()` da la sesión de la app. Si alguien entra por primera vez con un
+  correo **verificado** que ya tenía cuenta (sin vincular), se vincula sola; si no tiene cuenta, va a
+  `/registro/completar` a elegir cliente o negocio.
+- `proxy.ts`: Clerk en cada petición; `/dashboard`, `/registro` y `/entrar` piden sesión. Cada ruta de datos vuelve
+  a verificar en la base.
+- Cuenta baneada: `/cuenta-suspendida` (se le cierra la sesión de Clerk).
+- Contraseña y correo: el perfil de Clerk (Ajustes → Seguridad → "Administrar mi acceso"). Eliminar la cuenta la
+  borra en nuestra base y en Clerk.
+- En local, con una instancia de desarrollo de Clerk, `npm run demo` crea las cuentas de demostración en Clerk
+  (correos `+clerk_test`: si Clerk pide un código, es `424242`).
+
 ## Cuentas de administración
 
-Son usuarios de la base con tipo `admin` (ya no se usan `ADMIN_EMAIL`/`ADMIN_PASSWORD`):
+Son usuarios de la base con tipo `admin`. El rol se da **solo desde la terminal**:
 
 ```bash
-npm run crear-admin -- correo@dominio.com "Nombre"
+npm run asignar-admin -- correo@dominio.com "Nombre"
 ```
 
-Lee `DATABASE_URL` de `apps/web/.env.local`. Si no defines `CREAR_ADMIN_PASSWORD` (12+ caracteres), genera una
-contraseña y la muestra una sola vez. Todas las rutas de `app/api/admin/` exigen esa sesión (`requireAdmin()`
-en `apps/web/lib/admin-auth.ts`).
+Si el correo no tiene cuenta, crea una de administración sin contraseña: la persona entra con Clerk usando ese
+correo y, al verificarlo, queda vinculada. No convierte en administración una cuenta de cliente o negocio. Todas
+las rutas de `app/api/admin/` exigen esa sesión (`requireAdmin()` en `apps/web/lib/admin-auth.ts`).
 
 ## Archivos subidos
 
