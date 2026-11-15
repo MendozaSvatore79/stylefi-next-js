@@ -1,6 +1,13 @@
 import nodemailer from "nodemailer";
 
+import { ZONA_HORARIA } from "@stylefi/shared";
+
 import { getOptionalEnv } from "@/lib/env";
+
+/** Texto seguro dentro del HTML del correo (los nombres los escribe la gente). */
+export function escaparHtml(texto: string) {
+  return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 
 function normalizeEnv(value: string | undefined): string | undefined {
   if (!value) {
@@ -308,7 +315,13 @@ export async function sendAppointmentConfirmationEmails({
   const dateLabel = new Date(scheduledAt).toLocaleString("es-MX", {
     dateStyle: "full",
     timeStyle: "short",
+    timeZone: ZONA_HORARIA, // la hora del negocio, no la del servidor (UTC en Vercel)
   });
+  const h = {
+    clientName: escaparHtml(clientName),
+    businessName: escaparHtml(businessName),
+    serviceName: escaparHtml(serviceName),
+  };
   const amountLabel = totalAmount.toFixed(2);
 
   await transporter.sendMail({
@@ -321,8 +334,8 @@ export async function sendAppointmentConfirmationEmails({
         <div style="max-width:560px; margin:0 auto; background:#ffffff; border-radius:20px; padding:32px; border:1px solid #e5e7eb;">
           <p style="margin:0 0 8px; text-transform:uppercase; letter-spacing:.16em; font-size:12px; color:#6b7280;">STYLEHUB</p>
           <h1 style="margin:0 0 12px; font-size:28px; line-height:1.2; color:#130b3a;">Tu cita está confirmada</h1>
-          <p style="margin:0 0 20px; font-size:16px; color:#374151;">Hola ${clientName}, el negocio <strong>${businessName}</strong> confirmó tu cita.</p>
-          <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Servicio:</strong> ${serviceName}</p>
+          <p style="margin:0 0 20px; font-size:16px; color:#374151;">Hola ${h.clientName}, el negocio <strong>${h.businessName}</strong> confirmó tu cita.</p>
+          <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Servicio:</strong> ${h.serviceName}</p>
           <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Fecha y hora:</strong> ${dateLabel}</p>
           <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Total:</strong> $${amountLabel}</p>
         </div>
@@ -340,9 +353,9 @@ export async function sendAppointmentConfirmationEmails({
         <div style="max-width:560px; margin:0 auto; background:#ffffff; border-radius:20px; padding:32px; border:1px solid #e5e7eb;">
           <p style="margin:0 0 8px; text-transform:uppercase; letter-spacing:.16em; font-size:12px; color:#6b7280;">STYLEHUB</p>
           <h1 style="margin:0 0 12px; font-size:28px; line-height:1.2; color:#130b3a;">Cita confirmada</h1>
-          <p style="margin:0 0 20px; font-size:16px; color:#374151;">Hola ${businessName}, ya se notificó al cliente por correo.</p>
-          <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Cliente:</strong> ${clientName}</p>
-          <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Servicio:</strong> ${serviceName}</p>
+          <p style="margin:0 0 20px; font-size:16px; color:#374151;">Hola ${h.businessName}, ya se notificó al cliente por correo.</p>
+          <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Cliente:</strong> ${h.clientName}</p>
+          <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Servicio:</strong> ${h.serviceName}</p>
           <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Fecha y hora:</strong> ${dateLabel}</p>
           <p style="margin:0 0 8px; font-size:15px; color:#374151;"><strong>Total:</strong> $${amountLabel}</p>
         </div>
