@@ -70,14 +70,21 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     expect(llamadas).toEqual([{ url: "http://localhost:4000/business/summary", auth: "Bearer token-tardio" }]);
   });
 
-  it.each(["/api/support/oraclex", "/api/support/tickets", "/api/client/walletx", "/api/admin/usersx", "/api/businessesx"])(
-    "%s (aún no movida) sigue yendo a Next.js, sin token",
+  it.each(["/api/support/oraclex", "/api/cualquier/otra"])(
+    "%s: desde la fase 4 toda ruta /api/… va al backend (ya no quedan rutas de datos en Next)",
     async (ruta) => {
       const { api } = await import("@/lib/api");
       await api(ruta);
-      expect(llamadas).toEqual([{ url: ruta, auth: null }]);
+      expect(llamadas).toEqual([{ url: `http://localhost:4000${ruta.slice(4)}`, auth: "Bearer token-de-clerk" }]);
     },
   );
+
+  it("una URL que no es /api (por ejemplo un archivo estático) no se toca", async () => {
+    const { api } = await import("@/lib/api");
+    await api("/favicon.ico");
+    expect(llamadas).toEqual([{ url: "/favicon.ico", auth: null }]);
+  });
+
 
   it("urlArchivo: /api/files/<id> pasa al backend; las https:// no cambian", async () => {
     const { urlArchivo } = await import("@/lib/api");
@@ -87,15 +94,20 @@ describe("con NEXT_PUBLIC_API_URL", () => {
   });
 });
 
-describe("sin NEXT_PUBLIC_API_URL (producción hoy)", () => {
-  it("todo sigue yendo a Next.js, sin token, y las URLs de archivos no cambian", async () => {
+describe("sin NEXT_PUBLIC_API_URL (fase 4: no hay respaldo)", () => {
+  it("api() falla con un mensaje claro y no llama a nada", async () => {
     vi.stubEnv("NEXT_PUBLIC_API_URL", "");
-    const { api, urlArchivo } = await import("@/lib/api");
-    await api("/api/business/services");
-    expect(llamadas).toEqual([{ url: "/api/business/services", auth: null }]);
-    expect(urlArchivo("/api/files/123")).toBe("/api/files/123");
+    const { api } = await import("@/lib/api");
+    await expect(api("/api/business/services")).rejects.toThrow("Falta NEXT_PUBLIC_API_URL");
+    expect(llamadas).toEqual([]);
+  });
+
+  it("next.config.ts exige NEXT_PUBLIC_API_URL al compilar y arrancar", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "");
+    await expect(import("../next.config")).rejects.toThrow("Falta NEXT_PUBLIC_API_URL");
   });
 });
+
 
 describe("apiServidor (páginas que se arman en el servidor)", () => {
   beforeEach(() => {
@@ -120,7 +132,7 @@ describe("apiServidor (páginas que se arman en el servidor)", () => {
     expect(init.cache).toBe("no-store");
   });
 
-  it("sin NEXT_PUBLIC_API_URL: null (quien llama sigue usando la base)", async () => {
+  it("sin NEXT_PUBLIC_API_URL: null (lib/sesion.ts lo convierte en un error claro)", async () => {
     vi.stubEnv("NEXT_PUBLIC_API_URL", "");
     const { apiServidor } = await import("@/lib/api-servidor");
     expect(await apiServidor("/entrar")).toBeNull();

@@ -14,9 +14,7 @@
     "start": "npm run start -w @stylefi/web",
     "lint": "npm run lint -w @stylefi/web",
     "test": "npm test --workspaces --if-present",
-    "demo": "npm run demo -w @stylefi/web",
     "db:arriba": "docker compose up -d --wait postgres",
-    "db:abajo": "docker compose stop postgres",
-    "asignar-admin": "npm run asignar-admin -w @stylefi/web --"
+    "db:abajo": "docker compose stop postgres"
   }
 }
