@@ -34,6 +34,17 @@ describe("portada y panel en vivo", () => {
   });
 });
 
+describe("portada: orden de los módulos", () => {
+  it("los que están en mantenimiento van primero (siempre se ven); máximo 4; el resto conserva su orden", async () => {
+    const { modulosDeLaPortada } = await import("@/components/live-dashboard-panel");
+    const m = (key: string, isMaintenance = false) => ({ key, isMaintenance });
+    const nueve = [m("salones"), m("citas"), m("wallet"), m("config"), m("sucursales"), m("servicios"), m("estilistas", true), m("citas-negocio"), m("config-negocio", true)];
+    expect(modulosDeLaPortada(nueve).map((x) => x.key)).toEqual(["estilistas", "config-negocio", "salones", "citas"]);
+    expect(modulosDeLaPortada(nueve.map((x) => ({ ...x, isMaintenance: false }))).map((x) => x.key)).toEqual(["salones", "citas", "wallet", "config"]);
+    expect(modulosDeLaPortada([])).toEqual([]);
+  });
+});
+
 describe("soporte (AURA)", () => {
   it("el widget manda el código del ticket en todas sus llamadas, lo guarda al crear y lo olvida si el ticket ya no se puede ver", () => {
     const fuente = leer("components/oracle-support-widget.tsx");
