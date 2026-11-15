@@ -1,22 +1,22 @@
 {
-  "name": "stylefi",
-  "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "engines": {
-    "node": ">=24"
-  },
-  "scripts": {
-    "dev": "npm run dev -w @stylefi/web",
-    "build": "npm run build -w @stylefi/web",
-    "start": "npm run start -w @stylefi/web",
-    "lint": "npm run lint -w @stylefi/web",
-    "test": "npm test --workspaces --if-present",
-    "demo": "npm run demo -w @stylefi/web",
-    "crear-admin": "npm run crear-admin -w @stylefi/web --",
-    "db:arriba": "docker compose up -d --wait postgres",
-    "db:abajo": "docker compose stop postgres"
-  }
+  "name": "stylefi",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @stylefi/web",
+    "build": "npm run build -w @stylefi/web",
+    "start": "npm run start -w @stylefi/web",
+    "lint": "npm run lint -w @stylefi/web",
+    "test": "npm test --workspaces --if-present",
+    "demo": "npm run demo -w @stylefi/web",
+    "crear-admin": "npm run crear-admin -w @stylefi/web --",
+    "db:arriba": "docker compose up -d --wait postgres",
+    "db:abajo": "docker compose stop postgres"
+  }
 }
