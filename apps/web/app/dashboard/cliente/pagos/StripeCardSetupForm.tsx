@@ -4,7 +4,14 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { api } from "@/lib/api";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+/** Llave pública de Stripe, o null si falta (sin ella, loadStripe falla y la página lanzaba un error de JavaScript). */
+export function llavePublicaDeStripe(valor: string | undefined) {
+  const llave = valor?.trim();
+  return llave ? llave : null;
+}
+
+const LLAVE_PUBLICA = llavePublicaDeStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = LLAVE_PUBLICA ? loadStripe(LLAVE_PUBLICA) : null;
 
 function CardSetupForm({ onSuccess }: { onSuccess?: () => void | Promise<void> }) {
   const stripe = useStripe();
@@ -119,6 +126,14 @@ function CardSetupForm({ onSuccess }: { onSuccess?: () => void | Promise<void> }
 }
 
 export default function StripeCardSetupForm(props: { onSuccess?: () => void | Promise<void> }) {
+  if (!stripePromise) {
+    // Sin llave pública: el resto de la página (monedero, otros métodos) sigue funcionando
+    return (
+      <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        Agregar tarjeta no está disponible por ahora. Puedes usar tu saldo o pagar en efectivo en el local.
+      </p>
+    );
+  }
   return (
     <Elements stripe={stripePromise}>
       <CardSetupForm {...props} />
