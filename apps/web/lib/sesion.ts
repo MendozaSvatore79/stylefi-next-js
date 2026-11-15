@@ -30,7 +30,15 @@ type FilaUsuario = {
 
 /** Datos de Clerk de quien inició sesión: correo principal solo si Clerk lo verificó. */
 export async function datosDeClerk() {
-  const usuario = await currentUser();
+  let usuario: Awaited<ReturnType<typeof currentUser>>;
+  try {
+    usuario = await currentUser();
+  } catch (error) {
+    // La cookie es de un usuario que ya no existe en Clerk (por ejemplo, recién eliminó su cuenta): sin sesión,
+    // en vez del 500 que daba la página. Cualquier otro error de Clerk se propaga.
+    if ((error as { status?: number } | null)?.status === 404) return null;
+    throw error;
+  }
   if (!usuario) return null;
   const principal = usuario.emailAddresses.find((e) => e.id === usuario.primaryEmailAddressId);
   const correoVerificado =
