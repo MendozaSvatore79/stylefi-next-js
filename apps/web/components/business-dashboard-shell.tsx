@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
+import { rutaActiva } from "@/lib/ruta-activa";
 
 type MenuItem = {
   href: string;
@@ -60,7 +61,7 @@ export default function BusinessDashboardShell({ children }: { children: ReactNo
   const { showToast } = useToast();
 
   const activeItem = useMemo(
-    () => MENU_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`)) ?? MENU_ITEMS[0],
+    () => MENU_ITEMS.find((item) => rutaActiva(pathname, item.href, MENU_ITEMS[0].href)) ?? MENU_ITEMS[0],
     [pathname],
   );
 
@@ -165,7 +166,7 @@ export default function BusinessDashboardShell({ children }: { children: ReactNo
 
             <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-6">
               {MENU_ITEMS.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const active = rutaActiva(pathname, item.href, MENU_ITEMS[0].href);
                 const ItemIcon = item.icon;
                 return (
                   <Link

@@ -7,6 +7,7 @@ import { Building2, CreditCard, ShieldCheck } from "lucide-react";
 import AccountSecurityPanel from "@/components/account-security-panel";
 import { useToast } from "@/components/toast";
 import { api } from "@/lib/api";
+import { errorTelefono, errorTexto, LIMITES, limpiarTelefono, primerError } from "@/lib/validacion";
 
 type BusinessProfile = {
   business_name: string | null;
@@ -32,6 +33,8 @@ export default function NegocioConfiguracionPage() {
   /** Sucursal principal en solo lectura: los datos del salón se editan en Sucursales (lo que ve el cliente). */
   const [primaryBranch, setPrimaryBranch] = useState<{ id: string; branch_name: string; validation_status: string; address: string | null; city: string | null } | null>(null);
   const [cargado, setCargado] = useState(false);
+  /** Teléfono como se cargó: si no se toca, se acepta aunque no cumpla el formato nuevo (igual que el backend). */
+  const [telefonoGuardado, setTelefonoGuardado] = useState("");
   const [form, setForm] = useState({
     businessName: "",
     phone: "",
@@ -63,6 +66,7 @@ export default function NegocioConfiguracionPage() {
         return;
       }
 
+      setTelefonoGuardado(payload.profile.phone ?? "");
       setForm({
         businessName: payload.profile.business_name ?? "",
         phone: payload.profile.phone ?? "",
@@ -84,6 +88,15 @@ export default function NegocioConfiguracionPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Mismos límites y formatos que el backend (lib/validacion.ts)
+    const errorDeCampos = primerError(
+      errorTexto(form.businessName, { es: "El nombre legal del negocio", en: "The legal name" }, LIMITES.nombreLegal, "es"),
+      form.phone === telefonoGuardado ? null : errorTelefono(form.phone, "es"),
+    );
+    if (errorDeCampos) {
+      showToast({ type: "error", title: "Revisa el formulario", message: errorDeCampos });
+      return;
+    }
     setIsSaving(true);
 
     try {
@@ -138,11 +151,11 @@ export default function NegocioConfiguracionPage() {
           Administra tu perfil de salón, horarios, seguridad y opciones de negocio.
         </p>
 
-        <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setActiveSection("profile")}
-            className={`group relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-center transition-all ${
+            className={`group relative overflow-hidden rounded-2xl border-2 px-2 py-3 text-center sm:px-4 sm:py-4 transition-all ${
               activeSection === "profile"
                 ? "border-emerald-600 bg-emerald-50 shadow-md"
                 : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
@@ -151,7 +164,7 @@ export default function NegocioConfiguracionPage() {
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
               <Building2 className="size-5" />
             </div>
-            <p className={`mt-2 text-sm font-semibold transition ${
+            <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "profile" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
               Perfil
@@ -166,7 +179,7 @@ export default function NegocioConfiguracionPage() {
           <button
             type="button"
             onClick={() => setActiveSection("security")}
-            className={`group relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-center transition-all ${
+            className={`group relative overflow-hidden rounded-2xl border-2 px-2 py-3 text-center sm:px-4 sm:py-4 transition-all ${
               activeSection === "security"
                 ? "border-emerald-600 bg-emerald-50 shadow-md"
                 : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
@@ -175,7 +188,7 @@ export default function NegocioConfiguracionPage() {
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
               <ShieldCheck className="size-5" />
             </div>
-            <p className={`mt-2 text-sm font-semibold transition ${
+            <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "security" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
               Seguridad
@@ -190,7 +203,7 @@ export default function NegocioConfiguracionPage() {
           <button
             type="button"
             onClick={() => setActiveSection("billing")}
-            className={`group relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-center transition-all ${
+            className={`group relative overflow-hidden rounded-2xl border-2 px-2 py-3 text-center sm:px-4 sm:py-4 transition-all ${
               activeSection === "billing"
                 ? "border-emerald-600 bg-emerald-50 shadow-md"
                 : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
@@ -199,7 +212,7 @@ export default function NegocioConfiguracionPage() {
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-emerald-600">
               <CreditCard className="size-5" />
             </div>
-            <p className={`mt-2 text-sm font-semibold transition ${
+            <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "billing" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
               Facturación
@@ -262,6 +275,7 @@ export default function NegocioConfiguracionPage() {
                   <input
                     value={form.businessName}
                     onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
+                    maxLength={LIMITES.nombreLegal}
                     placeholder="Nombre legal del negocio"
                     className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
                   />
@@ -270,8 +284,10 @@ export default function NegocioConfiguracionPage() {
                   Teléfono de contacto
                   <input
                     value={form.phone}
-                    onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                    placeholder="Teléfono"
+                    onChange={(event) => setForm((current) => ({ ...current, phone: limpiarTelefono(event.target.value) }))}
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder="Teléfono (10 dígitos)"
                     className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
                   />
                 </label>

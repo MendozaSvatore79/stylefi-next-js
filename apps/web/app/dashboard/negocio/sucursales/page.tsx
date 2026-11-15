@@ -8,6 +8,7 @@ import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
 import { diasInvalidos, horarioAnterior, horarioPorOmision, leerHorario, resumenHorario, type DiaHorario } from "@/lib/horario";
+import { errorCodigoPostal, errorTelefono, errorTexto, errorUrl, LIMITES, limpiarCodigoPostal, limpiarTelefono, primerError } from "@/lib/validacion";
 import { aplicarDireccion, coordenadasValidas, leerJson, mensajeErrorUbicacion, obtenerPosicion } from "@/lib/ubicacion";
 
 type Branch = {
@@ -173,6 +174,22 @@ export default function NegocioSucursalesPage() {
         title: language === "en" ? "Limit reached" : "Límite alcanzado",
         message: language === "en" ? "You can only register up to 3 branches." : "Solo puedes registrar hasta 3 sucursales.",
       });
+      return;
+    }
+
+    // Mismos límites y formatos que el backend (lib/validacion.ts)
+    const errorDeCampos = primerError(
+      errorTexto(form.branchName, { es: "El nombre de la sucursal", en: "The branch name" }, LIMITES.nombreCorto, language, { obligatorio: true }),
+      errorTexto(form.description, { es: "La descripción", en: "The description" }, LIMITES.descripcion, language, { multilinea: true }),
+      errorTexto(form.address, { es: "La dirección", en: "The address" }, LIMITES.direccion, language),
+      errorTexto(form.city, { es: "La ciudad", en: "The city" }, LIMITES.ciudad, language),
+      errorTexto(form.state, { es: "El estado", en: "The state" }, LIMITES.estado, language),
+      errorCodigoPostal(form.postalCode, language),
+      errorTelefono(form.phone, language),
+      errorUrl(form.website, { es: "El sitio web", en: "The website" }, language),
+    );
+    if (errorDeCampos) {
+      showToast({ type: "error", title: language === "en" ? "Check the form" : "Revisa el formulario", message: errorDeCampos });
       return;
     }
 
@@ -407,6 +424,7 @@ export default function NegocioSucursalesPage() {
           <input
             value={form.branchName}
             onChange={(event) => setForm((current) => ({ ...current, branchName: event.target.value }))}
+            maxLength={LIMITES.nombreCorto}
             placeholder={language === "en" ? "Branch name" : "Nombre de la sucursal"}
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
@@ -415,6 +433,7 @@ export default function NegocioSucursalesPage() {
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
             rows={3}
+            maxLength={LIMITES.descripcion}
             placeholder={language === "en" ? "Brief description" : "Descripción breve"}
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
           />
@@ -422,6 +441,7 @@ export default function NegocioSucursalesPage() {
           <input
             value={form.address}
             onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+            maxLength={LIMITES.direccion}
             placeholder={language === "en" ? "Address" : "Dirección"}
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
@@ -430,19 +450,22 @@ export default function NegocioSucursalesPage() {
             <input
               value={form.city}
               onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-              placeholder={language === "en" ? "City" : "Ciudad"}
+              maxLength={LIMITES.ciudad}
+            placeholder={language === "en" ? "City" : "Ciudad"}
               className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.state}
               onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
-              placeholder={language === "en" ? "State" : "Estado"}
+              maxLength={LIMITES.estado}
+            placeholder={language === "en" ? "State" : "Estado"}
               className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.postalCode}
-              onChange={(event) => setForm((current) => ({ ...current, postalCode: event.target.value }))}
-              placeholder={language === "en" ? "ZIP" : "CP"}
+              onChange={(event) => setForm((current) => ({ ...current, postalCode: limpiarCodigoPostal(event.target.value) }))}
+              inputMode="numeric"
+            placeholder={language === "en" ? "ZIP" : "CP"}
               className="h-11 w-full min-w-0 @sm:col-span-2 @lg:col-span-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
@@ -450,14 +473,17 @@ export default function NegocioSucursalesPage() {
           <div className="grid gap-3 @sm:grid-cols-2">
             <input
               value={form.phone}
-              onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-              placeholder={language === "en" ? "Phone" : "Teléfono"}
+              onChange={(event) => setForm((current) => ({ ...current, phone: limpiarTelefono(event.target.value) }))}
+              inputMode="numeric"
+              autoComplete="tel"
+            placeholder={language === "en" ? "Phone" : "Teléfono"}
               className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
             <input
               value={form.website}
               onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
-              placeholder={language === "en" ? "Website" : "Sitio web"}
+              maxLength={LIMITES.url}
+            placeholder={language === "en" ? "Website" : "Sitio web"}
               className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
             />
           </div>
@@ -526,6 +552,7 @@ export default function NegocioSucursalesPage() {
           <input
             value={form.imageUrl}
             onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+            maxLength={LIMITES.url}
             placeholder={language === "en" ? "Image URL starting with https:// (optional, if you don't upload a file)" : "URL de imagen con https:// (opcional, si no subes archivo)"}
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
           />
