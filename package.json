@@ -19,4 +19,4 @@
     "db:arriba": "docker compose up -d --wait postgres",
     "db:abajo": "docker compose stop postgres"
   }
-} asi esta mi package.json
+}
