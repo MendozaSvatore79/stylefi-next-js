@@ -30,6 +30,10 @@ export default function RootLayout({
       localization={esMX}
       signInUrl="/iniciar-sesion"
       signUpUrl="/register"
+      // Todo inicio de sesión o registro pasa por /entrar (que decide: panel o /registro/completar), también cuando
+      // Clerk cambia de flujo (Google desde /register con cuenta existente, o desde /iniciar-sesion con cuenta nueva).
+      signInForceRedirectUrl="/entrar"
+      signUpForceRedirectUrl="/entrar"
       afterSignOutUrl="/iniciar-sesion"
       telemetry={false}
     >

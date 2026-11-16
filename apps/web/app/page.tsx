@@ -331,7 +331,7 @@ export default async function Home() {
                   </h3>
                 </div>
                 <Link
-                  href="/registro?tipo=negocio"
+                  href="/register"
                   className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-blue-950 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   Conócenos <span aria-hidden>➜</span>

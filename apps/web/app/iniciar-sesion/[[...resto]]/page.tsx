@@ -6,7 +6,13 @@ export default async function IniciarSesionPage({ searchParams }: { searchParams
   const { reason } = await searchParams;
   return (
     <MarcoAcceso aviso={reason}>
-      <SignIn routing="path" path="/iniciar-sesion" signUpUrl="/register" forceRedirectUrl="/entrar" />
+      <SignIn
+        routing="path"
+        path="/iniciar-sesion"
+        signUpUrl="/register"
+        forceRedirectUrl="/entrar"
+        signUpForceRedirectUrl="/entrar"
+      />
     </MarcoAcceso>
   );
 }
