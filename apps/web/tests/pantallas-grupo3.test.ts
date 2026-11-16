@@ -29,7 +29,7 @@ describe("portada y panel en vivo", () => {
 
   it("la portada pregunta el modo mantenimiento al backend desde el servidor (fase 4: sin respaldo en la base)", () => {
     const fuente = leer("app/page.tsx");
-    expect(fuente).toContain('apiServidor("/live-dashboard")');
+    expect(fuente).toContain("fetch(`${base}/live-dashboard`");
     expect(fuente).not.toContain("getLiveDashboardPayload");
   });
 
