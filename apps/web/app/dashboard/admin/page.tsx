@@ -20,6 +20,14 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
+import {
+  correoCoincide,
+  describirHistorial,
+  mensajeDeError,
+  type RevisionDeBorrado,
+  rutaDeBorrado,
+  rutaDeRevision,
+} from "@/lib/borrado-usuario";
 
 type BranchVerification = {
   id: string;
@@ -100,7 +108,15 @@ type UsersPagination = {
 type UserActionDialogState = {
   userId: string;
   userName: string;
-  action: "delete" | "ban" | "unban";
+  action: "ban" | "unban";
+} | null;
+
+/** Diálogo de borrado: la revisión previa del backend decide si se puede borrar o se sugiere suspender. */
+type DeleteDialogState = {
+  userId: string;
+  userName: string;
+  isBanned: boolean;
+  revision: RevisionDeBorrado;
 } | null;
 
 type EditUserFormState = {
@@ -147,6 +163,9 @@ export default function AdminDashboardPage() {
   const [branchActionDialog, setBranchActionDialog] = useState<BranchActionDialogState>(null);
   const [moduleActionDialog, setModuleActionDialog] = useState<ModuleActionDialogState>(null);
   const [userActionDialog, setUserActionDialog] = useState<UserActionDialogState>(null);
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>(null);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [userActionError, setUserActionError] = useState<string | null>(null);
   const [editUserForm, setEditUserForm] = useState<EditUserFormState | null>(null);
 
   const loadBranches = async () => {
@@ -353,17 +372,14 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const runUserAction = async (action: NonNullable<UserActionDialogState>["action"], userId: string) => {
+  const runUserAction = async (action: "delete" | "ban" | "unban", userId: string) => {
+    setUserActionError(null);
     try {
       setUserSavingId(userId);
 
       const response =
         action === "delete"
-          ? await api("/api/admin/users", {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId }),
-            })
+          ? await api(rutaDeBorrado(userId), { method: "DELETE" })
           : await api("/api/admin/users", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
@@ -371,10 +387,34 @@ export default function AdminDashboardPage() {
             });
 
       if (!response.ok) {
+        // 409 (con historial o registros relacionados), 502 (Clerk) u otro: se muestra en rojo, no se ignora
+        setUserActionError(await mensajeDeError(response, action));
         return;
       }
 
       await loadUsers();
+    } catch {
+      setUserActionError("No se pudo contactar al servidor. Revisa tu conexión e intenta de nuevo.");
+    } finally {
+      setUserSavingId(null);
+    }
+  };
+
+  /** Eliminar: primero la revisión previa; con historial se ofrece suspender, sin historial se pide el correo. */
+  const openDeleteDialog = async (user: AdminUser) => {
+    setUserActionError(null);
+    try {
+      setUserSavingId(user.id);
+      const response = await api(rutaDeRevision(user.id), { cache: "no-store" });
+      if (!response.ok) {
+        setUserActionError(await mensajeDeError(response, "delete"));
+        return;
+      }
+      const revision = (await response.json()) as RevisionDeBorrado;
+      setDeleteConfirmEmail("");
+      setDeleteDialog({ userId: user.id, userName: getUserDisplayName(user), isBanned: user.is_banned, revision });
+    } catch {
+      setUserActionError("No se pudo contactar al servidor. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setUserSavingId(null);
     }
@@ -652,6 +692,14 @@ export default function AdminDashboardPage() {
               <CardDescription>Visualiza, edita, banea o elimina cuentas de clientes y negocios.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {userActionError ? (
+                <div role="alert" className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <p>{userActionError}</p>
+                  <button type="button" className="shrink-0 font-semibold text-red-700 hover:underline" onClick={() => setUserActionError(null)}>
+                    Cerrar
+                  </button>
+                </div>
+              ) : null}
               <div className="grid gap-3 md:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))]">
                 <Input
                   value={userQuery}
@@ -804,13 +852,7 @@ export default function AdminDashboardPage() {
                             size="sm"
                             variant="destructive"
                             disabled={userSavingId === user.id}
-                            onClick={() =>
-                              setUserActionDialog({
-                                userId: user.id,
-                                userName: getUserDisplayName(user),
-                                action: "delete",
-                              })
-                            }
+                            onClick={() => void openDeleteDialog(user)}
                           >
                             Eliminar
                           </Button>
@@ -927,7 +969,7 @@ export default function AdminDashboardPage() {
             <AlertDialogTitle>Confirmar acción de usuario</AlertDialogTitle>
             <AlertDialogDescription>
               {userActionDialog
-                ? `¿Deseas ${userActionDialog.action === "delete" ? "eliminar" : userActionDialog.action === "ban" ? "banear" : "desbanear"} a ${userActionDialog.userName}?`
+                ? `¿Deseas ${userActionDialog.action === "ban" ? "banear" : "desbanear"} a ${userActionDialog.userName}?`
                 : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -945,6 +987,71 @@ export default function AdminDashboardPage() {
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={Boolean(deleteDialog)} onOpenChange={(open) => !open && setDeleteDialog(null)}>
+        <AlertDialogContent>
+          {deleteDialog && !deleteDialog.revision.sePuede ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>No se puede eliminar a {deleteDialog.userName}</AlertDialogTitle>
+                <AlertDialogDescription>La cuenta tiene historial y se conserva. Puedes suspenderla en su lugar.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+                {describirHistorial(deleteDialog.revision.desglose).map((motivo) => (
+                  <li key={motivo}>{motivo}</li>
+                ))}
+              </ul>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cerrar</AlertDialogCancel>
+                {deleteDialog.isBanned ? (
+                  <p className="text-sm text-slate-500">Ya está suspendida.</p>
+                ) : (
+                  <AlertDialogAction
+                    onClick={() => {
+                      void runUserAction("ban", deleteDialog.userId);
+                      setDeleteDialog(null);
+                    }}
+                  >
+                    Suspender en su lugar
+                  </AlertDialogAction>
+                )}
+              </AlertDialogFooter>
+            </>
+          ) : deleteDialog ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Eliminar a {deleteDialog.userName}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Se borra la cuenta y su usuario de inicio de sesión. No se puede deshacer. Escribe el correo{" "}
+                  <span className="font-semibold">{deleteDialog.revision.usuario.email}</span> para confirmar.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                aria-label="Correo del usuario para confirmar"
+                autoComplete="off"
+                value={deleteConfirmEmail}
+                onChange={(event) => setDeleteConfirmEmail(event.target.value)}
+                placeholder={deleteDialog.revision.usuario.email}
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={!correoCoincide(deleteConfirmEmail, deleteDialog.revision.usuario.email)}
+                  onClick={() => {
+                    if (!correoCoincide(deleteConfirmEmail, deleteDialog.revision.usuario.email)) {
+                      return;
+                    }
+                    void runUserAction("delete", deleteDialog.userId);
+                    setDeleteDialog(null);
+                  }}
+                >
+                  Confirmar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : null}
         </AlertDialogContent>
       </AlertDialog>
     </div>
