@@ -2,14 +2,23 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { LiveDashboardPanel } from "@/components/live-dashboard-panel";
-import { apiServidor } from "@/lib/api-servidor";
+import { urlDelBackend } from "@/lib/api";
 
-/** ¿La plataforma está en mantenimiento? Lo pregunta al backend (GET /live-dashboard, público). Si no se puede saber,
- * se muestra la portada normal. */
+/** Segundos que se reutiliza la respuesta de GET /live-dashboard entre visitas a la portada. */
+const REVALIDAR_MANTENIMIENTO_S = 30;
+
+/**
+ * ¿La plataforma está en mantenimiento? Lo pregunta al backend (GET /live-dashboard, público). Es la misma respuesta
+ * para todos, así que va sin token y con caché de 30 s: cada visita a la portada ya no llega al backend (antes
+ * pasaba por apiServidor, que fuerza no-store, y era la mayoría de las llamadas desde el servidor). Si no se puede
+ * saber, se muestra la portada normal.
+ */
 async function enMantenimiento(): Promise<boolean> {
+  const base = urlDelBackend();
+  if (!base) return false;
   try {
-    const r = await apiServidor("/live-dashboard");
-    return r?.ok ? Boolean(((await r.json()) as { isMaintenanceMode?: boolean }).isMaintenanceMode) : false;
+    const r = await fetch(`${base}/live-dashboard`, { next: { revalidate: REVALIDAR_MANTENIMIENTO_S } });
+    return r.ok ? Boolean(((await r.json()) as { isMaintenanceMode?: boolean }).isMaintenanceMode) : false;
   } catch {
     return false;
   }
