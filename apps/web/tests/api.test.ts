@@ -70,6 +70,48 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     expect(llamadas).toEqual([{ url: "http://localhost:4000/business/summary", auth: "Bearer token-tardio" }]);
   });
 
+  it.each(["/api/entrar", "/api/sesion"])(
+    "%s comparte la petición concurrente y entrega respuestas independientes",
+    async (ruta) => {
+      let resolver!: (response: Response) => void;
+      let marcarInicio!: () => void;
+      const inicio = new Promise<void>((resolve) => {
+        marcarInicio = resolve;
+      });
+      const espia = vi.fn<typeof fetch>(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolver = resolve;
+            marcarInicio();
+          }),
+      );
+      vi.stubGlobal("fetch", espia);
+      const { api } = await import("@/lib/api");
+
+      const primera = api(ruta, { cache: "no-store" });
+      const segunda = api(ruta, { cache: "no-store" });
+      await inicio;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(espia).toHaveBeenCalledTimes(1);
+
+      resolver(Response.json({ destino: "/dashboard/cliente" }));
+      const [respuesta1, respuesta2] = await Promise.all([primera, segunda]);
+      expect(await respuesta1.json()).toEqual({ destino: "/dashboard/cliente" });
+      expect(await respuesta2.json()).toEqual({ destino: "/dashboard/cliente" });
+    },
+  );
+
+  it("devuelve 429 al llamador sin reintentar automáticamente", async () => {
+    const espia = vi.fn<typeof fetch>(async () => new Response("{}", { status: 429 }));
+    vi.stubGlobal("fetch", espia);
+    const { api } = await import("@/lib/api");
+
+    const response = await api("/api/entrar", { cache: "no-store" });
+
+    expect(response.status).toBe(429);
+    expect(espia).toHaveBeenCalledTimes(1);
+  });
+
   it.each(["/api/support/oraclex", "/api/cualquier/otra"])(
     "%s: desde la fase 4 toda ruta /api/… va al backend (ya no quedan rutas de datos en Next)",
     async (ruta) => {

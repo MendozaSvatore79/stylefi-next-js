@@ -6,6 +6,8 @@
  * no cambien. Sin NEXT_PUBLIC_API_URL no hay a quién llamar (next.config.ts lo exige al compilar).
  */
 const BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || null;
+const solicitudesEnCurso = new Map<string, Promise<Response>>();
+const RUTAS_DE_SESION = new Set(["/api/entrar", "/api/sesion"]);
 
 /** URL del backend o null si no está configurado. */
 export function urlDelBackend() {
@@ -44,7 +46,33 @@ export async function api(ruta: string, init: RequestInit = {}): Promise<Respons
   const headers = new Headers(init.headers);
   const token = await tokenDeClerk();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(`${BASE}${ruta.replace(/^\/api/, "")}`, { ...init, headers });
+  const url = `${BASE}${ruta.replace(/^\/api/, "")}`;
+  const method = (init.method ?? "GET").toUpperCase();
+  const deduplicar =
+    method === "GET" && RUTAS_DE_SESION.has(ruta.split("?")[0]) && !init.signal;
+  if (!deduplicar) return fetch(url, { ...init, headers });
+
+  const clave = JSON.stringify([
+    url,
+    method,
+    [...headers.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    init.cache,
+    init.credentials,
+    init.mode,
+    init.redirect,
+    init.referrer,
+    init.integrity,
+  ]);
+  const existente = solicitudesEnCurso.get(clave);
+  if (existente) return (await existente).clone();
+
+  const solicitud = fetch(url, { ...init, headers });
+  solicitudesEnCurso.set(clave, solicitud);
+  try {
+    return (await solicitud).clone();
+  } finally {
+    if (solicitudesEnCurso.get(clave) === solicitud) solicitudesEnCurso.delete(clave);
+  }
 }
 
 /**
