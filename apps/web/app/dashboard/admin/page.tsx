@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Clock3, LayoutGrid, ShieldCheck, Users } from "lucide-react";
+import { Clock3, ClipboardList, LayoutGrid, ShieldCheck, Users } from "lucide-react";
 
 import {
   AlertDialog,
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
+import AuditoriaAdminPanel from "./auditoria-panel";
 import {
   correoCoincide,
   describirHistorial,
@@ -490,6 +491,9 @@ export default function AdminDashboardPage() {
           <TabsTrigger value="usuarios" id="usuarios">
             <Users className="size-4" /> Usuarios
           </TabsTrigger>
+          <TabsTrigger value="auditoria" id="auditoria">
+            <ClipboardList className="size-4" /> Auditoría
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumen">
@@ -908,6 +912,10 @@ export default function AdminDashboardPage() {
               ) : null}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="auditoria">
+          <AuditoriaAdminPanel />
         </TabsContent>
       </Tabs>
 

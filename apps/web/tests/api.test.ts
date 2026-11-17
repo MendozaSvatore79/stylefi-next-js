@@ -39,6 +39,7 @@ describe("con NEXT_PUBLIC_API_URL", () => {
     ["/api/client/payment-methods/setup-intent", "http://localhost:4000/client/payment-methods/setup-intent"],
     ["/api/business/appointments", "http://localhost:4000/business/appointments"],
     ["/api/admin/users", "http://localhost:4000/admin/users"],
+    ["/api/admin/audit?page=1&limit=20", "http://localhost:4000/admin/audit?page=1&limit=20"],
     ["/api/admin/branch-verifications?status=pending", "http://localhost:4000/admin/branch-verifications?status=pending"],
     ["/api/admin/live-dashboard", "http://localhost:4000/admin/live-dashboard"],
     ["/api/live-dashboard", "http://localhost:4000/live-dashboard"],
