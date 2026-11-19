@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
+import { intervaloDeConsulta } from "@/lib/consulta-ticket";
 import { useSesion } from "@/lib/sesion-cliente";
 
 import { useToast } from "@/components/toast";
@@ -224,7 +225,14 @@ export default function OracleSupportWidget() {
       return;
     }
 
+    // Una consulta al montar y al abrir o cerrar el widget, también con el ticket cerrado (el admin puede
+    // responderlo o reabrirlo); el sondeo y el foco solo mientras no esté cerrado.
     void refreshTicket(ticketId);
+    const intervalo = intervaloDeConsulta(ticketStatus, open);
+    if (intervalo === null) {
+      return;
+    }
+
     const handleFocus = () => {
       void refreshTicket(ticketId);
     };
@@ -233,13 +241,13 @@ export default function OracleSupportWidget() {
 
     const intervalId = window.setInterval(() => {
       void refreshTicket(ticketId);
-    }, open ? 5000 : 15000);
+    }, intervalo);
 
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [open, refreshTicket, ticketId]);
+  }, [open, refreshTicket, ticketId, ticketStatus]);
 
   const canSend = useMemo(() => {
     if (!input.trim() || sending) {
