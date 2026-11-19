@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 import { api } from "@/lib/api";
 
@@ -98,11 +99,20 @@ export function LiveDashboardPanel() {
   const statsModules = modulosDeLaPortada(dashboard.modules);
 
   return (
-    <div className="relative overflow-hidden rounded-4xl border border-white/15 bg-[#10162f] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-6">
+    <div className="relative overflow-hidden rounded-4xl border border-white/10 bg-neutral-950 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.38)] sm:p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Live dashboard</p>
-          <p className="mt-1 text-xl font-black text-white">Panel inteligente</p>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/brand/stylehub-app.png"
+            alt=""
+            width={44}
+            height={44}
+            className="h-11 w-11 rounded-[14px] border border-white/10 shadow-lg"
+          />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Live dashboard</p>
+            <p className="mt-1 text-xl font-black text-white">Panel inteligente</p>
+          </div>
         </div>
         <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeClassName}`}>{statusText}</span>
       </div>
@@ -119,7 +129,7 @@ export function LiveDashboardPanel() {
           {statsModules.map((item, index) => (
             <article
               key={`${item.key}-stat`}
-              className={`rounded-2xl border border-white/10 p-4 text-white ${index === 0 ? "bg-blue-700/35" : "bg-white/5"}`}
+              className={`rounded-2xl border border-white/10 p-4 text-white ${index === 0 ? "bg-red-600/20" : "bg-white/5"}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-bold">{item.title}</p>
