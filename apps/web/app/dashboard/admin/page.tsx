@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,7 +142,23 @@ const statusVariantByModuleStatus: Record<ModuleStatus, "success" | "warning" | 
   offline: "danger",
 };
 
+async function leerErrorDeRespuesta(response: Response, respaldo: string): Promise<string> {
+  try {
+    const cuerpo = (await response.json()) as { error?: unknown; message?: unknown };
+    if (typeof cuerpo.error === "string" && cuerpo.error.trim()) {
+      return cuerpo.error.trim();
+    }
+    if (typeof cuerpo.message === "string" && cuerpo.message.trim()) {
+      return cuerpo.message.trim();
+    }
+  } catch {
+    // Si el cuerpo no es JSON legible, se usa el mensaje de respaldo
+  }
+  return `${respaldo} (error ${response.status}).`;
+}
+
 export default function AdminDashboardPage() {
+  const { showToast } = useToast();
   const [branches, setBranches] = useState<BranchVerification[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersSummary, setUsersSummary] = useState<UsersSummary>({ total: 0, clients: 0, businesses: 0, verified: 0, banned: 0 });
@@ -156,6 +173,7 @@ export default function AdminDashboardPage() {
   const [branchQuery, setBranchQuery] = useState("");
   const [moduleQuery, setModuleQuery] = useState("");
   const [userQuery, setUserQuery] = useState("");
+  const [debouncedUserQuery, setDebouncedUserQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<"all" | "cliente" | "negocio">("all");
   const [userBannedFilter, setUserBannedFilter] = useState<"all" | "yes" | "no">("all");
   const [userSortBy, setUserSortBy] = useState<"created_at" | "updated_at" | "email" | "account_type" | "name">("created_at");
@@ -169,23 +187,42 @@ export default function AdminDashboardPage() {
   const [userActionError, setUserActionError] = useState<string | null>(null);
   const [editUserForm, setEditUserForm] = useState<EditUserFormState | null>(null);
 
-  const loadBranches = async () => {
-    const response = await api("/api/admin/branch-verifications?status=pending", { cache: "no-store" });
-    if (!response.ok) {
-      return;
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedUserQuery(userQuery.trim());
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [userQuery]);
+
+  const loadBranches = useCallback(async () => {
+    try {
+      const response = await api("/api/admin/branch-verifications?status=pending", { cache: "no-store" });
+      if (!response.ok) {
+        const message = await leerErrorDeRespuesta(response, "No se pudieron cargar las sucursales pendientes");
+        showToast({ type: "error", title: "Error al cargar verificaciones", message });
+        return;
+      }
+
+      const payload = (await response.json()) as { branches: BranchVerification[] };
+      setBranches(payload.branches ?? []);
+    } catch {
+      showToast({
+        type: "error",
+        title: "Error de conexión",
+        message: "No se pudo contactar al servidor al cargar verificaciones.",
+      });
     }
+  }, [showToast]);
 
-    const payload = (await response.json()) as { branches: BranchVerification[] };
-    setBranches(payload.branches ?? []);
-  };
-
-  const loadLiveDashboard = async () => {
+  const loadLiveDashboard = useCallback(async () => {
     setLiveLoading(true);
 
     try {
       const response = await api("/api/admin/live-dashboard", { cache: "no-store" });
 
       if (!response.ok) {
+        const message = await leerErrorDeRespuesta(response, "No se pudo cargar el estado de los módulos");
+        showToast({ type: "error", title: "Error al cargar módulos", message });
         return;
       }
 
@@ -196,10 +233,16 @@ export default function AdminDashboardPage() {
 
       setLiveModules(payload.modules ?? []);
       setLiveDashboardStatus(payload.overallStatus ?? "offline");
+    } catch {
+      showToast({
+        type: "error",
+        title: "Error de conexión",
+        message: "No se pudo contactar al servidor al cargar el live dashboard.",
+      });
     } finally {
       setLiveLoading(false);
     }
-  };
+  }, [showToast]);
 
   const loadUsers = useCallback(async (overrides?: Partial<{ page: number; pageSize: number }>) => {
     setUsersLoading(true);
@@ -209,7 +252,7 @@ export default function AdminDashboardPage() {
       const pageSize = overrides?.pageSize ?? usersPagination.pageSize;
 
       const params = new URLSearchParams({
-        search: userQuery,
+        search: debouncedUserQuery,
         role: userRoleFilter,
         banned: userBannedFilter,
         sortBy: userSortBy,
@@ -220,6 +263,9 @@ export default function AdminDashboardPage() {
 
       const response = await api(`/api/admin/users?${params.toString()}`, { cache: "no-store" });
       if (!response.ok) {
+        const message = await leerErrorDeRespuesta(response, "No se pudo cargar la lista de usuarios");
+        setUserActionError(message);
+        showToast({ type: "error", title: "Error al cargar usuarios", message });
         return;
       }
 
@@ -232,14 +278,18 @@ export default function AdminDashboardPage() {
       setUsers(payload.users ?? []);
       setUsersSummary(payload.summary ?? { total: 0, clients: 0, businesses: 0, verified: 0, banned: 0 });
       setUsersPagination(payload.pagination ?? { page: 1, pageSize, totalFiltered: 0, totalPages: 1 });
+    } catch {
+      const message = "No se pudo contactar al servidor al cargar usuarios.";
+      setUserActionError(message);
+      showToast({ type: "error", title: "Error de conexión", message });
     } finally {
       setUsersLoading(false);
     }
-  }, [userBannedFilter, userQuery, userRoleFilter, userSortBy, userSortDir, usersPagination.page, usersPagination.pageSize]);
+  }, [debouncedUserQuery, showToast, userBannedFilter, userRoleFilter, userSortBy, userSortDir, usersPagination.page, usersPagination.pageSize]);
 
   useEffect(() => {
     void Promise.all([loadBranches(), loadLiveDashboard()]);
-  }, []);
+  }, [loadBranches, loadLiveDashboard]);
 
   useEffect(() => {
     void loadUsers();
@@ -307,10 +357,23 @@ export default function AdminDashboardPage() {
       });
 
       if (!response.ok) {
+        const message = await leerErrorDeRespuesta(response, "No se pudo actualizar la validación de la sucursal");
+        showToast({ type: "error", title: "Error en verificación", message });
         return;
       }
 
       setBranches((current) => current.filter((branch) => branch.id !== branchId));
+      showToast({
+        type: "success",
+        title: status === "approved" ? "Sucursal aprobada" : "Sucursal rechazada",
+        message: "El estado de verificación se actualizó correctamente.",
+      });
+    } catch {
+      showToast({
+        type: "error",
+        title: "Error de conexión",
+        message: "No se pudo contactar al servidor al revisar la sucursal.",
+      });
     } finally {
       setLoadingId(null);
     }
@@ -326,6 +389,8 @@ export default function AdminDashboardPage() {
       });
 
       if (!response.ok) {
+        const message = await leerErrorDeRespuesta(response, "No se pudo actualizar el módulo del dashboard");
+        showToast({ type: "error", title: "Error al actualizar módulo", message });
         return;
       }
 
@@ -336,6 +401,17 @@ export default function AdminDashboardPage() {
 
       setLiveModules(payload.modules ?? []);
       setLiveDashboardStatus(payload.overallStatus ?? "offline");
+      showToast({
+        type: "success",
+        title: "Módulo actualizado",
+        message: "La configuración del módulo se aplicó correctamente.",
+      });
+    } catch {
+      showToast({
+        type: "error",
+        title: "Error de conexión",
+        message: "No se pudo contactar al servidor al actualizar el módulo.",
+      });
     } finally {
       setLiveSavingKey(null);
     }
@@ -346,6 +422,7 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    setUserActionError(null);
     try {
       setUserSavingId(editUserForm.id);
       const response = await api("/api/admin/users", {
@@ -363,11 +440,23 @@ export default function AdminDashboardPage() {
       });
 
       if (!response.ok) {
+        const message = await leerErrorDeRespuesta(response, "No se pudo actualizar el usuario");
+        setUserActionError(message);
+        showToast({ type: "error", title: "No se pudo guardar", message });
         return;
       }
 
       setEditUserForm(null);
+      showToast({
+        type: "success",
+        title: "Usuario actualizado",
+        message: "Los datos del usuario se guardaron correctamente.",
+      });
       await loadUsers();
+    } catch {
+      const message = "No se pudo contactar al servidor. Revisa tu conexión e intenta de nuevo.";
+      setUserActionError(message);
+      showToast({ type: "error", title: "Error de conexión", message });
     } finally {
       setUserSavingId(null);
     }
@@ -558,7 +647,15 @@ export default function AdminDashboardPage() {
                               type="button"
                               onClick={() => {
                                 const url = branch.ownership_proof_url;
-                                if (url) void abrirArchivoPrivado(url).catch(() => alert("No se pudo abrir el comprobante."));
+                                if (url) {
+                                  void abrirArchivoPrivado(url).catch((err: unknown) =>
+                                    showToast({
+                                      type: "error",
+                                      title: "Error al abrir comprobante",
+                                      message: err instanceof Error ? err.message : "No se pudo abrir el comprobante.",
+                                    }),
+                                  );
+                                }
                               }}
                               className="text-xs font-semibold text-slate-700 hover:underline"
                             >

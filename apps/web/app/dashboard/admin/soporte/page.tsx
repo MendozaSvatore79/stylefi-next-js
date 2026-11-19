@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/toast";
 import { api } from "@/lib/api";
 
 type SupportTicket = {
@@ -45,7 +46,23 @@ const statusLabel: Record<string, string> = {
   closed: "Cerrado",
 };
 
+async function leerErrorDeSoporte(response: Response, respaldo: string): Promise<string> {
+  try {
+    const cuerpo = (await response.json()) as { error?: unknown; message?: unknown };
+    if (typeof cuerpo.error === "string" && cuerpo.error.trim()) {
+      return cuerpo.error.trim();
+    }
+    if (typeof cuerpo.message === "string" && cuerpo.message.trim()) {
+      return cuerpo.message.trim();
+    }
+  } catch {
+    // Si el cuerpo no es JSON legible, se usa el mensaje de respaldo
+  }
+  return `${respaldo} (error ${response.status}).`;
+}
+
 export default function AdminSupportPage() {
+  const { showToast } = useToast();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -60,6 +77,8 @@ export default function AdminSupportPage() {
     try {
       const response = await api(`/api/admin/support-tickets?status=${encodeURIComponent(filter)}`, { cache: "no-store" });
       if (!response.ok) {
+        const message = await leerErrorDeSoporte(response, "No se pudieron cargar los tickets de soporte");
+        showToast({ type: "error", title: "Error al cargar tickets", message });
         return;
       }
 
@@ -68,22 +87,38 @@ export default function AdminSupportPage() {
       if (!selectedTicketId && payload.tickets?.length) {
         setSelectedTicketId(payload.tickets[0].id);
       }
+    } catch {
+      showToast({
+        type: "error",
+        title: "Error de conexión",
+        message: "No se pudo contactar al servidor al cargar los tickets.",
+      });
     } finally {
       setLoading(false);
     }
-  }, [filter, selectedTicketId]);
+  }, [filter, selectedTicketId, showToast]);
 
-  const loadTicket = async (ticketId: string) => {
-    const response = await api(`/api/admin/support-tickets?ticketId=${encodeURIComponent(ticketId)}`, { cache: "no-store" });
-    if (!response.ok) {
-      return;
+  const loadTicket = useCallback(async (ticketId: string) => {
+    try {
+      const response = await api(`/api/admin/support-tickets?ticketId=${encodeURIComponent(ticketId)}`, { cache: "no-store" });
+      if (!response.ok) {
+        const message = await leerErrorDeSoporte(response, "No se pudo cargar el detalle del ticket");
+        showToast({ type: "error", title: "Error al abrir ticket", message });
+        return;
+      }
+
+      const payload = (await response.json()) as { ticket?: SupportTicket; messages?: SupportMessage[] };
+      setSelectedTicket(payload.ticket ?? null);
+      setMessages(payload.messages ?? []);
+      setReply("");
+    } catch {
+      showToast({
+        type: "error",
+        title: "Error de conexión",
+        message: "No se pudo contactar al servidor al cargar el detalle del ticket.",
+      });
     }
-
-    const payload = (await response.json()) as { ticket?: SupportTicket; messages?: SupportMessage[] };
-    setSelectedTicket(payload.ticket ?? null);
-    setMessages(payload.messages ?? []);
-    setReply("");
-  };
+  }, [showToast]);
 
   useEffect(() => {
     void loadTickets();
@@ -93,7 +128,7 @@ export default function AdminSupportPage() {
     if (selectedTicketId) {
       void loadTicket(selectedTicketId);
     }
-  }, [selectedTicketId]);
+  }, [loadTicket, selectedTicketId]);
 
   const ticketStats = useMemo(() => ({
     escalated: tickets.filter((ticket) => ticket.status === "escalated").length,
@@ -107,6 +142,11 @@ export default function AdminSupportPage() {
     }
 
     if (action === "reply" && !reply.trim()) {
+      showToast({
+        type: "error",
+        title: "Respuesta vacía",
+        message: "Escribe una respuesta antes de enviar.",
+      });
       return;
     }
 
@@ -123,11 +163,24 @@ export default function AdminSupportPage() {
       });
 
       if (!response.ok) {
+        const message = await leerErrorDeSoporte(response, "No se pudo actualizar el ticket de soporte");
+        showToast({ type: "error", title: "Error en soporte", message });
         return;
       }
 
+      showToast({
+        type: "success",
+        title: action === "resolve" ? "Ticket resuelto" : "Respuesta enviada",
+        message: action === "resolve" ? "El ticket se marcó como resuelto." : "Tu mensaje fue enviado al usuario.",
+      });
       await loadTickets();
       await loadTicket(selectedTicket.id);
+    } catch {
+      showToast({
+        type: "error",
+        title: "Error de conexión",
+        message: "No se pudo contactar al servidor al actualizar el ticket.",
+      });
     } finally {
       setSending(false);
     }
