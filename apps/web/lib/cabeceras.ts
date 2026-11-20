@@ -38,3 +38,6 @@ export function cabecerasDeSeguridad(urlBackend: string) {
     { key: "Permissions-Policy", value: 'camera=(), microphone=(), geolocation=(self), payment=(self "https://js.stripe.com")' },
   ];
 }
+
+/** Caché de las fotos y logos estáticos (public/estilos y public/brand): una semana. */
+export const CACHE_DE_IMAGENES = "public, max-age=604800, stale-while-revalidate=86400";
