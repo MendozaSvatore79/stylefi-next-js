@@ -2,7 +2,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
-import { cabecerasDeSeguridad } from "./lib/cabeceras";
+import { CACHE_DE_IMAGENES, cabecerasDeSeguridad } from "./lib/cabeceras";
 import { errorEnUrlDelBackend } from "./lib/url-backend";
 
 // Fase 4: el front ya no tiene rutas de datos ni lee la base; todo va al backend. Sin una NEXT_PUBLIC_API_URL
@@ -18,7 +18,14 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: workspaceRoot,
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: cabecerasDeSeguridad(process.env.NEXT_PUBLIC_API_URL!) }];
+    return [
+      { source: "/:path*", headers: cabecerasDeSeguridad(process.env.NEXT_PUBLIC_API_URL!) },
+      // Fotos y logos de public/: cambian casi nunca. Una semana en caché (si se reemplaza una, mejor con otro nombre).
+      ...["/estilos/:path*", "/brand/:path*"].map((source) => ({
+        source,
+        headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES }],
+      })),
+    ];
   },
 };
 

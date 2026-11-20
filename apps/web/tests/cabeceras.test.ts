@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { cabecerasDeSeguridad, politicaDeContenido } from "@/lib/cabeceras";
+import { CACHE_DE_IMAGENES, cabecerasDeSeguridad, politicaDeContenido } from "@/lib/cabeceras";
 
 const BACKEND = "https://api.stylehub.synovasystems.com";
 const mapa = () => Object.fromEntries(cabecerasDeSeguridad(BACKEND).map((c) => [c.key, c.value]));
@@ -74,5 +74,12 @@ describe("next.config.ts", () => {
     const fuente = readFileSync(path.resolve(import.meta.dirname, "../next.config.ts"), "utf8");
     expect(fuente).toContain('source: "/:path*", headers: cabecerasDeSeguridad(process.env.NEXT_PUBLIC_API_URL!)');
     expect(fuente).toContain("poweredByHeader: false");
+  });
+
+  it("guarda en caché una semana las fotos y logos de public/", () => {
+    const fuente = readFileSync(path.resolve(import.meta.dirname, "../next.config.ts"), "utf8");
+    expect(fuente).toContain('...["/estilos/:path*", "/brand/:path*"].map((source) => ({');
+    expect(fuente).toContain('headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES }]');
+    expect(CACHE_DE_IMAGENES).toMatch(/^public, max-age=604800\b/);
   });
 });
