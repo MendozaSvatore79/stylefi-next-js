@@ -1,0 +1,26 @@
+# Monitor de disponibilidad: si el front o el API no responden, la ejecución sale en rojo y GitHub avisa por correo
+# a quien programó el workflow. Vive en este repo porque es público (los minutos de Actions no cuentan).
+# GitHub pausa los workflows programados de repos públicos tras 60 días sin actividad: hay que reactivarlo en Actions.
+name: Disponibilidad
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: disponibilidad
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+      - run: .github/scripts/disponibilidad.sh https://stylehub.synovasystems.com https://api.stylehub.synovasystems.com
