@@ -51,6 +51,11 @@ describe("politicaDeContenido", () => {
     expect(directiva("frame-src")).toContain("https://js.stripe.com");
   });
 
+  it("Clerk Protect: su script y sus sondeos en cualquier puerto (visto en producción el 2026-11-19)", () => {
+    expect(directiva("script-src")).toContain("https://cdn.protect.clerk.com");
+    expect(directiva("connect-src")).toContain("https://*.protect.clerk.com:*");
+  });
+
   it("imágenes del backend (sucursales) y de la portada", () => {
     expect(directiva("img-src")).toContain(BACKEND);
     expect(directiva("img-src")).toContain("https://images.unsplash.com");
