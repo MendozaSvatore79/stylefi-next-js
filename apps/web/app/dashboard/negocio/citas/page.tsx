@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast";
 import { etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
+import { avisoCitasPorCerrar, citasPorCerrar, esPorCerrar } from "@/lib/citas-por-cerrar";
 
 type Appointment = {
   id: string;
@@ -126,15 +127,25 @@ export default function NegocioCitasPage() {
     }
   };
 
+  const aviso = avisoCitasPorCerrar(citasPorCerrar(appointments).length, language === "en" ? "en" : "es");
+
   return (
     <section className="space-y-6">
       <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Schedule" : "Agenda"}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Appointment management" : "Gestión de citas"}</h2>
+        {aviso ? (
+          <p role="status" data-citas-por-cerrar className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {aviso}
+          </p>
+        ) : null}
 
         <div className="mt-5 space-y-3">
           {appointments.map((appointment) => (
-            <div key={appointment.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div
+              key={appointment.id}
+              className={`rounded-2xl border p-4 ${esPorCerrar(appointment) ? "border-amber-300 bg-amber-50/60" : "border-slate-200 bg-slate-50"}`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-slate-800">
