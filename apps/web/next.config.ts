@@ -2,6 +2,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
+import { cabecerasDeSeguridad } from "./lib/cabeceras";
 import { errorEnUrlDelBackend } from "./lib/url-backend";
 
 // Fase 4: el front ya no tiene rutas de datos ni lee la base; todo va al backend. Sin una NEXT_PUBLIC_API_URL
@@ -15,6 +16,10 @@ const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: cabecerasDeSeguridad(process.env.NEXT_PUBLIC_API_URL!) }];
+  },
 };
 
 export default nextConfig;
