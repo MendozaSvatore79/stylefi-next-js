@@ -17,16 +17,16 @@ describe("cabecerasDeSeguridad", () => {
     expect(c["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
   });
 
-  it("ninguna página se puede incrustar en otra (clickjacking), y eso sí se aplica", () => {
+  it("ninguna página se puede incrustar en otra (clickjacking)", () => {
     const c = mapa();
     expect(c["X-Frame-Options"]).toBe("DENY");
-    expect(c["Content-Security-Policy"]).toBe("frame-ancestors 'none'");
+    expect(c["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
   });
 
-  it("la CSP completa va en solo reporte (no bloquea mientras se revisa)", () => {
+  it("la CSP completa se aplica (ya no en solo reporte)", () => {
     const c = mapa();
-    expect(c["Content-Security-Policy-Report-Only"]).toBe(politicaDeContenido(BACKEND));
-    expect(c["Content-Security-Policy"]).not.toContain("script-src");
+    expect(c["Content-Security-Policy"]).toBe(politicaDeContenido(BACKEND));
+    expect(c["Content-Security-Policy-Report-Only"]).toBeUndefined();
   });
 
   it("Permissions-Policy: sin cámara ni micrófono; ubicación y pago solo para el sitio (y Stripe)", () => {
