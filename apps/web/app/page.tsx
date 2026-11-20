@@ -29,66 +29,35 @@ const techFeatures = [
   {
     titulo: "Agenda inteligente",
     descripcion: "Bloquea horarios, evita choques y sugiere citas disponibles en tiempo real.",
-    etiqueta: "AI Scheduling",
+    etiqueta: "Agenda",
     icono: "⚡",
   },
   {
     titulo: "Panel por roles",
     descripcion: "Cliente, negocio y admin con vistas separadas y flujos claros para cada usuario.",
-    etiqueta: "Role-based UX",
+    etiqueta: "Por roles",
     icono: "🧩",
   },
   {
     titulo: "Reservas confiables",
     descripcion: "Confirmaciones, seguimiento y historial para barberías, estética y uñas.",
-    etiqueta: "Smart Booking",
+    etiqueta: "Reservas",
     icono: "✓",
   },
   {
     titulo: "Diseño premium",
-    descripcion: "Interfaz visual, rápida y responsiva lista para crecer como producto SaaS.",
-    etiqueta: "Modern UI",
+    descripcion: "Funciona igual en el celular, la tableta y la computadora.",
+    etiqueta: "Diseño",
     icono: "✦",
   },
 ];
 
-const recomendaciones = [
-  {
-    nombre: "Leyva",
-    frase: "El mejor corte",
-    rating: "4.9",
-    foto: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    nombre: "Jona",
-    frase: "Como siempre al 100",
-    rating: "4.8",
-    foto: "https://images.unsplash.com/photo-1599351431408-5a13587f6f3f?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    nombre: "Crisóstomo",
-    frase: "Quedé como CR7",
-    rating: "4.8",
-    foto: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    nombre: "Carlitos",
-    frase: "Todo cool",
-    rating: "4.7",
-    foto: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    nombre: "Maldonado",
-    frase: "El mejor barber",
-    rating: "4.9",
-    foto: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80",
-  },
-];
-
-const metricas = [
-  { valor: "+1500", etiqueta: "Negocios activos" },
-  { valor: "+22k", etiqueta: "Reservas al mes" },
-  { valor: "4.9", etiqueta: "Calificación promedio" },
+// Ideas de estilo (fotos de Unsplash). Sin nombres ni calificaciones: no son profesionales ni reseñas reales.
+const estilos = [
+  { nombre: "Corte clásico", foto: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80" },
+  { nombre: "Fade", foto: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=800&q=80" },
+  { nombre: "Barba", foto: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80" },
+  { nombre: "Estilo moderno", foto: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80" },
 ];
 
 export default async function Home() {
@@ -179,14 +148,6 @@ export default async function Home() {
               </Link>
             </div>
 
-            <div className="mt-6 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
-              {metricas.map((item, index) => (
-                <article key={item.etiqueta} className="stagger-enter rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-neutral-900 shadow-sm" style={{ animationDelay: `${280 + index * 70}ms` }}>
-                  <p className="text-2xl font-black text-neutral-950 sm:text-3xl">{item.valor}</p>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{item.etiqueta}</p>
-                </article>
-              ))}
-            </div>
           </div>
 
           <div className="stagger-enter relative lg:pt-2" style={{ animationDelay: "220ms" }}>
@@ -207,9 +168,6 @@ export default async function Home() {
             </h2>
             <p className="mt-1 text-sm text-slate-600">Una plataforma diseñada para cada parte de tu experiencia.</p>
           </div>
-          <span className="hidden rounded-full border border-neutral-300 bg-neutral-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-neutral-700 sm:inline-flex">
-            New UI Stack
-          </span>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -243,15 +201,15 @@ export default async function Home() {
               <h2 className="text-2xl font-extrabold uppercase tracking-tight text-neutral-950 sm:text-3xl">
                 Encuentra tu próximo look
               </h2>
-              <p className="mt-1 text-sm text-neutral-600">Profesionales destacados y estilos favoritos cerca de ti.</p>
+              <p className="mt-1 text-sm text-neutral-600">Ideas de estilo para tu próxima cita.</p>
             </div>
             <span className="w-fit rounded-full bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-red-700">
-              En tendencia
+              Inspiración
             </span>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {recomendaciones.map((item, index) => (
+          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {estilos.map((item, index) => (
                 <article
                   key={item.nombre}
                   className="stagger-enter group relative isolate h-64 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-950 shadow-[0_10px_22px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(220,38,38,0.18)] sm:h-72 xl:h-80"
@@ -262,29 +220,9 @@ export default async function Home() {
                     style={{ backgroundImage: `url('${item.foto}')` }}
                   />
                   <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/95 via-black/35 to-black/5" />
-                  <div className="absolute right-2 top-2 z-10 rounded-full border border-white/25 bg-black/35 px-2 py-0.5 text-[10px] font-bold text-amber-200 backdrop-blur-md">
-                    ★ {item.rating}
-                  </div>
 
                   <div className="absolute bottom-0 z-10 w-full p-3 text-white sm:p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">{item.nombre}</p>
-                    <p
-                      className="mt-1 max-w-[12ch] text-xl leading-[1.02] font-black text-white sm:text-2xl xl:text-[1.75rem]"
-                      style={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {item.frase}
-                    </p>
-                    <div className="mt-2.5 flex items-center justify-between">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-red-600 shadow-[0_0_16px_rgba(220,38,38,0.32)]" />
-                      <span className="rounded-full border border-white/25 bg-white/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/80">
-                        Ver perfil
-                      </span>
-                    </div>
+                    <p className="text-xl leading-[1.02] font-black text-white sm:text-2xl">{item.nombre}</p>
                   </div>
                 </article>
               ))}
@@ -312,22 +250,11 @@ export default async function Home() {
                 <p className="mt-2 text-lg font-bold">Control total</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">UI</p>
-                <p className="mt-2 text-lg font-bold">Responsive y limpia</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Recordatorios</p>
+                <p className="mt-2 text-lg font-bold">Te avisamos un día antes</p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-white/70">Indicador de crecimiento</p>
-                  <p className="mt-1 text-3xl font-black">+38% reservas</p>
-                </div>
-                <div className="h-16 w-16 rounded-full border border-white/15 bg-white/10 p-2">
-                  <div className="h-full w-full rounded-full bg-red-600" />
-                </div>
-              </div>
-            </div>
           </article>
       </section>
 
@@ -340,7 +267,7 @@ export default async function Home() {
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-red-700">Negocios</p>
                   <h3 className="mt-3 text-3xl font-black leading-tight text-slate-950 sm:text-4xl">
                     ¿Tienes un negocio?<br />
-                    ¡Conoce STYLIFY!
+                    ¡Conoce STYLEHUB!
                   </h3>
                 </div>
                 <Link
@@ -373,7 +300,7 @@ export default async function Home() {
                   </p>
                 </div>
                 <Link
-                  href="/iniciar-sesion?tipo=admin"
+                  href="/register"
                   className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   Más información <span aria-hidden>➜</span>

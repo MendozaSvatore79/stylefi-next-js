@@ -15,6 +15,8 @@ type LegalPageLayoutProps = {
   sections: LegalSection[];
   alternateHref: string;
   alternateLabel: string;
+  /** Fecha de la última actualización de esta página (AAAA-MM-DD). */
+  actualizado?: string;
 };
 
 export function LegalPageLayout({
@@ -25,6 +27,7 @@ export function LegalPageLayout({
   sections,
   alternateHref,
   alternateLabel,
+  actualizado = "2026-11-18",
 }: LegalPageLayoutProps) {
   const accentColor = accent === "blue" ? "text-blue-700" : "text-red-700";
   const accentDot = accent === "blue" ? "bg-blue-600" : "bg-red-500";
@@ -101,7 +104,7 @@ export function LegalPageLayout({
                 <span className="rounded-full border border-blue-950/10 bg-[#eef2ff] px-3 py-1.5 text-blue-800">
                   Última actualización
                 </span>
-                <time dateTime="2026-11-18">18 de noviembre de 2026</time>
+                <time dateTime={actualizado}>{fechaLarga(actualizado)}</time>
               </div>
             </div>
 
@@ -144,4 +147,9 @@ export function LegalPageLayout({
       </footer>
     </main>
   );
+}
+
+/** "2026-11-20" → "20 de noviembre de 2026" (sin depender de la zona del servidor). */
+export function fechaLarga(fecha: string) {
+  return new Date(`${fecha}T12:00:00Z`).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
