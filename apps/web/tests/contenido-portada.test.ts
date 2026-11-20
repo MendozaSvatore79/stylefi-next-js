@@ -47,4 +47,13 @@ describe("portada", () => {
     expect(fotos.length).toBe(6);
     for (const f of fotos) expect(existsSync(path.resolve(import.meta.dirname, "..", `public/estilos/${f}.jpg`))).toBe(true);
   });
+
+  it("las fotos van con next/image (WebP, tamaño según pantalla y carga diferida), no como fondo CSS", () => {
+    expect(portada).not.toMatch(/backgroundImage/);
+    expect(portada.match(/<Image\s+src=\{item\.foto\}[\s\S]*?sizes=/g)?.length).toBe(1);
+    expect(portada.match(/<Image src="\/estilos\/[a-z-]+\.jpg" alt="" fill sizes=/g)?.length).toBe(2);
+    // Solo el logo del encabezado carga de inmediato (`priority` está obsoleto en Next 16); el resto es diferido
+    expect(portada).not.toMatch(/\bpriority\b|\bpreload\b/);
+    expect(portada.match(/loading="eager"/g)?.length).toBe(1);
+  });
 });

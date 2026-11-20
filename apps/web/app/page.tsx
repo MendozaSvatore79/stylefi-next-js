@@ -92,7 +92,7 @@ export default async function Home() {
               alt=""
               width={44}
               height={44}
-              priority
+              loading="eager"
               className="h-11 w-11 rounded-[15px] border border-neutral-200 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
             />
             <span className="text-lg font-black tracking-[0.16em] text-neutral-950 sm:text-xl">STYLEHUB</span>
@@ -216,9 +216,12 @@ export default async function Home() {
                   className="stagger-enter group relative isolate h-64 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-950 shadow-[0_10px_22px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(220,38,38,0.18)] sm:h-72 xl:h-80"
                   style={{ animationDelay: `${120 + index * 60}ms` }}
                 >
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition duration-700 group-hover:scale-105"
-                    style={{ backgroundImage: `url('${item.foto}')` }}
+                  <Image
+                    src={item.foto}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 25vw, 50vw"
+                    className="object-cover transition duration-700 group-hover:scale-105"
                   />
                   <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/95 via-black/35 to-black/5" />
 
@@ -278,13 +281,9 @@ export default async function Home() {
                   Conócenos <span aria-hidden>➜</span>
                 </Link>
               </div>
-              <div
-                className="h-44 w-full bg-cover bg-center sm:h-auto sm:w-[40%]"
-                style={{
-                  backgroundImage:
-                    "url('/estilos/negocio.jpg')",
-                }}
-              />
+              <div className="relative h-44 w-full sm:h-auto sm:w-[40%]">
+                <Image src="/estilos/negocio.jpg" alt="" fill sizes="(min-width: 640px) 40vw, 100vw" className="object-cover" />
+              </div>
             </div>
           </article>
 
@@ -307,13 +306,9 @@ export default async function Home() {
                   Más información <span aria-hidden>➜</span>
                 </Link>
               </div>
-              <div
-                className="h-44 w-full bg-cover bg-center sm:h-auto sm:w-[40%]"
-                style={{
-                  backgroundImage:
-                    "url('/estilos/negocio-equipo.jpg')",
-                }}
-              />
+              <div className="relative h-44 w-full sm:h-auto sm:w-[40%]">
+                <Image src="/estilos/negocio-equipo.jpg" alt="" fill sizes="(min-width: 640px) 40vw, 100vw" className="object-cover" />
+              </div>
             </div>
           </article>
         </div>
