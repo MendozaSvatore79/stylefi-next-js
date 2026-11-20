@@ -72,7 +72,7 @@ describe("politicaDeContenido", () => {
 describe("next.config.ts", () => {
   it("aplica las cabeceras a todas las rutas y quita X-Powered-By", () => {
     const fuente = readFileSync(path.resolve(import.meta.dirname, "../next.config.ts"), "utf8");
-    expect(fuente).toContain('source: "/:path*", headers: cabecerasDeSeguridad(process.env.NEXT_PUBLIC_API_URL!)');
+    expect(fuente).toContain('source: "/:path*", headers: cabecerasDeSeguridad(process.env.NEXT_PUBLIC_API_URL!, origenSentry)');
     expect(fuente).toContain("poweredByHeader: false");
   });
 

@@ -1,5 +1,8 @@
 "use client"; // Las pantallas de error de Next son componentes de cliente
 
+import { captureException } from "@sentry/browser";
+import { useEffect } from "react";
+
 import { codigoDeError, TEXTO_ERROR } from "@/lib/pagina-error";
 
 /**
@@ -8,6 +11,10 @@ import { codigoDeError, TEXTO_ERROR } from "@/lib/pagina-error";
  */
 export default function ErrorGlobal({ error, retry }: { error: unknown; retry: () => void }) {
   const codigo = codigoDeError(error);
+  // Los errores que atrapa esta pantalla no llegan a window.onerror: se reportan aquí (sin DSN no hace nada)
+  useEffect(() => {
+    captureException(error);
+  }, [error]);
   return (
     <html lang="es">
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#f8fafc", color: "#0f172a" }}>
