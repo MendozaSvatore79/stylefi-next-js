@@ -1,5 +1,5 @@
 # PRs semanales con actualizaciones de dependencias (npm) y de las acciones de GitHub. Cada PR corre el CI y nunca
-# se une solo (unir a main despliega en Amplify).
+# se une solo (unir a main despliega en Amplify). Las versiones mayores se ignoran: se hacen a mano, una por una.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -12,6 +12,9 @@ updates:
     groups:
       menores:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule:
