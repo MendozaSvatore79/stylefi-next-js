@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 
+import { captureException } from "@sentry/browser";
+import { useEffect } from "react";
+
 import { codigoDeError, TEXTO_ERROR } from "@/lib/pagina-error";
 
 /** Error en una página (por ejemplo, el backend no respondió al armarla): mensaje en español y reintento. */
 export default function PantallaDeError({ error, retry }: { error: unknown; retry: () => void }) {
   const codigo = codigoDeError(error);
+  // Los errores que atrapa esta pantalla no llegan a window.onerror: se reportan aquí (sin DSN no hace nada)
+  useEffect(() => {
+    captureException(error);
+  }, [error]);
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 py-10 text-center">
       <p className="text-sm font-bold tracking-[0.3em] text-slate-900">STYLEHUB</p>

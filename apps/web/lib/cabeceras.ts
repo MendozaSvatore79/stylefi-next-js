@@ -5,8 +5,10 @@
  * política de contenido (CSP). La CSP estuvo en solo reporte hasta revisarla en Chrome (2026-11-19): sin sesión y
  * en las 11 pantallas de cliente y negocio, el único aviso era Clerk Protect, ya permitido.
  */
-export function politicaDeContenido(urlBackend: string) {
+export function politicaDeContenido(urlBackend: string, origenSentry: string | null = null) {
   const backend = new URL(urlBackend).origin;
+  // Errores del navegador (lib/sentry-navegador.ts), solo si hay DSN
+  const sentry = origenSentry ? ` ${origenSentry}` : "";
   const clerk = "https://clerk.stylehub.synovasystems.com https://*.clerk.accounts.dev";
   // Clerk Protect (protección contra bots): su script y sondeos a *.client.protect.clerk.com en varios puertos
   const clerkProtect = { script: "https://cdn.protect.clerk.com", conexion: "https://*.protect.clerk.com:*" };
@@ -17,7 +19,7 @@ export function politicaDeContenido(urlBackend: string) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://img.clerk.com " + backend,
     "font-src 'self' data:",
-    `connect-src 'self' ${backend} ${clerk} ${clerkProtect.conexion} https://api.stripe.com`,
+    `connect-src 'self' ${backend} ${clerk} ${clerkProtect.conexion} https://api.stripe.com${sentry}`,
     "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -27,11 +29,11 @@ export function politicaDeContenido(urlBackend: string) {
   ].join("; ");
 }
 
-export function cabecerasDeSeguridad(urlBackend: string) {
+export function cabecerasDeSeguridad(urlBackend: string, origenSentry: string | null = null) {
   return [
     { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
     { key: "X-Frame-Options", value: "DENY" },
-    { key: "Content-Security-Policy", value: politicaDeContenido(urlBackend) },
+    { key: "Content-Security-Policy", value: politicaDeContenido(urlBackend, origenSentry) },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     // La ubicación la usa el buscador de salones; el pago, el formulario de Stripe
