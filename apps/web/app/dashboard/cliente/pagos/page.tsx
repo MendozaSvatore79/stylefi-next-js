@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast";
 import { estadoDeMovimiento, intentoDeRecarga, type Intento } from "@/lib/intento-recarga";
 import { useLanguage } from "@/lib/language-context";
 import StripeCardSetupForm from "./StripeCardSetupForm";
+import { AVISO_PAGOS, pagosEnLineaDe } from "@/lib/pagos-en-linea";
 import { api } from "@/lib/api";
 
 type PaymentMethod = {
@@ -40,6 +41,8 @@ export default function ClientePagosPage() {
   const { t, language } = useLanguage();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  // null mientras carga: no se ofrece recargar ni guardar tarjetas hasta saberlo
+  const [pagosEnLinea, setPagosEnLinea] = useState<boolean | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRecharging, setIsRecharging] = useState(false);
@@ -72,6 +75,7 @@ export default function ClientePagosPage() {
         methods?: PaymentMethod[];
         wallet?: Wallet;
         transactions?: WalletTransaction[];
+        pagosEnLinea?: boolean;
         error?: string;
       };
 
@@ -81,6 +85,10 @@ export default function ClientePagosPage() {
 
       setMethods(payload.methods ?? []);
       setWallet(payload.wallet ?? null);
+      const enLinea = pagosEnLineaDe(payload);
+      setPagosEnLinea(enLinea);
+      // Sin pagos en línea no hay tarjetas: el formulario empieza en efectivo
+      if (!enLinea) setForm((current) => (current.provider === "card" ? { ...current, provider: "cash" } : current));
       setTransactions(payload.transactions ?? []);
     } catch (error) {
       showToast({
@@ -419,7 +427,7 @@ export default function ClientePagosPage() {
               }
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
             >
-              <option value="card">{t("payments.card")}</option>
+              {pagosEnLinea ? <option value="card">{t("payments.card")}</option> : null}
               <option value="paypal">{t("payments.paypal")}</option>
               <option value="transfer">{t("payments.transfer")}</option>
               <option value="cash">{t("payments.cash")}</option>
@@ -427,7 +435,13 @@ export default function ClientePagosPage() {
             </select>
           </div>
 
-          {form.provider === "card" ? (
+          {pagosEnLinea === false ? (
+            <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {language === "en" ? AVISO_PAGOS.en : AVISO_PAGOS.es}
+            </p>
+          ) : null}
+
+          {form.provider === "card" && pagosEnLinea ? (
             <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
               <p className="text-sm font-semibold text-[#151138]">{t("payments.secureCardTitle")}</p>
               <p className="text-xs text-slate-600">{t("payments.secureCardDesc")}</p>
@@ -489,6 +503,14 @@ export default function ClientePagosPage() {
         <p className="mt-2 text-sm text-slate-600">
           {language === "en" ? "Current balance: " : "Saldo actual: "}<span className="font-black text-emerald-700">${Number(wallet?.balance ?? 0).toFixed(2)} {wallet?.currency ?? "MXN"}</span>
         </p>
+        {pagosEnLinea === false ? (
+          <p role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {language === "en" ? AVISO_PAGOS.en : AVISO_PAGOS.es}
+          </p>
+        ) : null}
+
+        {pagosEnLinea ? (
+        <>
         <p className="mt-1 text-xs text-slate-500">{language === "en" ? "The recharge is credited when Stripe confirms the payment." : "La recarga se acredita cuando Stripe confirma el pago."}</p>
 
         <form className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4" onSubmit={handleRecharge}>
@@ -541,6 +563,8 @@ export default function ClientePagosPage() {
                 : (language === "en" ? "Open Stripe Checkout" : "Abrir Stripe Checkout")}
           </button>
         </form>
+        </>
+        ) : null}
 
         <div className="mt-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Your methods" : "Tus métodos"}</p>
