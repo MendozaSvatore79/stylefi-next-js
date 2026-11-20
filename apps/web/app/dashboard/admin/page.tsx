@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, ClipboardList, LayoutGrid, ShieldCheck, Users } from "lucide-react";
 
 import {
@@ -244,7 +244,11 @@ export default function AdminDashboardPage() {
     }
   }, [showToast]);
 
+  // Con filtros o páginas que cambian rápido, solo cuenta el último pedido (una respuesta lenta pisaba la lista nueva)
+  const pedidoDeUsuariosRef = useRef(0);
   const loadUsers = useCallback(async (overrides?: Partial<{ page: number; pageSize: number }>) => {
+    const pedido = ++pedidoDeUsuariosRef.current;
+    const vigente = () => pedido === pedidoDeUsuariosRef.current;
     setUsersLoading(true);
 
     try {
@@ -262,6 +266,9 @@ export default function AdminDashboardPage() {
       });
 
       const response = await api(`/api/admin/users?${params.toString()}`, { cache: "no-store" });
+      if (!vigente()) {
+        return;
+      }
       if (!response.ok) {
         const message = await leerErrorDeRespuesta(response, "No se pudo cargar la lista de usuarios");
         setUserActionError(message);
@@ -274,16 +281,24 @@ export default function AdminDashboardPage() {
         summary: UsersSummary;
         pagination?: UsersPagination;
       };
+      if (!vigente()) {
+        return;
+      }
 
       setUsers(payload.users ?? []);
       setUsersSummary(payload.summary ?? { total: 0, clients: 0, businesses: 0, verified: 0, banned: 0 });
       setUsersPagination(payload.pagination ?? { page: 1, pageSize, totalFiltered: 0, totalPages: 1 });
     } catch {
+      if (!vigente()) {
+        return;
+      }
       const message = "No se pudo contactar al servidor al cargar usuarios.";
       setUserActionError(message);
       showToast({ type: "error", title: "Error de conexión", message });
     } finally {
-      setUsersLoading(false);
+      if (vigente()) {
+        setUsersLoading(false);
+      }
     }
   }, [debouncedUserQuery, showToast, userBannedFilter, userRoleFilter, userSortBy, userSortDir, usersPagination.page, usersPagination.pageSize]);
 
