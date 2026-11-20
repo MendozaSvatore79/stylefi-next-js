@@ -48,7 +48,9 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  // Ruta en la que se abrió el menú del avatar: al navegar a otra queda cerrado sin un efecto que lo cierre
+  const [menuAbiertoEn, setMenuAbiertoEn] = useState<string | null>(null);
+  const avatarMenuOpen = menuAbiertoEn === pathname;
   const avatarMenuRef = useRef<HTMLDivElement | null>(null);
   const { showToast } = useToast();
 
@@ -69,10 +71,6 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
   }, [session?.user?.name, session?.user?.email]);
 
   useEffect(() => {
-    setAvatarMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     if (!avatarMenuOpen) {
       return;
     }
@@ -84,13 +82,13 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
 
       const target = event.target as Node;
       if (!avatarMenuRef.current.contains(target)) {
-        setAvatarMenuOpen(false);
+        setMenuAbiertoEn(null);
       }
     };
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setAvatarMenuOpen(false);
+        setMenuAbiertoEn(null);
       }
     };
 
@@ -205,7 +203,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                 <div className="relative" ref={avatarMenuRef}>
                   <button
                     type="button"
-                    onClick={() => setAvatarMenuOpen((previous) => !previous)}
+                    onClick={() => setMenuAbiertoEn((abiertoEn) => (abiertoEn === pathname ? null : pathname))}
                     className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white text-sm font-bold text-slate-900 shadow-sm transition hover:shadow-md"
                     aria-label="Abrir menú de usuario"
                     aria-haspopup="menu"
@@ -231,7 +229,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
 
                       <Link
                         href="/"
-                        onClick={() => setAvatarMenuOpen(false)}
+                        onClick={() => setMenuAbiertoEn(null)}
                         className="mt-1 flex w-full items-center rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                         role="menuitem"
                       >
@@ -241,7 +239,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                         type="button"
                         disabled={loggingOut}
                         onClick={() => {
-                          setAvatarMenuOpen(false);
+                          setMenuAbiertoEn(null);
                           setLogoutDialogOpen(true);
                         }}
                         className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
