@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default function TermsOfServicePage() {
   return (
     <LegalPageLayout
+      actualizado="2026-11-20"
       eyebrow="Información legal"
       title="Términos de servicio"
       description="Estas condiciones regulan el acceso y uso de STYLEHUB, las reservas realizadas por clientes y la administración de negocios dentro de la plataforma."
@@ -51,10 +52,16 @@ export default function TermsOfServicePage() {
           content: (
             <>
               <p>
-                Una reserva estará sujeta a la disponibilidad confirmada por el negocio correspondiente. Los horarios y la confirmación deben revisarse antes de acudir al establecimiento.
+                Solo se muestran horarios libres. Al reservar, la cita queda confirmada de inmediato y recibes un correo de confirmación; también te enviamos un recordatorio un día antes.
               </p>
               <p>
-                Las condiciones de modificación, cancelación o ausencia pueden variar según el negocio y deberán ser comunicadas antes de confirmar la cita.
+                Puedes cancelar o cambiar tu cita desde «Mis citas» hasta 2 horas antes de la hora reservada. Después de ese plazo, comunícate directamente con el negocio. El negocio también puede cancelar una cita; en ese caso te avisamos por correo.
+              </p>
+              <p>
+                Si pagaste con tu monedero y la cita se cancela, te devolvemos el importe completo al monedero. Las citas pagadas en efectivo se pagan en el establecimiento.
+              </p>
+              <p>
+                Los horarios se muestran en la hora del centro de México (Ciudad de México).
               </p>
             </>
           ),
