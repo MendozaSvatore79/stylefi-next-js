@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { esMX } from "@clerk/localizations";
@@ -16,8 +18,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITIO),
   title: "Stylehub Systems",
-  description: "Reserva citas en barberías y salones de belleza, y administra la agenda de tu negocio en un solo lugar.",
+  description: DESCRIPCION_SITIO,
+  // Vista previa al compartir el enlace en WhatsApp, redes, etc.
+  openGraph: {
+    type: "website",
+    locale: "es_MX",
+    url: SITIO,
+    siteName: "STYLEHUB",
+    title: "STYLEHUB",
+    description: DESCRIPCION_SITIO,
+    images: [{ url: "/brand/stylehub-app.png", width: 768, height: 768, alt: "STYLEHUB" }],
+  },
+  twitter: { card: "summary", title: "STYLEHUB", description: DESCRIPCION_SITIO, images: ["/brand/stylehub-app.png"] },
 };
 
 export default function RootLayout({
