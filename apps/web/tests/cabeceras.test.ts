@@ -82,4 +82,10 @@ describe("next.config.ts", () => {
     expect(fuente).toContain('headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES }]');
     expect(CACHE_DE_IMAGENES).toMatch(/^public, max-age=604800\b/);
   });
+
+  it("las imágenes optimizadas (/_next/image) duran 30 días en caché", () => {
+    const fuente = readFileSync(path.resolve(import.meta.dirname, "../next.config.ts"), "utf8");
+    expect(fuente).toContain("images: { minimumCacheTTL: 2_592_000 },");
+    expect(2_592_000).toBe(30 * 24 * 60 * 60);
+  });
 });
