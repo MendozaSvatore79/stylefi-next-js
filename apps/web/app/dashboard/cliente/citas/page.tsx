@@ -142,16 +142,14 @@ export default function ClienteCitasPage() {
     void loadData();
   }, []);
 
-  // Cargar negocio preseleccionado si viene del modal de salones
-  useEffect(() => {
-    const negocioId = searchParams.get("negocio");
-    if (negocioId) {
-      setForm((prevForm) => ({
-        ...prevForm,
-        businessUserId: negocioId,
-      }));
-    }
-  }, [searchParams]);
+  // Negocio preseleccionado si viene del modal de salones (?negocio=). Se aplica en el render, una vez por valor:
+  // si después se elige otro negocio, cambiar otro parámetro de la URL ya no lo regresa al de la URL.
+  const negocioDeUrl = searchParams.get("negocio");
+  const [negocioAplicado, setNegocioAplicado] = useState<string | null>(null);
+  if (negocioDeUrl && negocioDeUrl !== negocioAplicado) {
+    setNegocioAplicado(negocioDeUrl);
+    setForm((prevForm) => ({ ...prevForm, businessUserId: negocioDeUrl }));
+  }
 
   useEffect(() => {
     void loadBusinessCatalog(form.businessUserId);

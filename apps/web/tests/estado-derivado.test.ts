@@ -89,3 +89,13 @@ describe("widget de soporte (AURA)", () => {
     expect(fuente).not.toMatch(/setContactName\(displayName\)|setContactEmail\(displayEmail\)/);
   });
 });
+
+describe("citas del cliente", () => {
+  it("el negocio de ?negocio= se aplica en el render, una vez por valor", () => {
+    const fuente = leer("app/dashboard/cliente/citas/page.tsx");
+    expect(fuente).toMatch(
+      /if \(negocioDeUrl && negocioDeUrl !== negocioAplicado\) \{\s+setNegocioAplicado\(negocioDeUrl\);\s+setForm\(\(prevForm\) => \(\{ \.\.\.prevForm, businessUserId: negocioDeUrl \}\)\);\s+\}/,
+    );
+    expect(fuente).not.toContain("}, [searchParams]);");
+  });
+});
