@@ -52,12 +52,13 @@ const techFeatures = [
   },
 ];
 
-// Ideas de estilo (fotos de Unsplash). Sin nombres ni calificaciones: no son profesionales ni reseñas reales.
+// Ideas de estilo (fotos de Unsplash, guardadas en public/estilos). Sin nombres ni calificaciones: no son
+// profesionales ni reseñas reales.
 const estilos = [
-  { nombre: "Corte clásico", foto: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80" },
-  { nombre: "Fade", foto: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=800&q=80" },
-  { nombre: "Barba", foto: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80" },
-  { nombre: "Estilo moderno", foto: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80" },
+  { nombre: "Corte clásico", foto: "/estilos/corte-clasico.jpg" },
+  { nombre: "Fade", foto: "/estilos/fade.jpg" },
+  { nombre: "Barba", foto: "/estilos/barba.jpg" },
+  { nombre: "Estilo moderno", foto: "/estilos/estilo-moderno.jpg" },
 ];
 
 export default async function Home() {
@@ -281,7 +282,7 @@ export default async function Home() {
                 className="h-44 w-full bg-cover bg-center sm:h-auto sm:w-[40%]"
                 style={{
                   backgroundImage:
-                    "url('https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=900&q=80')",
+                    "url('/estilos/negocio.jpg')",
                 }}
               />
             </div>
@@ -310,7 +311,7 @@ export default async function Home() {
                 className="h-44 w-full bg-cover bg-center sm:h-auto sm:w-[40%]"
                 style={{
                   backgroundImage:
-                    "url('https://images.unsplash.com/photo-1622287162716-f311baa1a2b8?auto=format&fit=crop&w=900&q=80')",
+                    "url('/estilos/negocio-equipo.jpg')",
                 }}
               />
             </div>

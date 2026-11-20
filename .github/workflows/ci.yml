@@ -1,0 +1,41 @@
+name: CI
+
+# Lint, pruebas y build en cada PR a main y en cada push a main. Amplify despliega por su cuenta al unir; esto
+# avisa de los fallos antes. Sin secretos: la URL del API y la llave de Clerk son de ejemplo (solo para compilar).
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruebas:
+    name: Lint, pruebas y build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: https://api.ejemplo.invalid
+      # pk_test_ + base64("ejemplo.clerk.accounts.dev$"): pública y de ejemplo
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZWplbXBsby5jbGVyay5hY2NvdW50cy5kZXYk
+      CLERK_SECRET_KEY: sk_test_ci
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      # Acciones fijadas a un commit exacto (igual que en el backend)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @stylefi/shared
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
