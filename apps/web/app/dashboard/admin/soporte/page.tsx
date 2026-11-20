@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -98,9 +98,15 @@ export default function AdminSupportPage() {
     }
   }, [filter, selectedTicketId, showToast]);
 
+  // Al cambiar de ticket rápido, solo cuenta el último pedido: si no, se veía un ticket y la respuesta iba a otro
+  const pedidoDeTicketRef = useRef(0);
   const loadTicket = useCallback(async (ticketId: string) => {
+    const pedido = ++pedidoDeTicketRef.current;
     try {
       const response = await api(`/api/admin/support-tickets?ticketId=${encodeURIComponent(ticketId)}`, { cache: "no-store" });
+      if (pedido !== pedidoDeTicketRef.current) {
+        return;
+      }
       if (!response.ok) {
         const message = await leerErrorDeSoporte(response, "No se pudo cargar el detalle del ticket");
         showToast({ type: "error", title: "Error al abrir ticket", message });
@@ -108,6 +114,9 @@ export default function AdminSupportPage() {
       }
 
       const payload = (await response.json()) as { ticket?: SupportTicket; messages?: SupportMessage[] };
+      if (pedido !== pedidoDeTicketRef.current) {
+        return;
+      }
       setSelectedTicket(payload.ticket ?? null);
       setMessages(payload.messages ?? []);
       setReply("");
