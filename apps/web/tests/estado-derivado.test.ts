@@ -15,6 +15,8 @@ const CORREGIDOS = [
   "components/admin-dashboard-shell.tsx",
   "components/business-dashboard-shell.tsx",
   "components/client-dashboard-shell.tsx",
+  "components/salon-modal.tsx",
+  "components/time-slot-picker.tsx",
 ];
 
 describe("sin setState en efectos", () => {
@@ -34,5 +36,29 @@ describe("menú del avatar en los paneles", () => {
     const fuente = leer(`components/${panel}-dashboard-shell.tsx`);
     expect(fuente).toContain("const avatarMenuOpen = menuAbiertoEn === pathname;");
     expect(fuente).toContain("setMenuAbiertoEn((abiertoEn) => (abiertoEn === pathname ? null : pathname))");
+  });
+});
+
+describe("modal del salón", () => {
+  it("si el servicio ya no está en la sucursal se vuelve a elegir, ajustado en el render y no en un efecto", () => {
+    const fuente = leer("components/salon-modal.tsx");
+    expect(fuente).toMatch(
+      /const servicioFueraDeSucursal =\s+bookingForm\.serviceId !== "" && !servicesForBranch\.some\(\(service\) => service\.id === bookingForm\.serviceId\);\s+if \(servicioFueraDeSucursal\) \{\s+setBookingForm\(\(current\) => \(\{ \.\.\.current, serviceId: "", scheduledAt: "" \}\)\);\s+setBookingDate\(""\);\s+setBookingStep\("details"\);/,
+    );
+  });
+});
+
+describe("selector de horarios", () => {
+  const fuente = leer("components/time-slot-picker.tsx");
+
+  it("sin negocio, servicio o fecha no muestra horarios (derivado, sin setSlots([]))", () => {
+    expect(fuente).not.toContain("setSlots([])");
+    expect(fuente).toContain("const visibles = faltanDatos ? [] : slots;");
+    expect(fuente).toContain("{visibles.map((slot) => (");
+  });
+
+  it("una respuesta vieja no pisa los horarios de la fecha nueva", () => {
+    expect(fuente).toMatch(/const payload = [^\n]+\n\s+if \(!vigente\) \{\s+return;\s+\}\s+setSlots\(/);
+    expect(fuente).toMatch(/return \(\) => \{\s+vigente = false;\s+\};/);
   });
 });
