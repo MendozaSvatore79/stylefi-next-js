@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
 import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
@@ -84,7 +84,10 @@ export default function ClienteCitasPage() {
     notes: "",
   });
 
+  // Si se cambia de negocio antes de que responda, solo cuenta el último pedido (si no, quedaban los servicios del anterior)
+  const pedidoDeCatalogoRef = useRef(0);
   const loadBusinessCatalog = async (businessId: string) => {
+    const pedido = ++pedidoDeCatalogoRef.current;
     if (!businessId) {
       setServices([]);
       setStylists([]);
@@ -107,6 +110,9 @@ export default function ClienteCitasPage() {
         services: Service[];
         stylists: Stylist[];
       };
+      if (pedido !== pedidoDeCatalogoRef.current) {
+        return;
+      }
 
       setServices(payload.services ?? []);
       setStylists(payload.stylists ?? []);

@@ -99,3 +99,19 @@ describe("citas del cliente", () => {
     expect(fuente).not.toContain("}, [searchParams]);");
   });
 });
+
+describe("cargas que dependen de algo que cambia: gana el último pedido", () => {
+  it.each([
+    ["catálogo del negocio (citas del cliente)", "app/dashboard/cliente/citas/page.tsx", "pedidoDeCatalogoRef", /if \(pedido !== pedidoDeCatalogoRef\.current\) \{\s+return;\s+\}\s+setServices\(/],
+    ["detalle del ticket (soporte)", "app/dashboard/admin/soporte/page.tsx", "pedidoDeTicketRef", /if \(pedido !== pedidoDeTicketRef\.current\) \{\s+return;\s+\}\s+setSelectedTicket\(/],
+    ["usuarios del admin", "app/dashboard/admin/page.tsx", "pedidoDeUsuariosRef", /if \(!vigente\(\)\) \{\s+return;\s+\}\s+setUsers\(/],
+  ])("%s", (_nombre, archivo, ref, guardia) => {
+    const fuente = leer(archivo);
+    expect(fuente).toContain(`const pedido = ++${ref}.current;`);
+    expect(fuente).toMatch(guardia);
+  });
+
+  it("usuarios: una respuesta vieja tampoco apaga el indicador de carga del pedido nuevo", () => {
+    expect(leer("app/dashboard/admin/page.tsx")).toMatch(/\} finally \{\s+if \(vigente\(\)\) \{\s+setUsersLoading\(false\);/);
+  });
+});
