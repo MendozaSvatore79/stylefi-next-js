@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,
   poweredByHeader: false,
+  // Amplify sirve public/ con su propia caché corta e ignora headers(); lo que sí respeta es el TTL de /_next/image.
+  // 30 días: si se reemplaza una foto, mejor con otro nombre de archivo o tardará hasta un mes en verse.
+  images: { minimumCacheTTL: 2_592_000 },
   async headers() {
     return [
       { source: "/:path*", headers: cabecerasDeSeguridad(process.env.NEXT_PUBLIC_API_URL!, origenSentry) },
