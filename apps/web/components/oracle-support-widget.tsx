@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { intervaloDeConsulta } from "@/lib/consulta-ticket";
@@ -70,12 +70,24 @@ function getUnreadSupportMessages(messages: OracleMessage[], lastSeenAt: string 
   });
 }
 
+function leerTicketGuardado() {
+  return window.localStorage.getItem(supportTicketStorageKey)?.trim() || null;
+}
+
+function suscribirAlmacen(avisar: () => void) {
+  window.addEventListener("storage", avisar);
+  return () => window.removeEventListener("storage", avisar);
+}
+
 export default function OracleSupportWidget() {
   const pathname = usePathname();
   const { data: session, status } = useSesion();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
-  const [ticketId, setTicketId] = useState<string | null>(null);
+  // Ticket de este navegador: el guardado en localStorage hasta que la app elige otro (o lo olvida, con null)
+  const ticketGuardado = useSyncExternalStore(suscribirAlmacen, leerTicketGuardado, () => null);
+  const [ticketElegido, setTicketId] = useState<string | null | undefined>(undefined);
+  const ticketId = ticketElegido === undefined ? ticketGuardado : ticketElegido;
   const [messages, setMessages] = useState<OracleMessage[]>([]);
   const [input, setInput] = useState("");
   const subject = "Soporte AURA";
@@ -97,29 +109,11 @@ export default function OracleSupportWidget() {
   const displayName = session?.user?.name || session?.user?.email || "Usuario";
   const displayEmail = session?.user?.email || "";
 
-  useEffect(() => {
-    if (!isAllowed) {
-      setOpen(false);
-    }
-  }, [isAllowed]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      setContactName(displayName);
-      setContactEmail(displayEmail);
-    }
-  }, [displayEmail, displayName, isAuthenticated]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const storedTicketId = window.localStorage.getItem(supportTicketStorageKey)?.trim();
-    if (storedTicketId) {
-      setTicketId(storedTicketId);
-    }
-  }, []);
+  // Fuera de las rutas permitidas el widget no se muestra; al volver a una, aparece cerrado (ajuste en el render).
+  // Nombre y correo de contacto solo se piden sin sesión: no se copian de la sesión (al salir quedaban los datos).
+  if (!isAllowed && open) {
+    setOpen(false);
+  }
 
   useEffect(() => {
     previousUnreadCountRef.current = 0;
@@ -137,8 +131,8 @@ export default function OracleSupportWidget() {
       return;
     }
 
+    // El contador ya queda en 0 mientras está abierto: lo fija refreshTicket y el globo se oculta con el widget abierto
     window.localStorage.setItem(getLastSeenKey(ticketId), lastMessageAt);
-    setUnreadCount(0);
   }, [messages, open, ticketId]);
 
   const forgetStoredTicket = useCallback((staleTicketId: string) => {
