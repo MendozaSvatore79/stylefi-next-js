@@ -21,6 +21,7 @@ const textos = {
     apellidos: "Apellido(s)",
     nombreNegocio: "Nombre del negocio",
     rfc: "RFC",
+    zonaHoraria: "Por ahora STYLEHUB funciona con la hora del centro de México (Ciudad de México): tus horarios y citas se muestran en esa hora.",
     telefono: "Teléfono",
     continuar: "Continuar",
     guardando: "Guardando...",
@@ -40,6 +41,7 @@ const textos = {
     apellidos: "Last name(s)",
     nombreNegocio: "Business name",
     rfc: "Tax ID (RFC)",
+    zonaHoraria: "For now STYLEHUB uses central Mexico time (Mexico City): your hours and appointments are shown in that time.",
     telefono: "Phone",
     continuar: "Continue",
     guardando: "Saving...",
@@ -159,6 +161,10 @@ export default function CompletarRegistro({
                   <label htmlFor={`${id}-rfc`} className={etiqueta}>{t.rfc}</label>
                   <input id={`${id}-rfc`} className={campo} placeholder={t.rfc} value={datos.rfc} onChange={cambiar("rfc")} required maxLength={13} />
                 </div>
+                {/* Decisión de producto (2026-11-20): una sola zona horaria por ahora */}
+                <p role="note" data-aviso-zona-horaria className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  {t.zonaHoraria}
+                </p>
               </>
             ) : null}
             <div>
