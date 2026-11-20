@@ -15,7 +15,7 @@ export function politicaDeContenido(urlBackend: string) {
     // Next mete scripts en línea (sin nonce); Clerk y Stripe cargan los suyos
     `script-src 'self' 'unsafe-inline' ${clerk} ${clerkProtect.script} https://js.stripe.com https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://images.unsplash.com https://img.clerk.com " + backend,
+    "img-src 'self' data: blob: https://img.clerk.com " + backend,
     "font-src 'self' data:",
     `connect-src 'self' ${backend} ${clerk} ${clerkProtect.conexion} https://api.stripe.com`,
     "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",

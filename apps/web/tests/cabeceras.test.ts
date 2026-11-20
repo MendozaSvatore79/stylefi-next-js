@@ -56,9 +56,10 @@ describe("politicaDeContenido", () => {
     expect(directiva("connect-src")).toContain("https://*.protect.clerk.com:*");
   });
 
-  it("imágenes del backend (sucursales) y de la portada", () => {
+  it("imágenes del backend (sucursales) y del propio sitio", () => {
     expect(directiva("img-src")).toContain(BACKEND);
-    expect(directiva("img-src")).toContain("https://images.unsplash.com");
+    // Las fotos de la portada se sirven desde el propio sitio (public/estilos), no desde Unsplash
+    expect(directiva("img-src")).not.toContain("unsplash");
   });
 
   it("sin plugins, sin cambiar la base y sin incrustarse", () => {
