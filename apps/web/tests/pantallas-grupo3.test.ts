@@ -11,7 +11,7 @@ const leer = (archivo: string) => readFileSync(path.resolve(import.meta.dirname,
 
 describe("admin", () => {
   it("el correo se muestra de solo lectura (el backend rechaza cambiarlo)", () => {
-    const fuente = leer("app/dashboard/admin/page.tsx");
+    const fuente = leer("app/(con-sesion)/dashboard/admin/page.tsx");
     expect(fuente).toMatch(/<Input value=\{editUserForm\.email\} readOnly/);
     expect(fuente).not.toContain("email: event.target.value");
     expect(fuente).toContain("El correo lo cambia la persona desde su cuenta.");
@@ -97,7 +97,7 @@ describe("todas las pantallas", () => {
 
 describe("entrar", () => {
   it("pregunta a /entrar solo con la sesión de Clerk lista; sin sesión espera y luego va al login", () => {
-    const fuente = leer("app/entrar/page.tsx");
+    const fuente = leer("app/(con-sesion)/entrar/page.tsx");
     expect(fuente).toContain("useAuth()");
     const efectos = fuente.split("useEffect(").slice(1);
     const conLlamada = efectos.find((e) => e.includes('api("/api/entrar"'));

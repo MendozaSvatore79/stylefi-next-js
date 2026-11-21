@@ -9,14 +9,14 @@ const leer = (archivo: string) => readFileSync(path.resolve(RAIZ, archivo), "utf
 
 describe("configuración del cliente", () => {
   it("ya no ofrece interruptores de privacidad que no guardaban nada (perfil público, historial, análisis)", () => {
-    const pagina = leer("app/dashboard/cliente/configuracion/page.tsx");
+    const pagina = leer("app/(con-sesion)/dashboard/cliente/configuracion/page.tsx");
     expect(pagina).not.toMatch(/privacy/);
     expect(pagina).toContain('useState<"general" | "security">("general")');
     expect(leer("lib/language-context.tsx")).not.toMatch(/"(settings\.privacy|privacy\.(title|description|profile|history|analytics))/);
   });
 
   it("tampoco ofrece los interruptores de avisos, que no guardaban nada (recordatorios, pagos, promociones)", () => {
-    const pagina = leer("app/dashboard/cliente/configuracion/page.tsx");
+    const pagina = leer("app/(con-sesion)/dashboard/cliente/configuracion/page.tsx");
     expect(pagina).not.toMatch(/notifications|type="checkbox"/);
     expect(leer("lib/language-context.tsx")).not.toMatch(/"(settings\.notifications|notifications\.)/);
   });
@@ -74,13 +74,13 @@ function camposSinEtiqueta(fuente: string) {
 
 describe("formularios con etiqueta visible y ligada (el placeholder solo desaparece al escribir)", () => {
   it.each([
-    "app/dashboard/negocio/sucursales/page.tsx",
-    "app/dashboard/negocio/servicios/page.tsx",
-    "app/dashboard/negocio/estilistas/page.tsx",
-    "app/dashboard/cliente/citas/page.tsx",
-    "app/dashboard/cliente/pagos/page.tsx",
-    "app/dashboard/cliente/configuracion/page.tsx",
-    "app/dashboard/admin/soporte/page.tsx",
+    "app/(con-sesion)/dashboard/negocio/sucursales/page.tsx",
+    "app/(con-sesion)/dashboard/negocio/servicios/page.tsx",
+    "app/(con-sesion)/dashboard/negocio/estilistas/page.tsx",
+    "app/(con-sesion)/dashboard/cliente/citas/page.tsx",
+    "app/(con-sesion)/dashboard/cliente/pagos/page.tsx",
+    "app/(con-sesion)/dashboard/cliente/configuracion/page.tsx",
+    "app/(con-sesion)/dashboard/admin/soporte/page.tsx",
     "components/salon-discovery.tsx",
   ])("%s", (archivo) => {
     expect(camposSinEtiqueta(leer(archivo))).toEqual([]);
@@ -99,11 +99,11 @@ describe("menores de la revisión 4", () => {
   });
 
   it("las pantallas del admin tienen <h1>", () => {
-    expect(leer("app/dashboard/admin/page.tsx")).toContain('<h1 className="text-3xl font-black text-white">Centro de control administrativo</h1>');
-    expect(leer("app/dashboard/admin/soporte/page.tsx")).toContain('<h1 className="text-base font-semibold text-slate-900">Soporte AURA</h1>');
+    expect(leer("app/(con-sesion)/dashboard/admin/page.tsx")).toContain('<h1 className="text-3xl font-black text-white">Centro de control administrativo</h1>');
+    expect(leer("app/(con-sesion)/dashboard/admin/soporte/page.tsx")).toContain('<h1 className="text-base font-semibold text-slate-900">Soporte AURA</h1>');
   });
 
-  it.each(["app/dashboard/negocio/sucursales/page.tsx", "app/dashboard/negocio/estilistas/page.tsx"])(
+  it.each(["app/(con-sesion)/dashboard/negocio/sucursales/page.tsx", "app/(con-sesion)/dashboard/negocio/estilistas/page.tsx"])(
     "%s: la casilla mide 20 px y su etiqueta al menos 24 px de alto",
     (archivo) => {
       const fuente = leer(archivo);

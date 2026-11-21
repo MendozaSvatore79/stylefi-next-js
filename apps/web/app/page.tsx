@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { connection } from "next/server";
 
+import AuraSinSesion from "@/components/aura-sin-sesion";
 import { LiveDashboardPanel } from "@/components/live-dashboard-panel";
 import { urlDelBackend } from "@/lib/api";
 
@@ -364,6 +365,7 @@ export default async function Home() {
           </div>
         </div>
       </footer>
+      <AuraSinSesion />
     </main>
   );
 }

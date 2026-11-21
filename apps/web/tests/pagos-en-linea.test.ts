@@ -23,7 +23,7 @@ describe("pagosEnLineaDe", () => {
 });
 
 describe("pantalla de Pagos", () => {
-  const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/dashboard/cliente/pagos/page.tsx"), "utf8");
+  const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/(con-sesion)/dashboard/cliente/pagos/page.tsx"), "utf8");
 
   it("toma pagosEnLinea de la respuesta y, sin él, cambia el formulario de tarjeta a efectivo", () => {
     expect(fuente).toContain("const enLinea = pagosEnLineaDe(payload);");

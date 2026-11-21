@@ -8,7 +8,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const leer = (archivo: string) => readFileSync(path.resolve(import.meta.dirname, "..", archivo), "utf8");
-const PANTALLAS = ["components/salon-modal.tsx", "app/dashboard/cliente/citas/page.tsx"];
+const PANTALLAS = ["components/salon-modal.tsx", "app/(con-sesion)/dashboard/cliente/citas/page.tsx"];
 
 describe("pantallas de citas", () => {
   it.each(PANTALLAS)("%s no manda precio, nombre del servicio ni la opción tarjeta", (archivo) => {
@@ -31,7 +31,7 @@ describe("pantallas de citas", () => {
   });
 
   it("al reagendar se usa el selector de horarios, no una fecha libre", () => {
-    const fuente = leer("app/dashboard/cliente/citas/page.tsx");
+    const fuente = leer("app/(con-sesion)/dashboard/cliente/citas/page.tsx");
     expect(fuente).not.toContain('type="datetime-local"');
     expect(fuente).toContain("onSelectTime={(iso) => setEditScheduledAt(iso)}");
   });
@@ -44,7 +44,7 @@ describe("pantallas de citas", () => {
 });
 
 describe("pantalla de citas del negocio", () => {
-  const fuente = leer("app/dashboard/negocio/citas/page.tsx");
+  const fuente = leer("app/(con-sesion)/dashboard/negocio/citas/page.tsx");
 
   it("solo ofrece los cambios de estado que el servidor permite, incluido «no asistió»", () => {
     expect(fuente).toContain("function estadosPermitidos");

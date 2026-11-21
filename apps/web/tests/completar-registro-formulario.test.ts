@@ -7,7 +7,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/registro/completar/completar-registro.tsx"), "utf8");
+const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/(con-sesion)/registro/completar/completar-registro.tsx"), "utf8");
 const inputs = [...fuente.matchAll(/<input\b[^>]*\/>/g)].map((m) => m[0]);
 
 describe("formulario de completar registro", () => {
