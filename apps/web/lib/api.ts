@@ -23,13 +23,20 @@ type ClerkGlobal = { loaded?: boolean; session?: { getToken: () => Promise<strin
 
 const ESPERA_CLERK_MS = 10_000;
 
+/** La pone el layout de app/(con-sesion) al dibujarse. En páginas sin Clerk (la portada) no se espera su token. */
+let paginaConClerk = false;
+export function marcarPaginaConClerk() {
+  paginaConClerk = true;
+}
+
 /**
  * Token de sesión de Clerk. Las pantallas piden sus datos al montarse, a veces antes de que Clerk termine de
  * cargar en el navegador: se espera a que cargue (hasta 10 s) para no mandar la petición sin token.
  */
 async function tokenDeClerk(): Promise<string | null> {
-  const fin = Date.now() + ESPERA_CLERK_MS;
   let clerk = (globalThis as { Clerk?: ClerkGlobal }).Clerk;
+  if (!paginaConClerk && !clerk) return null;
+  const fin = Date.now() + ESPERA_CLERK_MS;
   while (!clerk?.loaded && Date.now() < fin) {
     await new Promise((r) => setTimeout(r, 50));
     clerk = (globalThis as { Clerk?: ClerkGlobal }).Clerk;

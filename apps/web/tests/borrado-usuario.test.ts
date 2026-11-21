@@ -105,7 +105,7 @@ describe("mensajeDeError", () => {
 });
 
 describe("panel /dashboard/admin: guardia del borrado", () => {
-  const fuente = readFileSync(path.resolve(import.meta.dirname, "..", "app/dashboard/admin/page.tsx"), "utf8");
+  const fuente = readFileSync(path.resolve(import.meta.dirname, "..", "app/(con-sesion)/dashboard/admin/page.tsx"), "utf8");
   const cuerpoDe = (nombre: string) => {
     const inicio = fuente.indexOf(`const ${nombre} = async`);
     expect(inicio).toBeGreaterThan(-1);

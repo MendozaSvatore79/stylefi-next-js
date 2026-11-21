@@ -40,7 +40,7 @@ describe("citasPorCerrar y el aviso", () => {
 });
 
 describe("agenda del negocio", () => {
-  const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/dashboard/negocio/citas/page.tsx"), "utf8");
+  const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/(con-sesion)/dashboard/negocio/citas/page.tsx"), "utf8");
 
   it("muestra el aviso con el conteo y resalta cada cita por cerrar", () => {
     expect(fuente).toContain("avisoCitasPorCerrar(citasPorCerrar(appointments).length");

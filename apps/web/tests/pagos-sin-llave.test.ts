@@ -8,7 +8,7 @@ vi.mock("@stripe/stripe-js", () => ({ loadStripe: vi.fn(async () => ({})) }));
 
 describe("llavePublicaDeStripe", () => {
   it("vacía, con espacios o sin definir: null; con valor: la llave sin espacios", async () => {
-    const { llavePublicaDeStripe } = await import("@/app/dashboard/cliente/pagos/StripeCardSetupForm");
+    const { llavePublicaDeStripe } = await import("@/app/(con-sesion)/dashboard/cliente/pagos/StripeCardSetupForm");
     expect(llavePublicaDeStripe(undefined)).toBeNull();
     expect(llavePublicaDeStripe("")).toBeNull();
     expect(llavePublicaDeStripe("   ")).toBeNull();
@@ -19,9 +19,9 @@ describe("llavePublicaDeStripe", () => {
     vi.resetModules();
     vi.stubEnv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "");
     const { loadStripe } = await import("@stripe/stripe-js");
-    await import("@/app/dashboard/cliente/pagos/StripeCardSetupForm");
+    await import("@/app/(con-sesion)/dashboard/cliente/pagos/StripeCardSetupForm");
     expect(loadStripe).not.toHaveBeenCalled();
-    const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/dashboard/cliente/pagos/StripeCardSetupForm.tsx"), "utf8");
+    const fuente = readFileSync(path.resolve(import.meta.dirname, "../app/(con-sesion)/dashboard/cliente/pagos/StripeCardSetupForm.tsx"), "utf8");
     expect(fuente).toContain("if (!stripePromise) {");
     expect(fuente).toContain("Agregar tarjeta no está disponible por ahora.");
     expect(fuente).not.toContain("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!");

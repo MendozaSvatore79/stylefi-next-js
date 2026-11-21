@@ -142,7 +142,7 @@ describe("leerJson y aplicarDireccion", () => {
 });
 
 describe("pantalla de Sucursales", () => {
-  const fuente = readFileSync(path.resolve(import.meta.dirname, "..", "app/dashboard/negocio/sucursales/page.tsx"), "utf8");
+  const fuente = readFileSync(path.resolve(import.meta.dirname, "..", "app/(con-sesion)/dashboard/negocio/sucursales/page.tsx"), "utf8");
 
   it("no pide la ubicación al abrirse: solo el botón llama a requestCurrentLocation", () => {
     expect(fuente.match(/requestCurrentLocation\(/g)).toHaveLength(1);
@@ -169,7 +169,7 @@ describe("pantalla de Sucursales", () => {
 });
 
 describe("pantalla de Sucursales: diseño responsivo (se mide en Chrome headless; esto evita que vuelva lo de antes)", () => {
-  const fuente = readFileSync(path.resolve(import.meta.dirname, "..", "app/dashboard/negocio/sucursales/page.tsx"), "utf8");
+  const fuente = readFileSync(path.resolve(import.meta.dirname, "..", "app/(con-sesion)/dashboard/negocio/sucursales/page.tsx"), "utf8");
 
   it("los paneles son contenedores y las columnas dependen del ancho del panel, no de la pantalla", () => {
     expect(fuente).toContain('className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]"');

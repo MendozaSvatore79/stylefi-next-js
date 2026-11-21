@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Settings2, ShieldCheck } from "lucide-react";
+import { Settings2, ShieldCheck } from "lucide-react";
 
 import AccountSecurityPanel from "@/components/account-security-panel";
 import { useLanguage } from "@/lib/language-context";
@@ -10,12 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default function ClienteConfiguracionPage() {
   const { language, setLanguage, t } = useLanguage();
-  const [activeSection, setActiveSection] = useState<"general" | "security" | "notifications">("general");
+  const [activeSection, setActiveSection] = useState<"general" | "security">("general");
 
   const sections = [
     { id: "general", label: t("settings.general"), icon: Settings2, description: t("settings.general.desc") },
     { id: "security", label: t("settings.security"), icon: ShieldCheck, description: t("settings.security.desc") },
-    { id: "notifications", label: t("settings.notifications"), icon: Bell, description: t("settings.notifications.desc") },
   ];
 
   return (
@@ -25,7 +24,7 @@ export default function ClienteConfiguracionPage() {
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{t("settings.title")}</h2>
         <p className="mt-3 max-w-2xl text-sm text-slate-600">{t("settings.description")}</p>
 
-        <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-3">
+        <div className="mt-6 grid gap-3 grid-cols-2">
           {sections.map((section) => {
             const SectionIcon = section.icon;
             return (
@@ -104,47 +103,6 @@ export default function ClienteConfiguracionPage() {
           </div>
           <AccountSecurityPanel title="" />
         </div>
-      ) : null}
-
-      {activeSection === "notifications" ? (
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
-              <Bell className="size-8" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Notificaciones</p>
-              <h3 className="mt-2 text-xl font-black text-[#151138]">{t("notifications.title")}</h3>
-              <p className="mt-2 text-sm text-slate-600">{t("notifications.description")}</p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 lg:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white">
-              <input type="checkbox" defaultChecked className="h-5 w-5 rounded border-slate-300" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">{t("notifications.reminders")}</p>
-                <p className="text-xs text-slate-500">{t("notifications.reminders.desc")}</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white">
-              <input type="checkbox" defaultChecked className="h-5 w-5 rounded border-slate-300" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">{t("notifications.payments")}</p>
-                <p className="text-xs text-slate-500">{t("notifications.payments.desc")}</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white lg:col-span-2">
-              <input type="checkbox" className="h-5 w-5 rounded border-slate-300" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">{t("notifications.promotions")}</p>
-                <p className="text-xs text-slate-500">{t("notifications.promotions.desc")}</p>
-              </div>
-            </label>
-          </div>
-        </article>
       ) : null}
 
     </section>

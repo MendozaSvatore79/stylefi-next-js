@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 
 import { DESCRIPCION_SITIO, SITIO } from "@/lib/sitio";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import { esMX } from "@clerk/localizations";
 import "./globals.css";
 import Providers from "./providers";
 
@@ -40,17 +38,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      localization={esMX}
-      signInUrl="/iniciar-sesion"
-      signUpUrl="/register"
-      // Todo inicio de sesión o registro pasa por /entrar (que decide: panel o /registro/completar), también cuando
-      // Clerk cambia de flujo (Google desde /register con cuenta existente, o desde /iniciar-sesion con cuenta nueva).
-      signInForceRedirectUrl="/entrar"
-      signUpForceRedirectUrl="/entrar"
-      afterSignOutUrl="/iniciar-sesion"
-      telemetry={false}
-    >
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
@@ -59,6 +46,5 @@ export default function RootLayout({
         <Providers>{children}</Providers>
       </body>
     </html>
-    </ClerkProvider>
   );
 }

@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const leer = (archivo: string) => readFileSync(path.resolve(import.meta.dirname, "..", archivo), "utf8");
-const PANTALLAS = ["app/dashboard/cliente/citas/page.tsx", "app/dashboard/cliente/page.tsx", "app/dashboard/negocio/citas/page.tsx"];
+const PANTALLAS = ["app/(con-sesion)/dashboard/cliente/citas/page.tsx", "app/(con-sesion)/dashboard/cliente/page.tsx", "app/(con-sesion)/dashboard/negocio/citas/page.tsx"];
 
 describe("pantallas", () => {
   it.each(PANTALLAS)("%s no muestra el estado sin traducir", (archivo) => {
@@ -21,7 +21,7 @@ describe("pantallas", () => {
   });
 
   it("Mis citas solo muestra Reagendar y Cancelar cuando está permitido", () => {
-    const fuente = leer("app/dashboard/cliente/citas/page.tsx");
+    const fuente = leer("app/(con-sesion)/dashboard/cliente/citas/page.tsx");
     const guardia = fuente.indexOf('puedeModificarCliente(appointment) === "permitido"');
     expect(guardia).toBeGreaterThan(0);
     expect(fuente.indexOf("openReschedule(appointment)")).toBeGreaterThan(guardia);

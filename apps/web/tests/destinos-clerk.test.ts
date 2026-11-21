@@ -17,19 +17,19 @@ const etiqueta = (fuente: string, componente: string) => {
 
 describe("destinos de Clerk", () => {
   it("<ClerkProvider> manda a /entrar después de entrar y de registrarse", () => {
-    const proveedor = leer("app/layout.tsx").match(/<ClerkProvider\b[\s\S]*?>/)![0];
+    const proveedor = leer("app/(con-sesion)/layout.tsx").match(/<ClerkProvider\b[\s\S]*?>/)![0];
     expect(proveedor).toContain('signInForceRedirectUrl="/entrar"');
     expect(proveedor).toContain('signUpForceRedirectUrl="/entrar"');
   });
 
   it("<SignIn> manda a /entrar también cuando Clerk pasa a registro (Google con cuenta nueva)", () => {
-    const signIn = etiqueta(leer("app/iniciar-sesion/[[...resto]]/page.tsx"), "SignIn");
+    const signIn = etiqueta(leer("app/(con-sesion)/iniciar-sesion/[[...resto]]/page.tsx"), "SignIn");
     expect(signIn).toMatch(/\sforceRedirectUrl="\/entrar"/);
     expect(signIn).toContain('signUpForceRedirectUrl="/entrar"');
   });
 
   it("<SignUp> manda a /entrar también cuando Clerk pasa a inicio de sesión (Google con cuenta existente)", () => {
-    const signUp = etiqueta(leer("app/register/[[...resto]]/page.tsx"), "SignUp");
+    const signUp = etiqueta(leer("app/(con-sesion)/register/[[...resto]]/page.tsx"), "SignUp");
     expect(signUp).toMatch(/\sforceRedirectUrl="\/entrar"/);
     expect(signUp).toContain('signInForceRedirectUrl="/entrar"');
   });

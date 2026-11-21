@@ -42,7 +42,7 @@ describe("dependencias de los efectos sin repetir llamadas", () => {
   });
 
   it("Pagos: los métodos se cargan con un loadMethods estable y la recarga se confirma una sola vez por sesión", () => {
-    const fuente = leer("app/dashboard/cliente/pagos/page.tsx");
+    const fuente = leer("app/(con-sesion)/dashboard/cliente/pagos/page.tsx");
     expect(fuente).toMatch(/const loadMethods = useCallback\([\s\S]*?\}, \[showToast\]\);/);
     expect(fuente).toContain("}, [loadMethods]);");
     expect(fuente).toMatch(/if \(confirmandoSesionRef\.current === sessionId\) \{\s*return;\s*\}\s*confirmandoSesionRef\.current = sessionId;/);
