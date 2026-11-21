@@ -26,3 +26,12 @@ describe("favicon", () => {
     expect(tamanos).toEqual([16, 32, 48]);
   });
 });
+
+describe("botones de icono con nombre", () => {
+  it("el botón de menú móvil del panel de admin se anuncia como «Abrir menú» (como en cliente y negocio)", () => {
+    expect(leer("components/admin-dashboard-shell.tsx")).toContain(
+      'onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">',
+    );
+    for (const panel of ["business", "client"]) expect(leer(`components/${panel}-dashboard-shell.tsx`)).toContain('aria-label="Abrir menú"');
+  });
+});
