@@ -85,3 +85,28 @@ describe("formularios con etiqueta visible y ligada (el placeholder solo desapar
     expect(campo).toMatch(/<label className=\{cn\("block min-w-0", className\)\}>\s+<span className="mb-1 block text-xs font-semibold text-slate-600">\{etiqueta\}<\/span>\s+\{children\}\s+<\/label>/);
   });
 });
+
+describe("menores de la revisión 4", () => {
+  it("<html lang> sigue al idioma elegido (antes siempre decía es)", () => {
+    expect(leer("components/idioma-del-documento.tsx")).toMatch(/useEffect\(\(\) => \{\s+document\.documentElement\.lang = language;\s+\}, \[language\]\);/);
+    expect(leer("app/providers.tsx")).toMatch(/<LanguageProvider>\s+<IdiomaDelDocumento \/>/);
+  });
+
+  it("las pantallas del admin tienen <h1>", () => {
+    expect(leer("app/dashboard/admin/page.tsx")).toContain('<h1 className="text-3xl font-black text-white">Centro de control administrativo</h1>');
+    expect(leer("app/dashboard/admin/soporte/page.tsx")).toContain('<h1 className="text-base font-semibold text-slate-900">Soporte AURA</h1>');
+  });
+
+  it.each(["app/dashboard/negocio/sucursales/page.tsx", "app/dashboard/negocio/estilistas/page.tsx"])(
+    "%s: la casilla mide 20 px y su etiqueta al menos 24 px de alto",
+    (archivo) => {
+      const fuente = leer(archivo);
+      expect(fuente).toMatch(/<label className="flex min-h-6 items-center gap-2 text-sm font-medium text-slate-700">\s+<input\s+type="checkbox"/);
+      expect(fuente).not.toContain('className="h-4 w-4 shrink-0"');
+    },
+  );
+
+  it("el mapa del modal del salón tiene título", () => {
+    expect(leer("components/salon-modal.tsx")).toMatch(/<iframe\s+title=\{`Mapa: \$\{displayAddress\}`\}/);
+  });
+});

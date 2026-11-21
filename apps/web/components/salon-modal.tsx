@@ -516,6 +516,7 @@ export default function SalonModal({
                 <>
                   <div className="flex h-80 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
                     <iframe
+                      title={`Mapa: ${displayAddress}`}
                       width="100%"
                       height="100%"
                       style={{ border: 0 }}
