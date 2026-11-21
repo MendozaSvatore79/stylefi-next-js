@@ -15,3 +15,14 @@ describe("configuración del cliente", () => {
     expect(leer("lib/language-context.tsx")).not.toMatch(/"(settings\.privacy|privacy\.(title|description|profile|history|analytics))/);
   });
 });
+
+describe("favicon", () => {
+  it("es un .ico real con 16, 32 y 48 px y pesa menos de 16 KB (antes, un PNG de 500×500 de 162 KB)", () => {
+    const ico = readFileSync(path.resolve(RAIZ, "app/favicon.ico"));
+    expect(ico.length).toBeLessThan(16 * 1024);
+    expect([ico.readUInt16LE(0), ico.readUInt16LE(2)]).toEqual([0, 1]);
+    const n = ico.readUInt16LE(4);
+    const tamanos = Array.from({ length: n }, (_, i) => ico[6 + 16 * i] || 256);
+    expect(tamanos).toEqual([16, 32, 48]);
+  });
+});
