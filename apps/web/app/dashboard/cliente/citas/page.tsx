@@ -7,6 +7,7 @@ import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } fro
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api } from "@/lib/api";
+import Campo from "@/components/campo";
 
 type Business = {
   id: string;
@@ -512,8 +513,8 @@ export default function ClienteCitasPage() {
 
         <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">{t("appointments.business")}</label>
-            <select
+            <label htmlFor="cita-negocio" className="mb-2 block text-sm font-semibold text-slate-700">{t("appointments.business")}</label>
+            <select id="cita-negocio"
               value={form.businessUserId}
               onChange={(event) => {
                 const selectedBusinessId = event.target.value;
@@ -540,40 +541,44 @@ export default function ClienteCitasPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <select
-              value={form.serviceId}
-              onChange={(event) => {
-                const selectedServiceId = event.target.value;
-                const selectedService = services.find((service) => service.id === selectedServiceId);
+            <Campo etiqueta={language === "en" ? "Service" : "Servicio"}>
+              <select
+                value={form.serviceId}
+                onChange={(event) => {
+                  const selectedServiceId = event.target.value;
+                  const selectedService = services.find((service) => service.id === selectedServiceId);
 
-                setForm((current) => ({
-                  ...current,
-                  serviceId: selectedServiceId,
-                  serviceName: selectedService?.service_name ?? "",
-                  totalAmount: selectedService ? String(Number(selectedService.price)) : "",
-                }));
-              }}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-            >
-              <option value="">{language === "en" ? "Select a service" : "Selecciona un servicio"}</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.service_name} · ${Number(service.price).toFixed(2)}
-                </option>
-              ))}
-            </select>
-            <input
-              type="date"
-              value={form.scheduledAt.split("T")[0] || ""}
-              onChange={(event) => {
-                setForm((current) => ({
-                  ...current,
-                  scheduledAt: event.target.value ? `${event.target.value}T00:00` : "",
-                }));
-              }}
-              min={new Date().toISOString().split("T")[0]}
-              className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-            />
+                  setForm((current) => ({
+                    ...current,
+                    serviceId: selectedServiceId,
+                    serviceName: selectedService?.service_name ?? "",
+                    totalAmount: selectedService ? String(Number(selectedService.price)) : "",
+                  }));
+                }}
+                className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+              >
+                <option value="">{language === "en" ? "Select a service" : "Selecciona un servicio"}</option>
+                {services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.service_name} · ${Number(service.price).toFixed(2)}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Campo etiqueta={language === "en" ? "Date" : "Fecha"}>
+              <input
+                type="date"
+                value={form.scheduledAt.split("T")[0] || ""}
+                onChange={(event) => {
+                  setForm((current) => ({
+                    ...current,
+                    scheduledAt: event.target.value ? `${event.target.value}T00:00` : "",
+                  }));
+                }}
+                min={new Date().toISOString().split("T")[0]}
+                className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+              />
+            </Campo>
           </div>
 
           {form.businessUserId && form.serviceId && form.scheduledAt.split("T")[0] && (
@@ -592,23 +597,25 @@ export default function ClienteCitasPage() {
             />
           )}
 
-          <select
-            value={form.stylistId}
-            onChange={(event) =>
-              // Cambiar de estilista cambia los horarios libres: se conserva el día y se vuelve a elegir la hora
-              setForm((current) => ({ ...current, stylistId: event.target.value, scheduledAt: current.scheduledAt.split("T")[0] }))
-            }
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-          >
-            <option value="">{language === "en" ? "Anyone available" : "Cualquiera disponible"}</option>
-            {stylists
-              .filter((stylist) => stylist.available !== false && (stylist.service_ids ?? []).includes(form.serviceId))
-              .map((stylist) => (
-              <option key={stylist.id} value={stylist.id}>
-                {stylist.first_name} {stylist.last_name}
-              </option>
-            ))}
-          </select>
+          <Campo etiqueta={language === "en" ? "Stylist" : "Estilista"}>
+            <select
+              value={form.stylistId}
+              onChange={(event) =>
+                // Cambiar de estilista cambia los horarios libres: se conserva el día y se vuelve a elegir la hora
+                setForm((current) => ({ ...current, stylistId: event.target.value, scheduledAt: current.scheduledAt.split("T")[0] }))
+              }
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+            >
+              <option value="">{language === "en" ? "Anyone available" : "Cualquiera disponible"}</option>
+              {stylists
+                .filter((stylist) => stylist.available !== false && (stylist.service_ids ?? []).includes(form.serviceId))
+                .map((stylist) => (
+                <option key={stylist.id} value={stylist.id}>
+                  {stylist.first_name} {stylist.last_name}
+                </option>
+              ))}
+            </select>
+          </Campo>
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">{t("appointments.payment")}</label>
@@ -656,13 +663,15 @@ export default function ClienteCitasPage() {
             </p>
           </div>
 
-          <textarea
-            value={form.notes}
-            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-            rows={3}
-            placeholder={language === "en" ? "Appointment notes (optional)" : "Notas de la cita (opcional)"}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-indigo-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Appointment notes (optional)" : "Notas de la cita (opcional)"}>
+            <textarea
+              value={form.notes}
+              onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+              rows={3}
+              placeholder={language === "en" ? "Appointment notes (optional)" : "Notas de la cita (opcional)"}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-indigo-300 focus:ring"
+            />
+          </Campo>
 
           <button
             type="submit"
@@ -783,12 +792,14 @@ export default function ClienteCitasPage() {
                       }}
                       className="h-10 rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
                     />
-                    <input
-                      value={editNotes}
-                      onChange={(event) => setEditNotes(event.target.value)}
-                      placeholder={language === "en" ? "Notes (optional)" : "Notas (opcional)"}
-                      className="h-10 rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                    />
+                    <Campo etiqueta={language === "en" ? "Notes (optional)" : "Notas (opcional)"}>
+                      <input
+                        value={editNotes}
+                        onChange={(event) => setEditNotes(event.target.value)}
+                        placeholder={language === "en" ? "Notes (optional)" : "Notas (opcional)"}
+                        className="h-10 rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                      />
+                    </Campo>
                   </div>
                   {editDate && appointment.service_id ? (
                     <div className="mt-2">

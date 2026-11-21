@@ -9,6 +9,7 @@ import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
 import { DURACION_MAXIMA, DURACION_MINIMA, errorRango, errorTexto, errorUrl, LIMITES, PRECIO_MAXIMO, primerError } from "@/lib/validacion";
+import Campo from "@/components/campo";
 
 type Service = {
   id: string;
@@ -192,71 +193,83 @@ export default function NegocioServiciosPage() {
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Create service" : "Crear servicio"}</h2>
 
         <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-          <select
-            value={form.branchId}
-            onChange={(event) => setForm((current) => ({ ...current, branchId: event.target.value }))}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          >
-            <option value="">{language === "en" ? "Select a branch" : "Selecciona una sucursal"}</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.branch_name}
-              </option>
-            ))}
-          </select>
+          <Campo etiqueta={language === "en" ? "Branch" : "Sucursal"}>
+            <select
+              value={form.branchId}
+              onChange={(event) => setForm((current) => ({ ...current, branchId: event.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            >
+              <option value="">{language === "en" ? "Select a branch" : "Selecciona una sucursal"}</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.branch_name}
+                </option>
+              ))}
+            </select>
+          </Campo>
           <p className="-mt-2 text-xs text-slate-500">
             {language === "en"
               ? "Each service belongs to one branch. If you have several, create it in each one."
               : "Cada servicio pertenece a una sucursal. Si tienes varias, créalo en cada una."}
           </p>
 
-          <input
-            value={form.serviceName}
-            onChange={(event) => setForm((current) => ({ ...current, serviceName: event.target.value }))}
-            maxLength={LIMITES.nombreCorto}
-            placeholder={language === "en" ? "Service name" : "Nombre del servicio"}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Service name" : "Nombre del servicio"}>
+            <input
+              value={form.serviceName}
+              onChange={(event) => setForm((current) => ({ ...current, serviceName: event.target.value }))}
+              maxLength={LIMITES.nombreCorto}
+              placeholder={language === "en" ? "Service name" : "Nombre del servicio"}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
-          <textarea
-            value={form.description}
-            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-            rows={3}
-            maxLength={LIMITES.descripcion}
-            placeholder={language === "en" ? "Description" : "Descripción"}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Description" : "Descripción"}>
+            <textarea
+              value={form.description}
+              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+              rows={3}
+              maxLength={LIMITES.descripcion}
+              placeholder={language === "en" ? "Description" : "Descripción"}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
           <div className="grid gap-3 @sm:grid-cols-2">
-            <input
-              type="number"
-              min="0.01"
-              max={PRECIO_MAXIMO}
-              step="0.01"
-              value={form.price}
-              onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
-              placeholder={language === "en" ? "Price" : "Precio"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              type="number"
-              min={DURACION_MINIMA}
-              max={DURACION_MAXIMA}
-              step="1"
-              value={form.durationMinutes}
-              onChange={(event) => setForm((current) => ({ ...current, durationMinutes: event.target.value }))}
-              placeholder={language === "en" ? "Duration (min)" : "Duración (min)"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
+            <Campo etiqueta={language === "en" ? "Price" : "Precio"}>
+              <input
+                type="number"
+                min="0.01"
+                max={PRECIO_MAXIMO}
+                step="0.01"
+                value={form.price}
+                onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
+                placeholder={language === "en" ? "Price" : "Precio"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
+            <Campo etiqueta={language === "en" ? "Duration (min)" : "Duración (min)"}>
+              <input
+                type="number"
+                min={DURACION_MINIMA}
+                max={DURACION_MAXIMA}
+                step="1"
+                value={form.durationMinutes}
+                onChange={(event) => setForm((current) => ({ ...current, durationMinutes: event.target.value }))}
+                placeholder={language === "en" ? "Duration (min)" : "Duración (min)"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
           </div>
 
-          <input
-            value={form.imageUrl}
-            onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-            maxLength={LIMITES.url}
-            placeholder={language === "en" ? "Image URL (optional)" : "URL de imagen (opcional)"}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Image URL (optional)" : "URL de imagen (opcional)"}>
+            <input
+              value={form.imageUrl}
+              onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+              maxLength={LIMITES.url}
+              placeholder={language === "en" ? "Image URL (optional)" : "URL de imagen (opcional)"}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
           <button
             type="submit"

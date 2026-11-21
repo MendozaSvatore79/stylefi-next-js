@@ -8,6 +8,7 @@ import { useLanguage } from "@/lib/language-context";
 import StripeCardSetupForm from "./StripeCardSetupForm";
 import { AVISO_PAGOS, pagosEnLineaDe } from "@/lib/pagos-en-linea";
 import { api } from "@/lib/api";
+import Campo from "@/components/campo";
 
 type PaymentMethod = {
   id: string;
@@ -416,8 +417,8 @@ export default function ClientePagosPage() {
 
         <div className="mt-5 space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">{t("payments.type")}</label>
-            <select
+            <label htmlFor="metodo-tipo" className="mb-2 block text-sm font-semibold text-slate-700">{t("payments.type")}</label>
+            <select id="metodo-tipo"
               value={form.provider}
               onChange={(event) =>
                 setForm((current) => ({
@@ -461,20 +462,24 @@ export default function ClientePagosPage() {
           {form.provider !== "card" ? (
             <form className="space-y-4" onSubmit={handleSubmit}>
               {form.provider === "paypal" ? (
-                <input
-                  value={form.paypalEmail}
-                  onChange={(event) => setForm((current) => ({ ...current, paypalEmail: event.target.value }))}
-                  placeholder="Correo PayPal"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                />
+                <Campo etiqueta="Correo PayPal">
+                  <input
+                    value={form.paypalEmail}
+                    onChange={(event) => setForm((current) => ({ ...current, paypalEmail: event.target.value }))}
+                    placeholder="Correo PayPal"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                  />
+                </Campo>
               ) : null}
 
-              <input
-                value={form.holderName}
-                onChange={(event) => setForm((current) => ({ ...current, holderName: event.target.value }))}
-                placeholder="Titular"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-              />
+              <Campo etiqueta="Titular">
+                <input
+                  value={form.holderName}
+                  onChange={(event) => setForm((current) => ({ ...current, holderName: event.target.value }))}
+                  placeholder="Titular"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                />
+              </Campo>
 
               <label className="flex items-center gap-2 text-sm text-slate-700">
                 <input
@@ -514,32 +519,36 @@ export default function ClientePagosPage() {
         <p className="mt-1 text-xs text-slate-500">{language === "en" ? "The recharge is credited when Stripe confirms the payment." : "La recarga se acredita cuando Stripe confirma el pago."}</p>
 
         <form className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4" onSubmit={handleRecharge}>
-          <input
-            type="number"
-            min={10}
-            max={10000}
-            step="0.01"
-            value={recharge.amount}
-            onChange={(event) => setRecharge((current) => ({ ...current, amount: event.target.value }))}
-            placeholder={language === "en" ? "Amount to recharge (min. $10)" : "Monto a recargar (mín. $10)"}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Amount to recharge (min. $10)" : "Monto a recargar (mín. $10)"}>
+            <input
+              type="number"
+              min={10}
+              max={10000}
+              step="0.01"
+              value={recharge.amount}
+              onChange={(event) => setRecharge((current) => ({ ...current, amount: event.target.value }))}
+              placeholder={language === "en" ? "Amount to recharge (min. $10)" : "Monto a recargar (mín. $10)"}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
-          <select
-            value={recharge.paymentMethodId}
-            onChange={(event) => setRecharge((current) => ({ ...current, paymentMethodId: event.target.value }))}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          >
-            <option value="">{language === "en" ? "New card - Open Stripe Checkout" : "Tarjeta nueva - Abre Stripe Checkout"}</option>
-            {methods.filter((m) => m.provider === "card").length > 0 && <optgroup label={language === "en" ? "Your saved cards (direct charge)" : "Tus tarjetas guardadas (cobro directo)"}></optgroup>}
-            {methods
-              .filter((m) => m.provider === "card")
-              .map((method) => (
-                <option key={method.id} value={method.id}>
-                  {`${(method.card_brand || "Tarjeta").toUpperCase()} •••• ${method.card_last4 || "0000"}`}
-                </option>
-              ))}
-          </select>
+          <Campo etiqueta={language === "en" ? "Payment method" : "Método de pago"}>
+            <select
+              value={recharge.paymentMethodId}
+              onChange={(event) => setRecharge((current) => ({ ...current, paymentMethodId: event.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            >
+              <option value="">{language === "en" ? "New card - Open Stripe Checkout" : "Tarjeta nueva - Abre Stripe Checkout"}</option>
+              {methods.filter((m) => m.provider === "card").length > 0 && <optgroup label={language === "en" ? "Your saved cards (direct charge)" : "Tus tarjetas guardadas (cobro directo)"}></optgroup>}
+              {methods
+                .filter((m) => m.provider === "card")
+                .map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {`${(method.card_brand || "Tarjeta").toUpperCase()} •••• ${method.card_last4 || "0000"}`}
+                  </option>
+                ))}
+            </select>
+          </Campo>
 
           {recharge.paymentMethodId && methods.find((m) => m.id === recharge.paymentMethodId)?.provider === "card" ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
@@ -606,19 +615,23 @@ export default function ClientePagosPage() {
 
               {editingMethodId === method.id ? (
                 <div className="mt-3 space-y-2 rounded-xl border border-slate-300 bg-white p-3">
-                  <input
-                    value={editHolderName}
-                    onChange={(event) => setEditHolderName(event.target.value)}
-                    placeholder="Titular"
-                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                  />
-                  {method.provider === "paypal" ? (
+                  <Campo etiqueta="Titular">
                     <input
-                      value={editPaypalEmail}
-                      onChange={(event) => setEditPaypalEmail(event.target.value)}
-                      placeholder="Correo PayPal"
+                      value={editHolderName}
+                      onChange={(event) => setEditHolderName(event.target.value)}
+                      placeholder="Titular"
                       className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
                     />
+                  </Campo>
+                  {method.provider === "paypal" ? (
+                    <Campo etiqueta="Correo PayPal">
+                      <input
+                        value={editPaypalEmail}
+                        onChange={(event) => setEditPaypalEmail(event.target.value)}
+                        placeholder="Correo PayPal"
+                        className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                      />
+                    </Campo>
                   ) : null}
                   <label className="flex items-center gap-2 text-xs text-slate-700">
                     <input

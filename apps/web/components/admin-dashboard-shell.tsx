@@ -186,7 +186,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-sm sm:px-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+                <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
                   <Menu className="size-4" />
                 </Button>
                 <div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/toast";
 import { api } from "@/lib/api";
+import Campo from "@/components/campo";
 
 type SupportTicket = {
   id: string;
@@ -199,7 +200,7 @@ export default function AdminSupportPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Soporte AURA</CardTitle>
+          <h1 className="text-base font-semibold text-slate-900">Soporte AURA</h1>
           <CardDescription>Tickets escalados desde el bot, con historial y respuesta del equipo administrativo.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">
@@ -223,7 +224,7 @@ export default function AdminSupportPage() {
           <CardHeader>
             <CardTitle>Tickets</CardTitle>
             <CardDescription>Filtra y abre la conversación escalada.</CardDescription>
-            <select value={filter} onChange={(event) => setFilter(event.target.value)} className="mt-2 h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-200 focus:ring">
+            <select value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filtrar tickets por estado" className="mt-2 h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-200 focus:ring">
               <option value="escalated">Escalados</option>
               <option value="open">Abiertos</option>
               <option value="waiting_admin">Esperando admin</option>
@@ -288,12 +289,14 @@ export default function AdminSupportPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <textarea
-                    value={reply}
-                    onChange={(event) => setReply(event.target.value)}
-                    placeholder="Responder al usuario..."
-                    className="min-h-28 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
-                  />
+                  <Campo etiqueta="Responder al usuario...">
+                    <textarea
+                      value={reply}
+                      onChange={(event) => setReply(event.target.value)}
+                      placeholder="Responder al usuario..."
+                      className="min-h-28 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+                    />
+                  </Campo>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button disabled={sending} onClick={() => void sendReply("reply")}>Enviar respuesta</Button>
                     <Button variant="secondary" disabled={sending} onClick={() => void sendReply("resolve")}>Marcar resuelto</Button>

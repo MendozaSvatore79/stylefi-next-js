@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Eye, Settings2, ShieldCheck } from "lucide-react";
+import { Bell, Settings2, ShieldCheck } from "lucide-react";
 
 import AccountSecurityPanel from "@/components/account-security-panel";
 import { useLanguage } from "@/lib/language-context";
@@ -10,13 +10,12 @@ export const dynamic = "force-dynamic";
 
 export default function ClienteConfiguracionPage() {
   const { language, setLanguage, t } = useLanguage();
-  const [activeSection, setActiveSection] = useState<"general" | "security" | "notifications" | "privacy">("general");
+  const [activeSection, setActiveSection] = useState<"general" | "security" | "notifications">("general");
 
   const sections = [
     { id: "general", label: t("settings.general"), icon: Settings2, description: t("settings.general.desc") },
     { id: "security", label: t("settings.security"), icon: ShieldCheck, description: t("settings.security.desc") },
     { id: "notifications", label: t("settings.notifications"), icon: Bell, description: t("settings.notifications.desc") },
-    { id: "privacy", label: t("settings.privacy"), icon: Eye, description: t("settings.privacy.desc") },
   ];
 
   return (
@@ -26,7 +25,7 @@ export default function ClienteConfiguracionPage() {
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{t("settings.title")}</h2>
         <p className="mt-3 max-w-2xl text-sm text-slate-600">{t("settings.description")}</p>
 
-        <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-4">
+        <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-3">
           {sections.map((section) => {
             const SectionIcon = section.icon;
             return (
@@ -70,8 +69,8 @@ export default function ClienteConfiguracionPage() {
 
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <label className="block text-sm font-semibold text-slate-700">{t("general.language")}</label>
-              <select
+              <label htmlFor="ajustes-idioma" className="block text-sm font-semibold text-slate-700">{t("general.language")}</label>
+              <select id="ajustes-idioma"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as "es" | "en")}
                 className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
@@ -82,8 +81,8 @@ export default function ClienteConfiguracionPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <label className="block text-sm font-semibold text-slate-700">{t("general.timezone")}</label>
-              <select className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring">
+              <label htmlFor="ajustes-zona" className="block text-sm font-semibold text-slate-700">{t("general.timezone")}</label>
+              <select id="ajustes-zona" className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring">
                 <option>{t("general.timezone.mx")}</option>
               </select>
             </div>
@@ -148,46 +147,6 @@ export default function ClienteConfiguracionPage() {
         </article>
       ) : null}
 
-      {activeSection === "privacy" ? (
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 text-green-600">
-              <Eye className="size-8" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Privacidad</p>
-              <h3 className="mt-2 text-xl font-black text-[#151138]">{t("privacy.title")}</h3>
-              <p className="mt-2 text-sm text-slate-600">{t("privacy.description")}</p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 lg:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white">
-              <input type="checkbox" defaultChecked className="h-5 w-5 rounded border-slate-300" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">{t("privacy.profile")}</p>
-                <p className="text-xs text-slate-500">{t("privacy.profile.desc")}</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white">
-              <input type="checkbox" className="h-5 w-5 rounded border-slate-300" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">{t("privacy.history")}</p>
-                <p className="text-xs text-slate-500">{t("privacy.history.desc")}</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white lg:col-span-2">
-              <input type="checkbox" className="h-5 w-5 rounded border-slate-300" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">{t("privacy.analytics")}</p>
-                <p className="text-xs text-slate-500">{t("privacy.analytics.desc")}</p>
-              </div>
-            </label>
-          </div>
-        </article>
-      ) : null}
     </section>
   );
 }

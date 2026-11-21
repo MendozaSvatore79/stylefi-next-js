@@ -11,6 +11,7 @@ import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
 import { diasInvalidos, horarioAnterior, horarioPorOmision, leerHorario, resumenHorario, type DiaHorario } from "@/lib/horario";
 import { errorCodigoPostal, errorTelefono, errorTexto, errorUrl, LIMITES, limpiarCodigoPostal, limpiarTelefono, primerError } from "@/lib/validacion";
 import { aplicarDireccion, coordenadasValidas, leerJson, mensajeErrorUbicacion, obtenerPosicion } from "@/lib/ubicacion";
+import Campo from "@/components/campo";
 
 type Branch = {
   id: string;
@@ -426,86 +427,106 @@ export default function NegocioSucursalesPage() {
         </div>
 
         <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-          <input
-            value={form.branchName}
-            onChange={(event) => setForm((current) => ({ ...current, branchName: event.target.value }))}
-            maxLength={LIMITES.nombreCorto}
-            placeholder={language === "en" ? "Branch name" : "Nombre de la sucursal"}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Branch name" : "Nombre de la sucursal"}>
+            <input
+              value={form.branchName}
+              onChange={(event) => setForm((current) => ({ ...current, branchName: event.target.value }))}
+              maxLength={LIMITES.nombreCorto}
+              placeholder={language === "en" ? "Branch name" : "Nombre de la sucursal"}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
-          <textarea
-            value={form.description}
-            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-            rows={3}
-            maxLength={LIMITES.descripcion}
-            placeholder={language === "en" ? "Brief description" : "Descripción breve"}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Brief description" : "Descripción breve"}>
+            <textarea
+              value={form.description}
+              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+              rows={3}
+              maxLength={LIMITES.descripcion}
+              placeholder={language === "en" ? "Brief description" : "Descripción breve"}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
-          <input
-            value={form.address}
-            onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
-            maxLength={LIMITES.direccion}
-            placeholder={language === "en" ? "Address" : "Dirección"}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Address" : "Dirección"}>
+            <input
+              value={form.address}
+              onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+              maxLength={LIMITES.direccion}
+              placeholder={language === "en" ? "Address" : "Dirección"}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
           <div className="grid gap-3 @sm:grid-cols-2 @lg:grid-cols-3">
-            <input
-              value={form.city}
-              onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-              maxLength={LIMITES.ciudad}
-            placeholder={language === "en" ? "City" : "Ciudad"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              value={form.state}
-              onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
-              maxLength={LIMITES.estado}
-            placeholder={language === "en" ? "State" : "Estado"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              value={form.postalCode}
-              onChange={(event) => setForm((current) => ({ ...current, postalCode: limpiarCodigoPostal(event.target.value) }))}
-              inputMode="numeric"
-            placeholder={language === "en" ? "ZIP" : "CP"}
-              className="h-11 w-full min-w-0 @sm:col-span-2 @lg:col-span-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
+            <Campo etiqueta={language === "en" ? "City" : "Ciudad"}>
+              <input
+                value={form.city}
+                onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
+                maxLength={LIMITES.ciudad}
+              placeholder={language === "en" ? "City" : "Ciudad"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
+            <Campo etiqueta={language === "en" ? "State" : "Estado"}>
+              <input
+                value={form.state}
+                onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
+                maxLength={LIMITES.estado}
+              placeholder={language === "en" ? "State" : "Estado"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
+            <Campo etiqueta={language === "en" ? "ZIP" : "CP"} className="@sm:col-span-2 @lg:col-span-1">
+              <input
+                value={form.postalCode}
+                onChange={(event) => setForm((current) => ({ ...current, postalCode: limpiarCodigoPostal(event.target.value) }))}
+                inputMode="numeric"
+              placeholder={language === "en" ? "ZIP" : "CP"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
           </div>
 
           <div className="grid gap-3 @sm:grid-cols-2">
-            <input
-              value={form.phone}
-              onChange={(event) => setForm((current) => ({ ...current, phone: limpiarTelefono(event.target.value) }))}
-              inputMode="numeric"
-              autoComplete="tel"
-            placeholder={language === "en" ? "Phone" : "Teléfono"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              value={form.website}
-              onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
-              maxLength={LIMITES.url}
-            placeholder={language === "en" ? "Website" : "Sitio web"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
+            <Campo etiqueta={language === "en" ? "Phone" : "Teléfono"}>
+              <input
+                value={form.phone}
+                onChange={(event) => setForm((current) => ({ ...current, phone: limpiarTelefono(event.target.value) }))}
+                inputMode="numeric"
+                autoComplete="tel"
+              placeholder={language === "en" ? "Phone" : "Teléfono"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
+            <Campo etiqueta={language === "en" ? "Website" : "Sitio web"}>
+              <input
+                value={form.website}
+                onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
+                maxLength={LIMITES.url}
+              placeholder={language === "en" ? "Website" : "Sitio web"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
           </div>
 
           <div className="grid gap-3 @sm:grid-cols-2">
-            <input
-              value={form.latitude}
-              onChange={(event) => setForm((current) => ({ ...current, latitude: event.target.value }))}
-              placeholder={language === "en" ? "Latitude" : "Latitud"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              value={form.longitude}
-              onChange={(event) => setForm((current) => ({ ...current, longitude: event.target.value }))}
-              placeholder={language === "en" ? "Longitude" : "Longitud"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
+            <Campo etiqueta={language === "en" ? "Latitude" : "Latitud"}>
+              <input
+                value={form.latitude}
+                onChange={(event) => setForm((current) => ({ ...current, latitude: event.target.value }))}
+                placeholder={language === "en" ? "Latitude" : "Latitud"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
+            <Campo etiqueta={language === "en" ? "Longitude" : "Longitud"}>
+              <input
+                value={form.longitude}
+                onChange={(event) => setForm((current) => ({ ...current, longitude: event.target.value }))}
+                placeholder={language === "en" ? "Longitude" : "Longitud"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
           </div>
 
           <div className="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800">
@@ -554,13 +575,15 @@ export default function NegocioSucursalesPage() {
 
           <HorarioSemanal valor={weeklyHours} onChange={setWeeklyHours} idioma={language} />
 
-          <input
-            value={form.imageUrl}
-            onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-            maxLength={LIMITES.url}
-            placeholder={language === "en" ? "Image URL starting with https:// (optional, if you don't upload a file)" : "URL de imagen con https:// (opcional, si no subes archivo)"}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta={language === "en" ? "Image URL (optional)" : "URL de imagen (opcional)"}>
+            <input
+              value={form.imageUrl}
+              onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+              maxLength={LIMITES.url}
+              placeholder={language === "en" ? "Image URL starting with https:// (optional, if you don't upload a file)" : "URL de imagen con https:// (opcional, si no subes archivo)"}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
           <p className="text-xs text-slate-500">
             {language === "en"
@@ -603,14 +626,14 @@ export default function NegocioSucursalesPage() {
           </div>
 
           <div className="flex flex-col gap-4 border-t border-slate-100 pt-4 @md:flex-row @md:items-center @md:justify-between">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <label className="flex items-center gap-2 min-h-6 text-sm font-medium text-slate-700">
               <input
                 type="checkbox"
                 // La primera sucursal siempre es la principal (el backend la marca sola)
                 checked={form.isPrimary || branches.length === 0}
                 disabled={branches.length === 0}
                 onChange={(event) => setForm((current) => ({ ...current, isPrimary: event.target.checked }))}
-                className="h-4 w-4 shrink-0"
+                className="h-5 w-5 shrink-0"
               />
               {branches.length === 0
                 ? en
