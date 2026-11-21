@@ -101,7 +101,7 @@ describe("menores de la revisión 4", () => {
     "%s: la casilla mide 20 px y su etiqueta al menos 24 px de alto",
     (archivo) => {
       const fuente = leer(archivo);
-      expect(fuente).toMatch(/<label className="flex min-h-6 items-center gap-2 text-sm font-medium text-slate-700">\s+<input\s+type="checkbox"/);
+      expect(fuente).toMatch(/<label className="flex items-center gap-2 min-h-6 text-sm font-medium text-slate-700">\s+<input\s+type="checkbox"/);
       expect(fuente).not.toContain('className="h-4 w-4 shrink-0"');
     },
   );

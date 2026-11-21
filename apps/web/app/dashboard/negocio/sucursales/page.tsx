@@ -626,7 +626,7 @@ export default function NegocioSucursalesPage() {
           </div>
 
           <div className="flex flex-col gap-4 border-t border-slate-100 pt-4 @md:flex-row @md:items-center @md:justify-between">
-            <label className="flex min-h-6 items-center gap-2 text-sm font-medium text-slate-700">
+            <label className="flex items-center gap-2 min-h-6 text-sm font-medium text-slate-700">
               <input
                 type="checkbox"
                 // La primera sucursal siempre es la principal (el backend la marca sola)
