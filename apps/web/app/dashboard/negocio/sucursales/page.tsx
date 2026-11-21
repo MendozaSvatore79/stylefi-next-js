@@ -626,14 +626,14 @@ export default function NegocioSucursalesPage() {
           </div>
 
           <div className="flex flex-col gap-4 border-t border-slate-100 pt-4 @md:flex-row @md:items-center @md:justify-between">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <label className="flex min-h-6 items-center gap-2 text-sm font-medium text-slate-700">
               <input
                 type="checkbox"
                 // La primera sucursal siempre es la principal (el backend la marca sola)
                 checked={form.isPrimary || branches.length === 0}
                 disabled={branches.length === 0}
                 onChange={(event) => setForm((current) => ({ ...current, isPrimary: event.target.checked }))}
-                className="h-4 w-4 shrink-0"
+                className="h-5 w-5 shrink-0"
               />
               {branches.length === 0
                 ? en
