@@ -11,8 +11,14 @@ describe("configuración del cliente", () => {
   it("ya no ofrece interruptores de privacidad que no guardaban nada (perfil público, historial, análisis)", () => {
     const pagina = leer("app/dashboard/cliente/configuracion/page.tsx");
     expect(pagina).not.toMatch(/privacy/);
-    expect(pagina).toContain('useState<"general" | "security" | "notifications">("general")');
+    expect(pagina).toContain('useState<"general" | "security">("general")');
     expect(leer("lib/language-context.tsx")).not.toMatch(/"(settings\.privacy|privacy\.(title|description|profile|history|analytics))/);
+  });
+
+  it("tampoco ofrece los interruptores de avisos, que no guardaban nada (recordatorios, pagos, promociones)", () => {
+    const pagina = leer("app/dashboard/cliente/configuracion/page.tsx");
+    expect(pagina).not.toMatch(/notifications|type="checkbox"/);
+    expect(leer("lib/language-context.tsx")).not.toMatch(/"(settings\.notifications|notifications\.)/);
   });
 });
 
