@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { intervaloDeConsulta } from "@/lib/consulta-ticket";
-import { useSesion } from "@/lib/sesion-cliente";
+import { useSesion } from "@/lib/sesion-contexto";
 
 import { useToast } from "@/components/toast";
 
@@ -74,6 +74,10 @@ function leerTicketGuardado() {
   return window.localStorage.getItem(supportTicketStorageKey)?.trim() || null;
 }
 
+function leerLlaveGuardada() {
+  return window.localStorage.getItem(supportTicketKeyStorageKey)?.trim() || null;
+}
+
 function suscribirAlmacen(avisar: () => void) {
   window.addEventListener("storage", avisar);
   return () => window.removeEventListener("storage", avisar);
@@ -86,8 +90,8 @@ export default function OracleSupportWidget() {
   const [open, setOpen] = useState(false);
   // Ticket de este navegador: el guardado en localStorage hasta que la app elige otro (o lo olvida, con null)
   const ticketGuardado = useSyncExternalStore(suscribirAlmacen, leerTicketGuardado, () => null);
+  const llaveGuardada = useSyncExternalStore(suscribirAlmacen, leerLlaveGuardada, () => null);
   const [ticketElegido, setTicketId] = useState<string | null | undefined>(undefined);
-  const ticketId = ticketElegido === undefined ? ticketGuardado : ticketElegido;
   const [messages, setMessages] = useState<OracleMessage[]>([]);
   const [input, setInput] = useState("");
   const subject = "Soporte AURA";
@@ -106,6 +110,10 @@ export default function OracleSupportWidget() {
 
   const isAllowed = routeAllowed(pathname);
   const isAuthenticated = status === "authenticated";
+  // Un ticket guardado sin código es de una cuenta: sin sesión (la portada no carga Clerk) no se puede ver, así que
+  // no se muestra ni se borra; se vuelve a ver al entrar al panel.
+  const ticketDeUnaCuenta = status === "unauthenticated" && ticketElegido === undefined && ticketGuardado !== null && !llaveGuardada;
+  const ticketId = ticketElegido === undefined ? (ticketDeUnaCuenta ? null : ticketGuardado) : ticketElegido;
   const displayName = session?.user?.name || session?.user?.email || "Usuario";
   const displayEmail = session?.user?.email || "";
 

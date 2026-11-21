@@ -78,7 +78,7 @@ describe("widget de soporte (AURA)", () => {
 
   it("el ticket guardado se lee con useSyncExternalStore y la app puede elegir otro u olvidarlo", () => {
     expect(fuente).toContain("useSyncExternalStore(suscribirAlmacen, leerTicketGuardado, () => null)");
-    expect(fuente).toContain("const ticketId = ticketElegido === undefined ? ticketGuardado : ticketElegido;");
+    expect(fuente).toContain("const ticketId = ticketElegido === undefined ? (ticketDeUnaCuenta ? null : ticketGuardado) : ticketElegido;");
   });
 
   it("fuera de las rutas permitidas se cierra en el render", () => {
@@ -92,7 +92,7 @@ describe("widget de soporte (AURA)", () => {
 
 describe("citas del cliente", () => {
   it("el negocio de ?negocio= se aplica en el render, una vez por valor", () => {
-    const fuente = leer("app/dashboard/cliente/citas/page.tsx");
+    const fuente = leer("app/(con-sesion)/dashboard/cliente/citas/page.tsx");
     expect(fuente).toMatch(
       /if \(negocioDeUrl && negocioDeUrl !== negocioAplicado\) \{\s+setNegocioAplicado\(negocioDeUrl\);\s+setForm\(\(prevForm\) => \(\{ \.\.\.prevForm, businessUserId: negocioDeUrl \}\)\);\s+\}/,
     );
@@ -102,9 +102,9 @@ describe("citas del cliente", () => {
 
 describe("cargas que dependen de algo que cambia: gana el último pedido", () => {
   it.each([
-    ["catálogo del negocio (citas del cliente)", "app/dashboard/cliente/citas/page.tsx", "pedidoDeCatalogoRef", /if \(pedido !== pedidoDeCatalogoRef\.current\) \{\s+return;\s+\}\s+setServices\(/],
-    ["detalle del ticket (soporte)", "app/dashboard/admin/soporte/page.tsx", "pedidoDeTicketRef", /if \(pedido !== pedidoDeTicketRef\.current\) \{\s+return;\s+\}\s+setSelectedTicket\(/],
-    ["usuarios del admin", "app/dashboard/admin/page.tsx", "pedidoDeUsuariosRef", /if \(!vigente\(\)\) \{\s+return;\s+\}\s+setUsers\(/],
+    ["catálogo del negocio (citas del cliente)", "app/(con-sesion)/dashboard/cliente/citas/page.tsx", "pedidoDeCatalogoRef", /if \(pedido !== pedidoDeCatalogoRef\.current\) \{\s+return;\s+\}\s+setServices\(/],
+    ["detalle del ticket (soporte)", "app/(con-sesion)/dashboard/admin/soporte/page.tsx", "pedidoDeTicketRef", /if \(pedido !== pedidoDeTicketRef\.current\) \{\s+return;\s+\}\s+setSelectedTicket\(/],
+    ["usuarios del admin", "app/(con-sesion)/dashboard/admin/page.tsx", "pedidoDeUsuariosRef", /if \(!vigente\(\)\) \{\s+return;\s+\}\s+setUsers\(/],
   ])("%s", (_nombre, archivo, ref, guardia) => {
     const fuente = leer(archivo);
     expect(fuente).toContain(`const pedido = ++${ref}.current;`);
@@ -112,6 +112,6 @@ describe("cargas que dependen de algo que cambia: gana el último pedido", () =>
   });
 
   it("usuarios: una respuesta vieja tampoco apaga el indicador de carga del pedido nuevo", () => {
-    expect(leer("app/dashboard/admin/page.tsx")).toMatch(/\} finally \{\s+if \(vigente\(\)\) \{\s+setUsersLoading\(false\);/);
+    expect(leer("app/(con-sesion)/dashboard/admin/page.tsx")).toMatch(/\} finally \{\s+if \(vigente\(\)\) \{\s+setUsersLoading\(false\);/);
   });
 });
