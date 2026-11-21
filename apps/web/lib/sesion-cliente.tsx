@@ -1,18 +1,17 @@
 "use client";
 
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { Sesion } from "@/lib/sesion";
+import { ContextoSesion, type ValorSesion } from "@/lib/sesion-contexto";
+
+export { useSesion } from "@/lib/sesion-contexto";
 
 /** Lo que /sesion devuelve: el backend ya no manda la foto ni si entró con Google (salen de Clerk, aquí). */
 type SesionSinClerk = { user: Omit<Sesion["user"], "image" | "authProvider"> & Partial<Pick<Sesion["user"], "image" | "authProvider">> };
 
-type Estado = "loading" | "authenticated" | "unauthenticated";
-type Valor = { data: Sesion | null; status: Estado };
-
-const Contexto = createContext<Valor>({ data: null, status: "loading" });
 
 /**
  * Sesión de la app en el navegador, con la misma forma que useSession de NextAuth ({ data, status }).
@@ -40,7 +39,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const imagenClerk = usuarioClerk?.imageUrl ?? null;
   const conGoogle = usuarioClerk?.externalAccounts.some((c) => c.provider.includes("google")) ?? false;
   // Mismo objeto mientras no cambie nada, para no volver a disparar efectos que dependen de la sesión
-  const valor = useMemo<Valor>(() => {
+  const valor = useMemo<ValorSesion>(() => {
     if (!isLoaded) return { data: null, status: "loading" };
     if (!userId) return { data: null, status: "unauthenticated" };
     if (pedida?.userId !== userId) return { data: null, status: "loading" };
@@ -58,11 +57,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     };
   }, [isLoaded, userId, pedida, imagenClerk, conGoogle]);
 
-  return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
-}
-
-export function useSesion() {
-  return useContext(Contexto);
+  return <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>;
 }
 
 /** Cierra la sesión de Clerk y lleva a la página indicada. */
