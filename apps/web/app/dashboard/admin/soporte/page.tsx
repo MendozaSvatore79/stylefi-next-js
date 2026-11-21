@@ -200,7 +200,7 @@ export default function AdminSupportPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Soporte AURA</CardTitle>
+          <h1 className="text-base font-semibold text-slate-900">Soporte AURA</h1>
           <CardDescription>Tickets escalados desde el bot, con historial y respuesta del equipo administrativo.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">

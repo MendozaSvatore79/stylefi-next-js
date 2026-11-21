@@ -534,7 +534,7 @@ export default function AdminDashboardPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <Card className="border-slate-200 bg-linear-to-r from-[#13193a] to-[#1f2d64] text-white shadow-xl">
         <CardHeader className="pb-3">
-          <CardTitle className="text-3xl font-black text-white">Centro de control administrativo</CardTitle>
+          <h1 className="text-3xl font-black text-white">Centro de control administrativo</h1>
           <CardDescription className="text-white/80">
             Opera verificaciones, gobierno de módulos y estabilidad de la plataforma desde una sola consola.
           </CardDescription>
