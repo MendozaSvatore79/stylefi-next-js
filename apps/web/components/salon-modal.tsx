@@ -176,18 +176,15 @@ export default function SalonModal({
     (stylist) => stylist.available && (stylist.service_ids ?? []).includes(bookingForm.serviceId),
   );
 
-  useEffect(() => {
-    if (!bookingForm.serviceId) {
-      return;
-    }
-
-    const serviceStillAvailable = servicesForBranch.some((service) => service.id === bookingForm.serviceId);
-    if (!serviceStillAvailable) {
-      setBookingForm((current) => ({ ...current, serviceId: "", scheduledAt: "" }));
-      setBookingDate("");
-      setBookingStep("details");
-    }
-  }, [bookingForm.serviceId, servicesForBranch]);
+  // Si el servicio elegido ya no está en la sucursal (cambió la sucursal o se recargó el catálogo), se vuelve a
+  // elegir. Se ajusta durante el render, no en un efecto: la condición deja de cumplirse tras el ajuste.
+  const servicioFueraDeSucursal =
+    bookingForm.serviceId !== "" && !servicesForBranch.some((service) => service.id === bookingForm.serviceId);
+  if (servicioFueraDeSucursal) {
+    setBookingForm((current) => ({ ...current, serviceId: "", scheduledAt: "" }));
+    setBookingDate("");
+    setBookingStep("details");
+  }
 
   const handleAgendar = () => {
     setView("booking");

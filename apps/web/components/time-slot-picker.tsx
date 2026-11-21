@@ -35,12 +35,16 @@ export default function TimeSlotPicker({
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [duration, setDuration] = useState(serviceDuration);
 
+  // Sin negocio, servicio o fecha no hay horarios que mostrar: se deriva en el render, sin vaciar el estado en el efecto
+  const faltanDatos = !businessUserId || !serviceId || !selectedDate;
+
   useEffect(() => {
     if (!businessUserId || !serviceId || !selectedDate) {
-      setSlots([]);
       return;
     }
 
+    // Si cambia la fecha (o el servicio) antes de que responda, la respuesta vieja ya no pisa los horarios nuevos
+    let vigente = true;
     const loadSlots = async () => {
       setLoading(true);
       try {
@@ -48,20 +52,28 @@ export default function TimeSlotPicker({
         if (branchId) params.set("branchId", branchId);
         if (stylistId) params.set("stylistId", stylistId);
         const response = await api(`/api/client/appointments/availability?${params}`, { cache: "no-store" });
-        if (!response.ok) {
+        if (!response.ok || !vigente) {
           return;
         }
         const payload = (await response.json()) as { slots: Slot[]; serviceDuration?: number };
+        if (!vigente) {
+          return;
+        }
         setSlots(payload.slots ?? []);
         setDuration(payload.serviceDuration ?? serviceDuration);
       } catch (error) {
         console.error("Error loading slots:", error);
       } finally {
-        setLoading(false);
+        if (vigente) {
+          setLoading(false);
+        }
       }
     };
 
     void loadSlots();
+    return () => {
+      vigente = false;
+    };
   }, [businessUserId, serviceId, branchId, stylistId, selectedDate, serviceDuration]);
 
   const handleSelectTime = (slot: Slot) => {
@@ -78,7 +90,9 @@ export default function TimeSlotPicker({
     );
   }
 
-  if (loading || isLoading) {
+  const visibles = faltanDatos ? [] : slots;
+
+  if ((loading && !faltanDatos) || isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
@@ -88,7 +102,7 @@ export default function TimeSlotPicker({
     );
   }
 
-  if (slots.length === 0) {
+  if (visibles.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-8 text-center">
         <p className="text-sm text-amber-700">No hay horarios disponibles para esta fecha</p>
@@ -102,7 +116,7 @@ export default function TimeSlotPicker({
         Horarios disponibles ({duration} min cada uno)
       </label>
       <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 md:grid-cols-6">
-        {slots.map((slot) => (
+        {visibles.map((slot) => (
           <button
             key={slot.time}
             type="button"
@@ -127,7 +141,7 @@ export default function TimeSlotPicker({
       </div>
       {selectedTime && (
         <p className="text-xs text-emerald-700 mt-2">
-          ✓ Horario seleccionado: {slots.find((s) => s.iso === selectedTime)?.time} ({duration} min)
+          ✓ Horario seleccionado: {visibles.find((s) => s.iso === selectedTime)?.time} ({duration} min)
         </p>
       )}
     </div>

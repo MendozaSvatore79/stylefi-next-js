@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
 import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
@@ -84,7 +84,10 @@ export default function ClienteCitasPage() {
     notes: "",
   });
 
+  // Si se cambia de negocio antes de que responda, solo cuenta el último pedido (si no, quedaban los servicios del anterior)
+  const pedidoDeCatalogoRef = useRef(0);
   const loadBusinessCatalog = async (businessId: string) => {
+    const pedido = ++pedidoDeCatalogoRef.current;
     if (!businessId) {
       setServices([]);
       setStylists([]);
@@ -107,6 +110,9 @@ export default function ClienteCitasPage() {
         services: Service[];
         stylists: Stylist[];
       };
+      if (pedido !== pedidoDeCatalogoRef.current) {
+        return;
+      }
 
       setServices(payload.services ?? []);
       setStylists(payload.stylists ?? []);
@@ -142,16 +148,14 @@ export default function ClienteCitasPage() {
     void loadData();
   }, []);
 
-  // Cargar negocio preseleccionado si viene del modal de salones
-  useEffect(() => {
-    const negocioId = searchParams.get("negocio");
-    if (negocioId) {
-      setForm((prevForm) => ({
-        ...prevForm,
-        businessUserId: negocioId,
-      }));
-    }
-  }, [searchParams]);
+  // Negocio preseleccionado si viene del modal de salones (?negocio=). Se aplica en el render, una vez por valor:
+  // si después se elige otro negocio, cambiar otro parámetro de la URL ya no lo regresa al de la URL.
+  const negocioDeUrl = searchParams.get("negocio");
+  const [negocioAplicado, setNegocioAplicado] = useState<string | null>(null);
+  if (negocioDeUrl && negocioDeUrl !== negocioAplicado) {
+    setNegocioAplicado(negocioDeUrl);
+    setForm((prevForm) => ({ ...prevForm, businessUserId: negocioDeUrl }));
+  }
 
   useEffect(() => {
     void loadBusinessCatalog(form.businessUserId);
