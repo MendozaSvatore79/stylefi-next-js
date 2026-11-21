@@ -218,8 +218,9 @@ export default function SalonDiscovery() {
             <div className="grid flex-1 min-h-0 gap-4 p-4 sm:p-5 xl:grid-cols-[320px_1fr]">
               <aside className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Buscar servicios</label>
+                  <label htmlFor="buscar-servicios" className="block text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Buscar servicios</label>
                   <input
+                    id="buscar-servicios"
                     type="text"
                     value={draftServiceQuery}
                     onChange={(event) => setDraftServiceQuery(event.target.value)}
@@ -232,8 +233,9 @@ export default function SalonDiscovery() {
                     className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none ring-indigo-300 focus:ring"
                   />
 
-                  <label className="block text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Buscar negocio</label>
+                  <label htmlFor="buscar-negocio" className="block text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Buscar negocio</label>
                   <input
+                    id="buscar-negocio"
                     type="text"
                     value={draftBusinessQuery}
                     onChange={(event) => setDraftBusinessQuery(event.target.value)}
@@ -248,8 +250,8 @@ export default function SalonDiscovery() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Categorías</label>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <p id="buscar-categorias" className="block text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Categorías</p>
+                  <div role="group" aria-labelledby="buscar-categorias" className="mt-3 flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => setActiveCategory("all")}

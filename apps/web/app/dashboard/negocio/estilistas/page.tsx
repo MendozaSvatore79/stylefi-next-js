@@ -10,6 +10,7 @@ import { useToast } from "@/components/toast";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
 import { ANIOS_MAXIMOS, errorCorreo, errorRango, errorTexto, LIMITES, primerError } from "@/lib/validacion";
+import Campo from "@/components/campo";
 
 type Stylist = {
   id: string;
@@ -244,63 +245,75 @@ export default function NegocioEstilistasPage() {
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Register stylist" : "Registrar estilista"}</h2>
 
         <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-          <select
-            value={form.branchId}
-            onChange={(event) => setForm((current) => ({ ...current, branchId: event.target.value }))}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          >
-            <option value="">{language === "en" ? "Select a branch" : "Selecciona una sucursal"}</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.branch_name}
-              </option>
-            ))}
-          </select>
+          <Campo etiqueta={language === "en" ? "Branch" : "Sucursal"}>
+            <select
+              value={form.branchId}
+              onChange={(event) => setForm((current) => ({ ...current, branchId: event.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            >
+              <option value="">{language === "en" ? "Select a branch" : "Selecciona una sucursal"}</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.branch_name}
+                </option>
+              ))}
+            </select>
+          </Campo>
 
           <div className="grid gap-3 @sm:grid-cols-2">
-            <input
-              value={form.firstName}
-              onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
-              maxLength={LIMITES.nombre}
-              placeholder={language === "en" ? "First name" : "Nombre"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              value={form.lastName}
-              onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
-              maxLength={LIMITES.nombre}
-              placeholder={language === "en" ? "Last name" : "Apellido"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
+            <Campo etiqueta={language === "en" ? "First name" : "Nombre"}>
+              <input
+                value={form.firstName}
+                onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
+                maxLength={LIMITES.nombre}
+                placeholder={language === "en" ? "First name" : "Nombre"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
+            <Campo etiqueta={language === "en" ? "Last name" : "Apellido"}>
+              <input
+                value={form.lastName}
+                onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
+                maxLength={LIMITES.nombre}
+                placeholder={language === "en" ? "Last name" : "Apellido"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
           </div>
 
-          <input
-            value={form.email}
-            onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-            type="email"
-            maxLength={LIMITES.correo}
-              placeholder="Email"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+          <Campo etiqueta="Email">
+            <input
+              value={form.email}
+              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              type="email"
+              maxLength={LIMITES.correo}
+                placeholder="Email"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+            />
+          </Campo>
 
           <div className="grid gap-3 @sm:grid-cols-2">
-            <input
-              value={form.specialization}
-              onChange={(event) => setForm((current) => ({ ...current, specialization: event.target.value }))}
-              maxLength={LIMITES.nombreCorto}
-              placeholder={language === "en" ? "Specialization" : "Especialidad"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
-            <input
-              type="number"
-              min="0"
-              max={ANIOS_MAXIMOS}
-              step="1"
-              value={form.yearsExperience}
-              onChange={(event) => setForm((current) => ({ ...current, yearsExperience: event.target.value }))}
-              placeholder={language === "en" ? "Years of experience" : "Años experiencia"}
-              className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
-            />
+            <Campo etiqueta={language === "en" ? "Specialization" : "Especialidad"}>
+              <input
+                value={form.specialization}
+                onChange={(event) => setForm((current) => ({ ...current, specialization: event.target.value }))}
+                maxLength={LIMITES.nombreCorto}
+                placeholder={language === "en" ? "Specialization" : "Especialidad"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
+            <Campo etiqueta={language === "en" ? "Years of experience" : "Años experiencia"}>
+              <input
+                type="number"
+                min="0"
+                max={ANIOS_MAXIMOS}
+                step="1"
+                value={form.yearsExperience}
+                onChange={(event) => setForm((current) => ({ ...current, yearsExperience: event.target.value }))}
+                placeholder={language === "en" ? "Years of experience" : "Años experiencia"}
+                className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              />
+            </Campo>
           </div>
 
           {/* Checkbox en su propia fila, separado del botón (antes ambos inline-flex en la misma línea) */}

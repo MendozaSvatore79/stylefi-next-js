@@ -69,8 +69,8 @@ export default function ClienteConfiguracionPage() {
 
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <label className="block text-sm font-semibold text-slate-700">{t("general.language")}</label>
-              <select
+              <label htmlFor="ajustes-idioma" className="block text-sm font-semibold text-slate-700">{t("general.language")}</label>
+              <select id="ajustes-idioma"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as "es" | "en")}
                 className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
@@ -81,8 +81,8 @@ export default function ClienteConfiguracionPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <label className="block text-sm font-semibold text-slate-700">{t("general.timezone")}</label>
-              <select className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring">
+              <label htmlFor="ajustes-zona" className="block text-sm font-semibold text-slate-700">{t("general.timezone")}</label>
+              <select id="ajustes-zona" className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring">
                 <option>{t("general.timezone.mx")}</option>
               </select>
             </div>
