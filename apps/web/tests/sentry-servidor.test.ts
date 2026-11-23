@@ -118,6 +118,11 @@ describe("conexión con Next", () => {
     }
   });
 
+  it("Amplify pasa SENTRY_DSN al servidor en ejecución (solo esa variable, no cualquiera que la contenga)", () => {
+    const amplify = readFileSync(path.resolve(import.meta.dirname, "../../..", "amplify.yml"), "utf8");
+    expect(amplify).toContain("- env | grep -e CLERK_SECRET_KEY -e NEXT_PUBLIC_ -e '^SENTRY_DSN=' >> .env.production");
+  });
+
   it("el DSN del servidor no se expone al navegador", () => {
     for (const archivo of ["instrumentation-client.ts", "lib/sentry-navegador.ts", "next.config.ts"]) {
       expect(leer(archivo)).not.toMatch(/(?<!NEXT_PUBLIC_)SENTRY_DSN/);
