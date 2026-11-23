@@ -13,8 +13,8 @@
     "pretest": "npm run build -w @stylefi/shared"
   },
   "dependencies": {
-    "@clerk/localizations": "4.25.0",
-    "@clerk/nextjs": "7.10.2",
+    "@clerk/localizations": "4.26.1",
+    "@clerk/nextjs": "7.10.5",
     "@radix-ui/react-alert-dialog": "^1.2.1",
     "@radix-ui/react-tabs": "^1.2.1",
     "@sentry/browser": "^11.16.0",
