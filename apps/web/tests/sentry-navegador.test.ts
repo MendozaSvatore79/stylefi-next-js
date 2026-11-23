@@ -6,7 +6,8 @@ import type { ErrorEvent } from "@sentry/browser";
 import { describe, expect, it } from "vitest";
 
 import { politicaDeContenido } from "@/lib/cabeceras";
-import { limpiarEventoNavegador, opcionesSentryNavegador, origenDeSentry } from "@/lib/sentry-navegador";
+import { limpiarEvento } from "@/lib/sentry-limpieza";
+import { opcionesSentryNavegador, origenDeSentry } from "@/lib/sentry-navegador";
 
 const DSN = "https://abc123@o450.ingest.us.sentry.io/4500";
 const leer = (archivo: string) => readFileSync(path.resolve(import.meta.dirname, "..", archivo), "utf8");
@@ -25,7 +26,7 @@ describe("opcionesSentryNavegador", () => {
   });
 });
 
-describe("limpiarEventoNavegador", () => {
+describe("limpiarEvento (común)", () => {
   it("quita usuario, cookies, cabeceras y query de la página y de las migas", () => {
     const evento = {
       type: undefined,
@@ -41,7 +42,7 @@ describe("limpiarEventoNavegador", () => {
         { category: "navigation", data: { from: "/a?b=1", to: "/c#d" } },
       ],
     } as unknown as ErrorEvent;
-    const limpio = limpiarEventoNavegador(evento);
+    const limpio = limpiarEvento(evento);
     expect(limpio.user).toBeUndefined();
     expect(limpio.request).toEqual({ url: "https://stylehub.synovasystems.com/sign-in" });
     expect(limpio.breadcrumbs?.[0].data).toEqual({ url: "https://api.x/citas", method: "GET" });
@@ -82,5 +83,11 @@ describe("conexión con la app", () => {
 
   it("next.config pasa el origen de Sentry a las cabeceras", () => {
     expect(leer("next.config.ts")).toContain("const origenSentry = origenDeSentry(dsnDeSentry(process.env));");
+  });
+
+  it("lo que importa next.config usa rutas relativas (su cargador no resuelve el alias @/)", () => {
+    for (const archivo of ["lib/sentry-navegador.ts", "lib/sentry-limpieza.ts"]) {
+      expect(leer(archivo)).not.toMatch(/from "@\//);
+    }
   });
 });
