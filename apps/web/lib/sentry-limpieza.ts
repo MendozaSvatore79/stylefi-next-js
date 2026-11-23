@@ -26,8 +26,12 @@ const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
 /** Llaves secretas y restringidas de Stripe y Clerk (`sk_`/`rk_` live o test) y secretos de webhook (`whsec_`). */
 const LLAVE_SECRETA = /\b(?:(?:sk|rk)_(?:live|test)_|whsec_)[A-Za-z0-9]+/g;
 /** Nombres de campo cuyo valor se tacha completo, sin importar su forma (`extra`, `contexts`, migas…). */
-const CLAVE_SENSIBLE = /password|passwd|contrase[nñ]a|secret|token|authorization|cookie|api[-_]?key|signature|firma|cvv|clabe/i;
+const CLAVE_SENSIBLE =
+  /password|passwd|contrase[nñ]a|secret|token|authorization|cookie|api[-_]?key|signature|firma|cvv|clabe|phone|tel[eé]fono|celular/i;
 const FILTRADO = "[filtrado]";
+/** Query y fragmento de una URL dentro de un texto: absoluta (`https://…?x`) o ruta (`/sign-in?__clerk_ticket=…`). */
+const URL_ABSOLUTA_CON_QUERY = /(\bhttps?:\/\/[^\s?#"'<>]+)[?#][^\s"'<>]*/gi;
+const RUTA_CON_QUERY = /(^|[\s"'(=])(\/[^\s?#"'<>]*)[?#][^\s"'<>)]*/g;
 
 export function sinQuery(url: string) {
   return url.replace(/[?#].*$/, "");
@@ -35,8 +39,11 @@ export function sinQuery(url: string) {
 
 /** Tacha secretos y datos personales de un texto. */
 export function tacharTexto(texto: string): string {
-  // Primero los secretos: llevan dígitos que la regla de teléfono tacharía a medias
+  // Primero las query de las URL (pueden traer tokens como `__clerk_ticket`); luego los secretos, que llevan dígitos
+  // que la regla de teléfono tacharía a medias
   return texto
+    .replace(URL_ABSOLUTA_CON_QUERY, "$1")
+    .replace(RUTA_CON_QUERY, "$1$2")
     .replace(BEARER, `Bearer ${FILTRADO}`)
     .replace(JWT, "[token]")
     .replace(LLAVE_SECRETA, "[llave]")

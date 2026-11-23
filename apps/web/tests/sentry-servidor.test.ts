@@ -72,6 +72,14 @@ describe("tacharTexto (mismas reglas que el backend)", () => {
     expect(tacharTexto("Bearer 1234567890")).toBe("Bearer [filtrado]");
   });
 
+  it("quita la query y el fragmento de las URL dentro de cualquier texto (absolutas y rutas)", () => {
+    expect(tacharTexto("falló https://stylehub.synovasystems.com/sign-in?__clerk_ticket=secreto#x al entrar")).toBe(
+      "falló https://stylehub.synovasystems.com/sign-in al entrar",
+    );
+    expect(tacharTexto('redirige a "/registro/completar?__clerk_ticket=secreto" (302)')).toBe('redirige a "/registro/completar" (302)');
+    expect(tacharTexto("GET /dashboard/cliente?token=abc")).toBe("GET /dashboard/cliente");
+  });
+
   it("no toca textos sin datos personales (archivos con hash, códigos HTTP)", () => {
     expect(tacharTexto("chunks/0un11yv5o19-y.js respondió 500")).toBe("chunks/0un11yv5o19-y.js respondió 500");
   });
@@ -88,6 +96,17 @@ describe("tacharTexto (mismas reglas que el backend)", () => {
     expect(limpio.breadcrumbs?.[0]).toMatchObject({ message: "tel [teléfono]", data: { arguments: ["[correo]"] } });
     expect(limpio.extra).toEqual({ token: "[filtrado]", contraseña: "[filtrado]", nota: "ok" });
   });
+
+  it("tacha los campos de teléfono aunque el valor sea un número", () => {
+    const evento = {
+      type: undefined,
+      extra: { phone: 5512345678, telefono: 5512345678, teléfono: "x", celular: 5512345678, citas: 3 },
+      exception: { values: [{ type: "Error", value: "ver https://api.x/citas?correo=ana@ejemplo.mx" }] },
+    } as unknown as ErrorEvent;
+    const limpio = limpiarEvento(evento);
+    expect(limpio.extra).toEqual({ phone: "[filtrado]", telefono: "[filtrado]", teléfono: "[filtrado]", celular: "[filtrado]", citas: 3 });
+    expect(limpio.exception?.values?.[0].value).toBe("ver https://api.x/citas");
+  });
 });
 
 describe("conexión con Next", () => {
@@ -101,8 +120,14 @@ describe("conexión con Next", () => {
   it("server y edge inician con SENTRY_DSN y nunca rompen la app", () => {
     for (const archivo of ["sentry.server.config.ts", "sentry.edge.config.ts"]) {
       const fuente = leer(archivo);
-      expect(fuente).toContain("Sentry.init(opcionesSentryServidor({ SENTRY_DSN: process.env.SENTRY_DSN, NODE_ENV: process.env.NODE_ENV }));");
-      expect(fuente).toMatch(/try \{[\s\S]*Sentry\.init[\s\S]*\} catch \{/);
+      expect(fuente).toContain(
+        'Sentry.init(opcionesSentryServidor({ SENTRY_DSN: getOptionalEnv("SENTRY_DSN"), NODE_ENV: getOptionalEnv("NODE_ENV") }));',
+      );
+      expect(fuente).not.toContain("process.env");
+      expect(fuente).toMatch(/try \{[\s\S]*Sentry\.init[\s\S]*\} catch \(error\) \{/);
+      // El fallo se ve en los logs, pero sin el mensaje (puede traer el DSN)
+      expect(fuente).toMatch(/console\.warn\("Sentry \((servidor|edge)\) no se pudo iniciar:", error instanceof Error \? error\.name : "error desconocido"\);/);
+      expect(fuente).not.toMatch(/error\.message|String\(error\)/);
     }
   });
 

@@ -75,9 +75,10 @@ describe("conexión con la app", () => {
     expect(fuente).toContain("NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN");
   });
 
-  it("las pantallas de error reportan lo que atrapan", () => {
+  it("las pantallas de error reportan lo que atrapan, salvo lo que ya reportó el servidor (trae digest)", () => {
     for (const archivo of ["app/error.tsx", "app/global-error.tsx"]) {
-      expect(leer(archivo)).toMatch(/useEffect\(\(\) => \{\s+captureException\(error\);\s+\}, \[error\]\);/);
+      expect(leer(archivo)).toMatch(/useEffect\(\(\) => \{\s+if \(!codigoDeError\(error\)\) captureException\(error\);\s+\}, \[error\]\);/);
+      expect(leer(archivo).match(/captureException\(/g)).toHaveLength(1);
     }
   });
 

@@ -14,9 +14,10 @@ export default function ErrorGlobal({ error, retry }: { error: unknown; retry: (
   const codigo = codigoDeError(error);
   const idioma = useIdiomaActual();
   const texto = TEXTO_ERROR[idioma];
-  // Los errores que atrapa esta pantalla no llegan a window.onerror: se reportan aquí (sin DSN no hace nada)
+  // Los errores que atrapa esta pantalla no llegan a window.onerror: se reportan aquí (sin DSN no hace nada).
+  // Con digest el error salió del servidor y ya lo reportó onRequestError (instrumentation.ts): no se repite.
   useEffect(() => {
-    captureException(error);
+    if (!codigoDeError(error)) captureException(error);
   }, [error]);
   return (
     <html lang={idioma}>

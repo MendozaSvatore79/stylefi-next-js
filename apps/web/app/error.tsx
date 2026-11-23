@@ -12,9 +12,10 @@ import { codigoDeError, TEXTO_ERROR } from "@/lib/pagina-error";
 export default function PantallaDeError({ error, retry }: { error: unknown; retry: () => void }) {
   const codigo = codigoDeError(error);
   const texto = TEXTO_ERROR[useLanguage().language];
-  // Los errores que atrapa esta pantalla no llegan a window.onerror: se reportan aquí (sin DSN no hace nada)
+  // Los errores que atrapa esta pantalla no llegan a window.onerror: se reportan aquí (sin DSN no hace nada).
+  // Con digest el error salió del servidor y ya lo reportó onRequestError (instrumentation.ts): no se repite.
   useEffect(() => {
-    captureException(error);
+    if (!codigoDeError(error)) captureException(error);
   }, [error]);
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 py-10 text-center">
