@@ -3,7 +3,8 @@
     "deny": [
       "Read(**/.next/**)",
       "Read(**/out/**)",
-      "Read(**/dist/**)",
+      "Read(./apps/web/dist/**)",
+      "Read(./packages/*/dist/**)",
       "Read(**/build/**)",
       "Read(**/coverage/**)",
       "Read(**/*.lock)",
