@@ -3,22 +3,25 @@
 import { captureException } from "@sentry/browser";
 import { useEffect } from "react";
 
+import { useIdiomaActual } from "@/lib/idioma-actual";
 import { codigoDeError, TEXTO_ERROR } from "@/lib/pagina-error";
 
 /**
  * Error en el layout raíz: reemplaza todo el documento, así que lleva su propio <html> y estilos en línea (los
- * estilos globales no se cargan aquí).
+ * estilos globales no se cargan aquí). Tampoco hay LanguageProvider: el idioma se lee directo del navegador.
  */
 export default function ErrorGlobal({ error, retry }: { error: unknown; retry: () => void }) {
   const codigo = codigoDeError(error);
+  const idioma = useIdiomaActual();
+  const texto = TEXTO_ERROR[idioma];
   // Los errores que atrapa esta pantalla no llegan a window.onerror: se reportan aquí (sin DSN no hace nada)
   useEffect(() => {
     captureException(error);
   }, [error]);
   return (
-    <html lang="es">
+    <html lang={idioma}>
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#f8fafc", color: "#0f172a" }}>
-        <title>{`${TEXTO_ERROR.titulo} · Stylehub`}</title>
+        <title>{`${texto.titulo} · Stylehub`}</title>
         <main
           style={{
             minHeight: "100vh",
@@ -32,18 +35,22 @@ export default function ErrorGlobal({ error, retry }: { error: unknown; retry: (
           }}
         >
           <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.3em", margin: 0 }}>STYLEHUB</p>
-          <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>{TEXTO_ERROR.titulo}</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>{texto.titulo}</h1>
           <p role="alert" style={{ maxWidth: 448, fontSize: 14, color: "#475569", margin: 0 }}>
-            {TEXTO_ERROR.detalle}
+            {texto.detalle}
           </p>
           <button
             type="button"
             onClick={() => retry()}
             style={{ border: 0, borderRadius: 8, background: "#0f172a", color: "#fff", padding: "8px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
           >
-            {TEXTO_ERROR.reintentar}
+            {texto.reintentar}
           </button>
-          {codigo ? <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>Código: {codigo}</p> : null}
+          {codigo ? (
+            <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
+              {texto.codigo}: {codigo}
+            </p>
+          ) : null}
         </main>
       </body>
     </html>
