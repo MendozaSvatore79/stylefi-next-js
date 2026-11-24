@@ -27,7 +27,8 @@ describe("pestañas del panel de administración", () => {
 
 describe("la página sigue a la URL (el menú lateral cambia de pestaña)", () => {
   it("las pestañas son controladas por ?pestana=, no abren siempre en resumen", () => {
-    expect(pagina).toContain('pestanaAdmin(useSearchParams().get("pestana"))');
+    expect(pagina).toContain("const parametros = useSearchParams();");
+    expect(pagina).toContain(`const pestana = pestanaAdmin(parametros.get("pestana"));`);
     expect(pagina).toMatch(/<Tabs\s+value=\{pestana\}/);
     expect(pagina).not.toContain('defaultValue="resumen"');
   });

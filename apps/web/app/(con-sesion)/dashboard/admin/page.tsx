@@ -163,7 +163,10 @@ export default function AdminDashboardPage() {
   const { showToast } = useToast();
   // La pestaña sale de la URL para que el menú lateral (enlaces a ?pestana=) la cambie; al hacer clic en una pestaña
   // se reescribe la URL con history, que Next sincroniza con useSearchParams sin pedir nada al servidor.
-  const pestana = pestanaAdmin(useSearchParams().get("pestana"));
+  const parametros = useSearchParams();
+  const pestana = pestanaAdmin(parametros.get("pestana"));
+  // "Ver en Usuarios" (desde Negocios) llega con ?buscar=correo: es la búsqueda inicial de la pestaña Usuarios
+  const busquedaInicial = (parametros.get("buscar") ?? "").trim();
   const [branches, setBranches] = useState<BranchVerification[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersSummary, setUsersSummary] = useState<UsersSummary>({ total: 0, clients: 0, businesses: 0, verified: 0, banned: 0 });
@@ -177,8 +180,8 @@ export default function AdminDashboardPage() {
   const [userSavingId, setUserSavingId] = useState<string | null>(null);
   const [branchQuery, setBranchQuery] = useState("");
   const [moduleQuery, setModuleQuery] = useState("");
-  const [userQuery, setUserQuery] = useState("");
-  const [debouncedUserQuery, setDebouncedUserQuery] = useState("");
+  const [userQuery, setUserQuery] = useState(busquedaInicial);
+  const [debouncedUserQuery, setDebouncedUserQuery] = useState(busquedaInicial);
   const [userRoleFilter, setUserRoleFilter] = useState<"all" | "cliente" | "negocio">("all");
   const [userBannedFilter, setUserBannedFilter] = useState<"all" | "yes" | "no">("all");
   const [userSortBy, setUserSortBy] = useState<"created_at" | "updated_at" | "email" | "account_type" | "name">("created_at");
