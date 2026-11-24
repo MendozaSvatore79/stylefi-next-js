@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { BarChart3, Bell, ChevronRight, LayoutDashboard, LifeBuoy, Menu, Settings2, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Bell, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, Menu, Settings2, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 import { useCerrarSesion, useSesion } from "@/lib/sesion-cliente";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,28 +21,75 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
+import { pestanaAdmin, rutaDePestana, type PestanaAdmin } from "@/lib/pestanas-admin";
 import { rutaActiva } from "@/lib/ruta-activa";
 
 type AdminDashboardShellProps = {
   children: ReactNode;
 };
 
+type Texto = { es: string; en: string };
+
 type NavItem = {
   href: string;
-  label: string;
+  label: Texto;
   icon: React.ComponentType<{ className?: string }>;
+  /** Pestaña de la página principal que abre; sin ella, el elemento es una ruta propia (Soporte). */
+  pestana?: PestanaAdmin;
 };
 
+const deLaPestana = (pestana: PestanaAdmin, label: Texto, icon: NavItem["icon"]): NavItem => ({
+  href: rutaDePestana(pestana),
+  label,
+  icon,
+  pestana,
+});
+
 const navItems: NavItem[] = [
-  { href: "/dashboard/admin", label: "Resumen", icon: LayoutDashboard },
-  { href: "/dashboard/admin#verificaciones", label: "Verificaciones", icon: ShieldCheck },
-  { href: "/dashboard/admin#modulos", label: "Módulos", icon: Settings2 },
-  { href: "/dashboard/admin#metricas", label: "Métricas", icon: BarChart3 },
-  { href: "/dashboard/admin/soporte", label: "Soporte AURA", icon: LifeBuoy },
+  deLaPestana("resumen", { es: "Resumen", en: "Overview" }, LayoutDashboard),
+  deLaPestana("verificaciones", { es: "Verificaciones", en: "Verifications" }, ShieldCheck),
+  deLaPestana("modulos", { es: "Módulos", en: "Modules" }, Settings2),
+  deLaPestana("usuarios", { es: "Usuarios", en: "Users" }, Users),
+  deLaPestana("auditoria", { es: "Auditoría", en: "Audit log" }, ClipboardList),
+  { href: "/dashboard/admin/soporte", label: { es: "Soporte AURA", en: "AURA support" }, icon: LifeBuoy },
 ];
+
+const TEXTOS = {
+  centro: { es: "Centro de administración", en: "Admin Center" },
+  cerrarMenu: { es: "Cerrar menú", en: "Close menu" },
+  abrirMenu: { es: "Abrir menú", en: "Open menu" },
+  estadoGlobal: { es: "Estado global", en: "Global status" },
+  operativo: { es: "Operativo", en: "Operational" },
+  monitoreo: { es: "Monitoreo y gobierno en tiempo real", en: "Real-time monitoring and governance" },
+  modoAdmin: { es: "Modo administrativo", en: "Admin mode" },
+  controlTotal: { es: "Control total de seguridad, módulos y operaciones.", en: "Full control of security, modules and operations." },
+  administracion: { es: "Administración", en: "Administration" },
+  panelOficial: { es: "Panel oficial", en: "Official panel" },
+  alertas: { es: "Alertas", en: "Alerts" },
+  menuUsuario: { es: "Abrir menú de usuario", en: "Open user menu" },
+  administrador: { es: "Administrador", en: "Administrator" },
+  correoYContrasena: { es: "Correo y contraseña", en: "Email and password" },
+  irAlSitio: { es: "Ir al sitio", en: "Go to site" },
+  cerrando: { es: "Cerrando...", en: "Signing out..." },
+  cerrarSesion: { es: "Cerrar sesión", en: "Sign out" },
+  preguntaCerrar: { es: "¿Cerrar sesión?", en: "Sign out?" },
+  avisoCerrar: {
+    es: "Vas a salir del panel administrativo. ¿Deseas continuar?",
+    en: "You are about to leave the admin panel. Do you want to continue?",
+  },
+  cancelar: { es: "Cancelar", en: "Cancel" },
+  accionCancelada: { es: "Acción cancelada", en: "Action cancelled" },
+  seguisteConSesion: { es: "Seguiste con tu sesión activa.", en: "Your session is still active." },
+  cerrandoSesion: { es: "Cerrando sesión", en: "Signing out" },
+  redirigiendo: { es: "Redirigiendo al inicio de sesión...", en: "Redirecting to sign in..." },
+  siCerrar: { es: "Sí, cerrar sesión", en: "Yes, sign out" },
+} satisfies Record<string, Texto>;
 
 export default function AdminDashboardShell({ children }: AdminDashboardShellProps) {
   const pathname = usePathname();
+  const pestanaActual = pestanaAdmin(useSearchParams().get("pestana"));
+  const { language } = useLanguage();
   const { data: session } = useSesion();
   const cerrarSesion = useCerrarSesion();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -58,7 +105,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
   const authProvider = session?.user?.authProvider;
   const isGoogleLogin = authProvider === "google";
   const avatarImage = isGoogleLogin ? session?.user?.image : null;
-  const userDisplayName = session?.user?.name || session?.user?.email || "Administrador";
+  const userDisplayName = session?.user?.name || session?.user?.email || TEXTOS.administrador[language];
   const userInitials = useMemo(() => {
     const base = session?.user?.name || session?.user?.email || "A";
     const parts = base.trim().split(/\s+/).filter(Boolean);
@@ -118,14 +165,14 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                 </div>
                 <div>
                   <p className="text-sm font-black tracking-wide text-slate-900">STYLEHUB</p>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">Admin Center</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{TEXTOS.centro[language]}</p>
                 </div>
               </Link>
               <button
                 type="button"
                 onClick={() => setSidebarOpen(false)}
                 className="inline-flex size-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 lg:hidden"
-                aria-label="Cerrar menú"
+                aria-label={TEXTOS.cerrarMenu[language]}
               >
                 <X className="size-4" />
               </button>
@@ -133,10 +180,10 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
 
             <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-indigo-700">Estado global</p>
-                <Badge variant="success">Operativo</Badge>
+                <p className="text-xs font-semibold text-indigo-700">{TEXTOS.estadoGlobal[language]}</p>
+                <Badge variant="success">{TEXTOS.operativo[language]}</Badge>
               </div>
-              <p className="mt-1 text-xs text-indigo-700/80">Monitoreo y gobierno en tiempo real</p>
+              <p className="mt-1 text-xs text-indigo-700/80">{TEXTOS.monitoreo[language]}</p>
             </div>
 
             <Separator />
@@ -144,7 +191,10 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = rutaActiva(activePath, item.href, "/dashboard/admin");
+                // Las pestañas comparten ruta: se distinguen por ?pestana=. Soporte es una ruta propia.
+                const isActive = item.pestana
+                  ? activePath === "/dashboard/admin" && pestanaActual === item.pestana
+                  : rutaActiva(activePath, item.href, "/dashboard/admin");
 
                 return (
                   <Link
@@ -157,7 +207,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                     )}
                   >
                     <Icon className={cn("size-4", isActive ? "text-white" : "text-slate-500")} />
-                    <span>{item.label}</span>
+                    <span>{item.label[language]}</span>
                     <ChevronRight className={cn("ml-auto size-4", isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
                   </Link>
                 );
@@ -167,9 +217,9 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
             <div className="mt-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600">
                 <Sparkles className="size-3.5 text-indigo-500" />
-                Modo administrativo
+                {TEXTOS.modoAdmin[language]}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Control total de seguridad, módulos y operaciones.</p>
+              <p className="mt-1 text-xs text-slate-500">{TEXTOS.controlTotal[language]}</p>
             </div>
           </div>
         </aside>
@@ -186,26 +236,26 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-sm sm:px-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
+                <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)} aria-label={TEXTOS.abrirMenu[language]}>
                   <Menu className="size-4" />
                 </Button>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Administración</p>
-                  <p className="text-sm font-bold text-slate-900">Panel oficial</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{TEXTOS.administracion[language]}</p>
+                  <p className="text-sm font-bold text-slate-900">{TEXTOS.panelOficial[language]}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm">
                   <Bell className="size-4" />
-                  Alertas
+                  {TEXTOS.alertas[language]}
                 </Button>
                 <div className="relative" ref={avatarMenuRef}>
                   <button
                     type="button"
                     onClick={() => setMenuAbiertoEn((abiertoEn) => (abiertoEn === pathname ? null : pathname))}
                     className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white text-sm font-bold text-slate-900 shadow-sm transition hover:shadow-md"
-                    aria-label="Abrir menú de usuario"
+                    aria-label={TEXTOS.menuUsuario[language]}
                     aria-haspopup="menu"
                     aria-expanded={avatarMenuOpen}
                   >
@@ -224,7 +274,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                     <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl" role="menu">
                       <div className="border-b border-slate-200 px-3 py-2">
                         <p className="truncate text-sm font-semibold text-slate-900">{userDisplayName}</p>
-                        <p className="text-xs text-slate-500">{isGoogleLogin ? "Google" : "Correo y contraseña"}</p>
+                        <p className="text-xs text-slate-500">{isGoogleLogin ? "Google" : TEXTOS.correoYContrasena[language]}</p>
                       </div>
 
                       <Link
@@ -233,7 +283,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                         className="mt-1 flex w-full items-center rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                         role="menuitem"
                       >
-                        Ir al sitio
+                        {TEXTOS.irAlSitio[language]}
                       </Link>
                       <button
                         type="button"
@@ -245,7 +295,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                         className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
                         role="menuitem"
                       >
-                        {loggingOut ? "Cerrando..." : "Cerrar sesión"}
+                        {loggingOut ? TEXTOS.cerrando[language] : TEXTOS.cerrarSesion[language]}
                       </button>
                     </div>
                   ) : null}
@@ -257,9 +307,9 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
           <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+                <AlertDialogTitle>{TEXTOS.preguntaCerrar[language]}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Vas a salir del panel administrativo. ¿Deseas continuar?
+                  {TEXTOS.avisoCerrar[language]}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -267,12 +317,12 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                   onClick={() => {
                     showToast({
                       type: "info",
-                      title: "Acción cancelada",
-                      message: "Seguiste con tu sesión activa.",
+                      title: TEXTOS.accionCancelada[language],
+                      message: TEXTOS.seguisteConSesion[language],
                     });
                   }}
                 >
-                  Cancelar
+                  {TEXTOS.cancelar[language]}
                 </AlertDialogCancel>
                 <AlertDialogAction
                   disabled={loggingOut}
@@ -281,8 +331,8 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                       setLoggingOut(true);
                       showToast({
                         type: "success",
-                        title: "Cerrando sesión",
-                        message: "Redirigiendo al inicio de sesión...",
+                        title: TEXTOS.cerrandoSesion[language],
+                        message: TEXTOS.redirigiendo[language],
                       });
                       await cerrarSesion("/iniciar-sesion");
                     } finally {
@@ -290,7 +340,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                     }
                   }}
                 >
-                  {loggingOut ? "Cerrando..." : "Sí, cerrar sesión"}
+                  {loggingOut ? TEXTOS.cerrando[language] : TEXTOS.siCerrar[language]}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

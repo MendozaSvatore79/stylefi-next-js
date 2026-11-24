@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, ClipboardList, LayoutGrid, ShieldCheck, Users } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 import {
   AlertDialog,
@@ -22,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { abrirArchivoPrivado, api, urlArchivo } from "@/lib/api";
 import AuditoriaAdminPanel from "./auditoria-panel";
+import { pestanaAdmin, rutaDePestana } from "@/lib/pestanas-admin";
 import {
   correoCoincide,
   describirHistorial,
@@ -159,6 +161,9 @@ async function leerErrorDeRespuesta(response: Response, respaldo: string): Promi
 
 export default function AdminDashboardPage() {
   const { showToast } = useToast();
+  // La pestaña sale de la URL para que el menú lateral (enlaces a ?pestana=) la cambie; al hacer clic en una pestaña
+  // se reescribe la URL con history, que Next sincroniza con useSearchParams sin pedir nada al servidor.
+  const pestana = pestanaAdmin(useSearchParams().get("pestana"));
   const [branches, setBranches] = useState<BranchVerification[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersSummary, setUsersSummary] = useState<UsersSummary>({ total: 0, clients: 0, businesses: 0, verified: 0, banned: 0 });
@@ -581,21 +586,25 @@ export default function AdminDashboardPage() {
         </Card>
       </section>
 
-      <Tabs defaultValue="resumen" className="w-full">
+      <Tabs
+        value={pestana}
+        onValueChange={(valor) => window.history.pushState(null, "", rutaDePestana(pestanaAdmin(valor)))}
+        className="w-full"
+      >
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumen">
             <LayoutGrid className="size-4" /> Resumen
           </TabsTrigger>
-          <TabsTrigger value="verificaciones" id="verificaciones">
+          <TabsTrigger value="verificaciones">
             <ShieldCheck className="size-4" /> Verificaciones
           </TabsTrigger>
-          <TabsTrigger value="modulos" id="modulos">
+          <TabsTrigger value="modulos">
             <Clock3 className="size-4" /> Módulos
           </TabsTrigger>
-          <TabsTrigger value="usuarios" id="usuarios">
+          <TabsTrigger value="usuarios">
             <Users className="size-4" /> Usuarios
           </TabsTrigger>
-          <TabsTrigger value="auditoria" id="auditoria">
+          <TabsTrigger value="auditoria">
             <ClipboardList className="size-4" /> Auditoría
           </TabsTrigger>
         </TabsList>
