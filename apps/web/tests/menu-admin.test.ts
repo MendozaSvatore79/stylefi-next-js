@@ -64,6 +64,11 @@ describe("menú lateral del admin", () => {
     expect(shell).toContain('activePath === "/dashboard/admin" && pestanaActual === item.pestana');
   });
 
+  it("la flecha solo aparece en la opción activa (no hay submenús que desplegar)", () => {
+    expect(shell).toContain('{isActive ? <ChevronRight className="ml-auto size-4 text-white" /> : null}');
+    expect(shell.match(/<ChevronRight/g)).toHaveLength(1);
+  });
+
   it("los textos del menú y del marco van en español e inglés", () => {
     expect(shell).toContain("useLanguage()");
     expect(shell).toContain("{item.label[language]}");

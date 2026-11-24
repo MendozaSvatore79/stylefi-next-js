@@ -208,7 +208,8 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                   >
                     <Icon className={cn("size-4", isActive ? "text-white" : "text-slate-500")} />
                     <span>{item.label[language]}</span>
-                    <ChevronRight className={cn("ml-auto size-4", isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
+                    {/* Solo en la activa, como en cliente y negocio: en todas parecía un submenú desplegable */}
+                    {isActive ? <ChevronRight className="ml-auto size-4 text-white" /> : null}
                   </Link>
                 );
               })}
