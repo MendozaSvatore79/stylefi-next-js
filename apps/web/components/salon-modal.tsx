@@ -394,10 +394,13 @@ export default function SalonModal({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 p-6 sm:p-8">
-          <div className="h-full overflow-hidden rounded-2xl">
+        {/* La cadena flex con min-h-0 le da altura real a la zona que se desplaza. Antes era h-full sobre un padre sin
+            altura definida: el contenido crecía, el modal (max-h 90vh, overflow-hidden) lo recortaba y "Agendar cita"
+            quedaba fuera de la pantalla sin forma de bajar. */}
+        <div className="flex min-h-0 flex-1 flex-col p-6 sm:p-8">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
             {view === "profile" ? (
-              <div className="h-full overflow-y-auto pr-2">
+              <div className="min-h-0 flex-1 overflow-y-auto pr-2">
               <div className="mt-1 flex flex-col gap-3 text-sm">
                 {branches.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-2">
@@ -567,7 +570,8 @@ export default function SalonModal({
                 </div>
               )}
 
-              <div className="mt-6 grid grid-cols-2 gap-4">
+              {/* Siempre a la vista al fondo del modal, aunque la lista de servicios sea larga */}
+              <div className="sticky bottom-0 mt-6 grid grid-cols-2 gap-4 bg-white pb-1 pt-3">
             <button
               onClick={onClose}
               className="rounded-2xl border-2 border-slate-300 px-6 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-50"
@@ -589,7 +593,7 @@ export default function SalonModal({
               </div>
             </div>
             ) : (
-              <div ref={bookingScrollRef} className="h-full overflow-y-auto pl-0 pr-1">
+              <div ref={bookingScrollRef} className="min-h-0 flex-1 overflow-y-auto pl-0 pr-1">
               <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{t("modal.quickBooking")}</p>
                 <h3 className="mt-2 text-xl font-black text-[#151138]">{t("modal.bookTitle")}</h3>
