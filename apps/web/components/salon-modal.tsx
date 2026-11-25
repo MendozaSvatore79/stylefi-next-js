@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSesion } from "@/lib/sesion-cliente";
 import { useToast } from "@/components/toast";
+import { fechaLocal } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api, urlArchivo } from "@/lib/api";
@@ -658,7 +659,7 @@ export default function SalonModal({
                       setBookingDate(nextDate);
                       setBookingForm((current) => ({ ...current, scheduledAt: "" }));
                     }}
-                    min={new Date().toISOString().split("T")[0]}
+                    min={fechaLocal(new Date())}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
                   />
                 </div>
