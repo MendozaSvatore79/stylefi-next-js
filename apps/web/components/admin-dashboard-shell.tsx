@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Bell, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, Menu, Settings2, ShieldCheck, Sparkles, Users, X } from "lucide-react";
+import { Bell, Building2, CalendarClock, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, Menu, Settings2, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 import { useCerrarSesion, useSesion } from "@/lib/sesion-cliente";
 
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +35,7 @@ type NavItem = {
   href: string;
   label: Texto;
   icon: React.ComponentType<{ className?: string }>;
-  /** Pestaña de la página principal que abre; sin ella, el elemento es una ruta propia (Soporte). */
+  /** Pestaña de la página principal que abre; sin ella, el elemento es una ruta propia (Negocios, Citas, Soporte). */
   pestana?: PestanaAdmin;
 };
 
@@ -49,6 +49,8 @@ const deLaPestana = (pestana: PestanaAdmin, label: Texto, icon: NavItem["icon"])
 const navItems: NavItem[] = [
   deLaPestana("resumen", { es: "Resumen", en: "Overview" }, LayoutDashboard),
   deLaPestana("verificaciones", { es: "Verificaciones", en: "Verifications" }, ShieldCheck),
+  { href: "/dashboard/admin/negocios", label: { es: "Negocios", en: "Businesses" }, icon: Building2 },
+  { href: "/dashboard/admin/citas", label: { es: "Citas", en: "Appointments" }, icon: CalendarClock },
   deLaPestana("modulos", { es: "Módulos", en: "Modules" }, Settings2),
   deLaPestana("usuarios", { es: "Usuarios", en: "Users" }, Users),
   deLaPestana("auditoria", { es: "Auditoría", en: "Audit log" }, ClipboardList),
@@ -191,7 +193,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                // Las pestañas comparten ruta: se distinguen por ?pestana=. Soporte es una ruta propia.
+                // Las pestañas comparten ruta: se distinguen por ?pestana=. Negocios, Citas y Soporte son rutas propias.
                 const isActive = item.pestana
                   ? activePath === "/dashboard/admin" && pestanaActual === item.pestana
                   : rutaActiva(activePath, item.href, "/dashboard/admin");
