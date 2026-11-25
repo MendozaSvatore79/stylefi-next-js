@@ -7,6 +7,7 @@ import { colorEstado, esDelHistorial, etiquetaEstado, fechaHoraCita, puedeModifi
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api } from "@/lib/api";
+import { estilistasParaElServicio, lugarDeLaCita, sucursalDelServicio, sucursalVisible, type SucursalBreve } from "@/lib/sucursal-de-reserva";
 import Campo from "@/components/campo";
 
 type Business = {
@@ -34,6 +35,8 @@ type Appointment = {
   business_user_id: string;
   service_id: string | null;
   branch_id: string | null;
+  branch_name?: string | null;
+  branch_city?: string | null;
   stylist_id: string | null;
   stylist_first_name: string | null;
   stylist_last_name: string | null;
@@ -44,6 +47,7 @@ type Service = {
   service_name: string;
   description: string | null;
   price: number | string;
+  branch_id?: string | null;
 };
 
 type Stylist = {
@@ -53,6 +57,7 @@ type Stylist = {
   specialization: string;
   available?: boolean;
   service_ids?: string[];
+  branch_id?: string | null;
 };
 
 export default function ClienteCitasPage() {
@@ -64,6 +69,7 @@ export default function ClienteCitasPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
+  const [branches, setBranches] = useState<SucursalBreve[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [editScheduledAt, setEditScheduledAt] = useState("");
@@ -91,6 +97,7 @@ export default function ClienteCitasPage() {
     if (!businessId) {
       setServices([]);
       setStylists([]);
+      setBranches([]);
       setForm((current) => ({
         ...current,
         serviceId: "",
@@ -109,6 +116,7 @@ export default function ClienteCitasPage() {
       const payload = (await response.json()) as {
         services: Service[];
         stylists: Stylist[];
+        branches?: SucursalBreve[];
       };
       if (pedido !== pedidoDeCatalogoRef.current) {
         return;
@@ -116,6 +124,7 @@ export default function ClienteCitasPage() {
 
       setServices(payload.services ?? []);
       setStylists(payload.stylists ?? []);
+      setBranches(payload.branches ?? []);
     } catch (error) {
       console.error("Error cargando catálogo del negocio:", error);
     }
@@ -390,6 +399,8 @@ export default function ClienteCitasPage() {
         body: JSON.stringify({
           businessUserId: form.businessUserId,
           serviceId: form.serviceId,
+          // La sucursal del servicio: sin ella la cita quedaba sin sucursal (el servidor ahora también la deduce)
+          branchId: sucursalDelServicio(services, form.serviceId),
           stylistId: form.stylistId,
           scheduledAt: form.scheduledAt,
           paymentProvider: form.paymentProvider,
@@ -513,7 +524,7 @@ export default function ClienteCitasPage() {
                 <option value="">{language === "en" ? "Select a service" : "Selecciona un servicio"}</option>
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>
-                    {service.service_name} · ${Number(service.price).toFixed(2)}
+                    {[service.service_name, sucursalVisible(branches, service.branch_id), `$${Number(service.price).toFixed(2)}`].filter(Boolean).join(" · ")}
                   </option>
                 ))}
               </select>
@@ -560,8 +571,7 @@ export default function ClienteCitasPage() {
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
             >
               <option value="">{language === "en" ? "Anyone available" : "Cualquiera disponible"}</option>
-              {stylists
-                .filter((stylist) => stylist.available !== false && (stylist.service_ids ?? []).includes(form.serviceId))
+              {estilistasParaElServicio(stylists, form.serviceId, sucursalDelServicio(services, form.serviceId))
                 .map((stylist) => (
                 <option key={stylist.id} value={stylist.id}>
                   {stylist.first_name} {stylist.last_name}
@@ -674,6 +684,11 @@ export default function ClienteCitasPage() {
                 {(appointment.business_name || `${appointment.first_name ?? ""} ${appointment.last_name ?? ""}`.trim()) ||
                   (language === "en" ? "Business" : "Negocio")}
               </p>
+              {lugarDeLaCita(appointment) ? (
+                <p className="mt-1 text-sm text-slate-600">
+                  <span className="sr-only">{language === "en" ? "Branch:" : "Sucursal:"} </span>📍 {lugarDeLaCita(appointment)}
+                </p>
+              ) : null}
               <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
               <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
 
