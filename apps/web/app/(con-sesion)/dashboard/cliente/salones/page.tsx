@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import SalonModal from "@/components/salon-modal";
 import { useLanguage } from "@/lib/language-context";
+import { esReservable } from "@/lib/salon-reservable";
 import { api, urlArchivo } from "@/lib/api";
 
 type Business = {
@@ -16,6 +17,7 @@ type Business = {
   city: string;
   state?: string | null;
   image_url: string;
+  reservable?: boolean;
 };
 
 type FavoriteBusiness = {
@@ -275,6 +277,11 @@ export default function SalonesPage() {
                   <span>📍</span>
                   <span>{getLocationSummary(business)}</span>
                 </div>
+                {!esReservable(business) ? (
+                  <p className="mt-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                    {t("salons.noSchedule")}
+                  </p>
+                ) : null}
 
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
@@ -290,7 +297,12 @@ export default function SalonesPage() {
       )}
 
       {selectedBusiness && (
-        <SalonModal businessId={selectedBusiness} onClose={() => setSelectedBusiness(null)} />
+        <SalonModal
+          businessId={selectedBusiness}
+          // También al abrirlo desde Favoritos: se busca el salón en el catálogo
+          reservable={esReservable(businesses.find((b) => b.id === selectedBusiness))}
+          onClose={() => setSelectedBusiness(null)}
+        />
       )}
 
       {showOnboarding ? (

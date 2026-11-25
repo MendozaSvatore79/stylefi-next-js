@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSesion } from "@/lib/sesion-cliente";
 import { useToast } from "@/components/toast";
+import { fechaLocal } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api, urlArchivo } from "@/lib/api";
@@ -72,12 +73,39 @@ type PaymentMethod = {
   is_default: boolean;
 };
 
+/** Textos del modal que no estaban en el diccionario (antes fijos en español). */
+const TEXTOS_MODAL = {
+  accesoRestringido: { es: "Acceso restringido", en: "Restricted access" },
+  iniciaSesion: { es: "Inicia sesión para ver más detalles", en: "Sign in to see more details" },
+  soloAutenticados: {
+    es: "La información completa del salón, servicios, estilistas y agenda está disponible solo para usuarios autenticados.",
+    en: "The salon's full details, services, stylists and schedule are only available to signed-in users.",
+  },
+  cerrar: { es: "Cerrar", en: "Close" },
+  iniciarSesion: { es: "Iniciar sesión", en: "Sign in" },
+  aniosExperiencia: { es: "años de experiencia", en: "years of experience" },
+  direccion: { es: "Dirección:", en: "Address:" },
+  flujoReserva: { es: "Flujo de reserva", en: "Booking steps" },
+  paso2Pago: { es: "Paso 2 de 2 · Pago", en: "Step 2 of 2 · Payment" },
+  paso1Datos: { es: "Paso 1 de 2 · Datos y horario", en: "Step 1 of 2 · Details and time" },
+  paso2: { es: "Paso 2 de 2", en: "Step 2 of 2" },
+  ultimoPaso: { es: "Último paso para confirmar", en: "Last step to confirm" },
+  saldo: { es: "Saldo wallet", en: "Wallet balance" },
+  eligeHorario: {
+    es: "Selecciona un horario disponible para mostrar el método de pago.",
+    en: "Choose an available time to see the payment method.",
+  },
+} as const;
+
 export default function SalonModal({
   businessId,
   onClose,
+  reservable = true,
 }: {
   businessId: string;
   onClose: () => void;
+  /** Si es false (salón sin estilistas con horario), no se ofrece reservar y se explica por qué. */
+  reservable?: boolean;
 }) {
   const router = useRouter();
   const { status } = useSesion();
@@ -292,10 +320,10 @@ export default function SalonModal({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8 backdrop-blur-md">
         <div className="w-full max-w-xl rounded-3xl border border-white/60 bg-white p-8 shadow-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-600">Acceso restringido</p>
-          <h2 className="mt-2 text-3xl font-black text-[#151138]">Inicia sesión para ver más detalles</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-600">{TEXTOS_MODAL.accesoRestringido[language]}</p>
+          <h2 className="mt-2 text-3xl font-black text-[#151138]">{TEXTOS_MODAL.iniciaSesion[language]}</h2>
           <p className="mt-4 text-sm text-slate-600">
-            La información completa del salón, servicios, estilistas y agenda está disponible solo para usuarios autenticados.
+            {TEXTOS_MODAL.soloAutenticados[language]}
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
@@ -303,14 +331,14 @@ export default function SalonModal({
               onClick={onClose}
               className="h-11 flex-1 rounded-xl border border-slate-300 font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Cerrar
+              {TEXTOS_MODAL.cerrar[language]}
             </button>
             <button
               type="button"
               onClick={() => router.push("/iniciar-sesion")}
               className="h-11 flex-1 rounded-xl bg-blue-700 font-bold text-white transition hover:bg-blue-800"
             >
-              Iniciar sesión
+              {TEXTOS_MODAL.iniciarSesion[language]}
             </button>
           </div>
         </div>
@@ -488,7 +516,7 @@ export default function SalonModal({
                         )}
                         {stylist.years_experience && (
                           <p className="mt-1 text-xs text-slate-500">
-                            {stylist.years_experience} años de experiencia
+                            {stylist.years_experience} {TEXTOS_MODAL.aniosExperiencia[language]}
                           </p>
                         )}
                       </div>
@@ -527,13 +555,12 @@ export default function SalonModal({
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                     <p className="text-sm text-slate-600">
-                      <strong>Dirección:</strong> {displayAddress}
+                      <strong>{TEXTOS_MODAL.direccion[language]}</strong> {displayAddress}
                     </p>
                   </div>
                 </>
               ) : (
                 <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-                  <p className="text-slate-600">La ubicación no está disponible en este momento.</p>
                     <p className="text-slate-600">{t("modal.locationUnavailable")}</p>
                 </div>
               )}
@@ -547,12 +574,18 @@ export default function SalonModal({
             >
               {t("modal.closeButton")}
             </button>
-            <button
-              onClick={handleAgendar}
-              className="rounded-2xl bg-linear-to-r from-indigo-600 to-purple-600 px-6 py-3 font-bold text-white transition-shadow hover:shadow-lg"
-            >
-              {t("modal.bookButton")}
-            </button>
+            {reservable ? (
+              <button
+                onClick={handleAgendar}
+                className="rounded-2xl bg-linear-to-r from-indigo-600 to-purple-600 px-6 py-3 font-bold text-white transition-shadow hover:shadow-lg"
+              >
+                {t("modal.bookButton")}
+              </button>
+            ) : (
+              <p role="status" className="flex items-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                {t("salons.noScheduleDesc")}
+              </p>
+            )}
               </div>
             </div>
             ) : (
@@ -565,9 +598,9 @@ export default function SalonModal({
 
               <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Flujo de reserva</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{TEXTOS_MODAL.flujoReserva[language]}</p>
                   <p className="text-sm font-bold text-[#151138]">
-                    {bookingStep === "payment" ? "Paso 2 de 2 · Pago" : "Paso 1 de 2 · Datos y horario"}
+                    {bookingStep === "payment" ? TEXTOS_MODAL.paso2Pago[language] : TEXTOS_MODAL.paso1Datos[language]}
                   </p>
                 </div>
                 <button
@@ -626,7 +659,7 @@ export default function SalonModal({
                       setBookingDate(nextDate);
                       setBookingForm((current) => ({ ...current, scheduledAt: "" }));
                     }}
-                    min={new Date().toISOString().split("T")[0]}
+                    min={fechaLocal(new Date())}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
                   />
                 </div>
@@ -666,8 +699,8 @@ export default function SalonModal({
                     <>
                       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{t("modal.payment")}</label>
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Paso 2 de 2</p>
-                        <p className="text-xs text-slate-500">Último paso para confirmar</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">{TEXTOS_MODAL.paso2[language]}</p>
+                        <p className="text-xs text-slate-500">{TEXTOS_MODAL.ultimoPaso[language]}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <button
@@ -690,7 +723,7 @@ export default function SalonModal({
                               : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                           }`}
                         >
-                          Saldo wallet
+                          {TEXTOS_MODAL.saldo[language]}
                         </button>
                       </div>
                       {bookingForm.paymentProvider === "wallet" ? (
@@ -705,8 +738,8 @@ export default function SalonModal({
                     </>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/60 px-4 py-5 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Paso 2 de 2</p>
-                      <p className="mt-2 text-sm text-slate-700">Selecciona un horario disponible para mostrar el método de pago.</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">{TEXTOS_MODAL.paso2[language]}</p>
+                      <p className="mt-2 text-sm text-slate-700">{TEXTOS_MODAL.eligeHorario[language]}</p>
                     </div>
                   )}
                 </div>

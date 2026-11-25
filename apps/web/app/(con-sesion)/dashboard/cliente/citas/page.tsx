@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
-import { colorEstado, esDelHistorial, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
+import { colorEstado, esDelHistorial, etiquetaEstado, fechaHoraCita, fechaLocal, puedeModificarCliente } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
+import { esReservable } from "@/lib/salon-reservable";
 import { api } from "@/lib/api";
 import { estilistasParaElServicio, lugarDeLaCita, sucursalDelServicio, sucursalVisible, type SucursalBreve } from "@/lib/sucursal-de-reserva";
 import Campo from "@/components/campo";
@@ -16,6 +17,7 @@ type Business = {
   first_name: string | null;
   last_name: string | null;
   salon_name: string | null;
+  reservable?: boolean;
 };
 
 type Wallet = {
@@ -494,7 +496,8 @@ export default function ClienteCitasPage() {
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
             >
               <option value="">{t("appointments.selectBusiness")}</option>
-              {businesses.map((business) => (
+              {/* Solo salones que se pueden reservar (con estilistas con horario) */}
+              {businesses.filter(esReservable).map((business) => (
                 <option key={business.id} value={business.id}>
                   {business.business_name ||
                     `${business.first_name ?? ""} ${business.last_name ?? ""}`.trim() ||
@@ -539,7 +542,7 @@ export default function ClienteCitasPage() {
                     scheduledAt: event.target.value ? `${event.target.value}T00:00` : "",
                   }));
                 }}
-                min={new Date().toISOString().split("T")[0]}
+                min={fechaLocal(new Date())}
                 className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
               />
             </Campo>
@@ -744,17 +747,19 @@ export default function ClienteCitasPage() {
                 <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">{language === "en" ? "Reschedule appointment" : "Reagendar cita"}</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <input
-                      type="date"
-                      value={editDate}
-                      min={new Date().toISOString().split("T")[0]}
-                      aria-label={language === "en" ? "New date" : "Nueva fecha"}
-                      onChange={(event) => {
-                        setEditDate(event.target.value);
-                        setEditScheduledAt("");
-                      }}
-                      className="h-10 rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                    />
+                    <Campo etiqueta={language === "en" ? "New date" : "Nueva fecha"}>
+                      <input
+                        type="date"
+                        value={editDate}
+                        // Hoy en hora de México: con toISOString (UTC), de 18:00 a medianoche ya no dejaba elegir hoy
+                        min={fechaLocal(new Date())}
+                        onChange={(event) => {
+                          setEditDate(event.target.value);
+                          setEditScheduledAt("");
+                        }}
+                        className="h-10 w-full rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                      />
+                    </Campo>
                     <Campo etiqueta={language === "en" ? "Notes (optional)" : "Notas (opcional)"}>
                       <input
                         value={editNotes}
