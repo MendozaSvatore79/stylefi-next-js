@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/toast";
+import AvisoModulo from "@/components/aviso-modulo";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
 import { rutaActiva } from "@/lib/ruta-activa";
@@ -319,19 +320,10 @@ export default function BusinessDashboardShell({ children }: { children: ReactNo
 
           <section className="relative mx-auto w-full max-w-350 flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8">
             {isBlocked ? (
-              <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/90 px-6 backdrop-blur-sm">
-                <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Estado del módulo</p>
-                  <h2 className="mt-2 text-3xl font-black text-[#151138]">{moduleAccess?.module?.title || "Módulo"}</h2>
-                  <p className="mt-4 text-sm text-slate-600">
-                    {moduleAccess?.reason === "maintenance"
-                      ? "Este módulo está temporalmente en mantenimiento."
-                      : "Este módulo está desactivado por administración."}
-                  </p>
-                </div>
-              </div>
-            ) : null}
-            {children}
+              <AvisoModulo titulo={moduleAccess?.module?.title} razon={moduleAccess?.reason ?? null} />
+            ) : (
+              children
+            )}
           </section>
         </div>
       </div>
