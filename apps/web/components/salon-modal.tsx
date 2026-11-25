@@ -91,6 +91,7 @@ const TEXTOS_MODAL = {
   paso2: { es: "Paso 2 de 2", en: "Step 2 of 2" },
   ultimoPaso: { es: "Último paso para confirmar", en: "Last step to confirm" },
   saldo: { es: "Saldo wallet", en: "Wallet balance" },
+  principal: { es: "Principal", en: "Main" },
   eligeHorario: {
     es: "Selecciona un horario disponible para mostrar el método de pago.",
     en: "Choose an available time to see the payment method.",
@@ -412,7 +413,14 @@ export default function SalonModal({
                         className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${selectedBranchId === b.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-200"}`}
                       >
                         {b.branch_name}
-                        {b.is_primary ? <span className="ml-2 text-[10px] font-bold text-emerald-700">Principal</span> : null}
+                        {/* Verde sobre el azul de la sucursal elegida casi no se leía: en ese caso, blanco sobre blanco translúcido */}
+                        {b.is_primary ? (
+                          <span
+                            className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${selectedBranchId === b.id ? "bg-white/25 text-white" : "bg-emerald-50 text-emerald-800"}`}
+                          >
+                            {TEXTOS_MODAL.principal[language]}
+                          </span>
+                        ) : null}
                       </button>
                     ))}
                   </div>
