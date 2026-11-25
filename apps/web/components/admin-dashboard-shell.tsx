@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Bell, Building2, CalendarClock, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, Menu, Settings2, ShieldCheck, Sparkles, Users, X } from "lucide-react";
+import { Building2, CalendarClock, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, Menu, Settings2, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 import { useCerrarSesion, useSesion } from "@/lib/sesion-cliente";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -61,14 +60,10 @@ const TEXTOS = {
   centro: { es: "Centro de administración", en: "Admin Center" },
   cerrarMenu: { es: "Cerrar menú", en: "Close menu" },
   abrirMenu: { es: "Abrir menú", en: "Open menu" },
-  estadoGlobal: { es: "Estado global", en: "Global status" },
-  operativo: { es: "Operativo", en: "Operational" },
-  monitoreo: { es: "Monitoreo y gobierno en tiempo real", en: "Real-time monitoring and governance" },
   modoAdmin: { es: "Modo administrativo", en: "Admin mode" },
   controlTotal: { es: "Control total de seguridad, módulos y operaciones.", en: "Full control of security, modules and operations." },
   administracion: { es: "Administración", en: "Administration" },
   panelOficial: { es: "Panel oficial", en: "Official panel" },
-  alertas: { es: "Alertas", en: "Alerts" },
   menuUsuario: { es: "Abrir menú de usuario", en: "Open user menu" },
   administrador: { es: "Administrador", en: "Administrator" },
   correoYContrasena: { es: "Correo y contraseña", en: "Email and password" },
@@ -180,14 +175,8 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
               </button>
             </div>
 
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-indigo-700">{TEXTOS.estadoGlobal[language]}</p>
-                <Badge variant="success">{TEXTOS.operativo[language]}</Badge>
-              </div>
-              <p className="mt-1 text-xs text-indigo-700/80">{TEXTOS.monitoreo[language]}</p>
-            </div>
-
+            {/* Aquí había un "Estado global: Operativo" fijo, siempre en verde, que no medía nada. El estado real de los
+                módulos está en el Resumen del panel ("Estado general"). */}
             <Separator />
 
             <nav className="space-y-1">
@@ -249,10 +238,6 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Bell className="size-4" />
-                  {TEXTOS.alertas[language]}
-                </Button>
                 <div className="relative" ref={avatarMenuRef}>
                   <button
                     type="button"
