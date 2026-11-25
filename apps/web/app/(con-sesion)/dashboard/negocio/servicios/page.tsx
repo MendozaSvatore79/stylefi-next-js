@@ -274,7 +274,7 @@ export default function NegocioServiciosPage() {
           <button
             type="submit"
             disabled={isSubmitting || branches.length === 0 || !form.branchId}
-            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70 @md:w-auto"
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70 @md:w-auto"
           >
             {isSubmitting ? (language === "en" ? "Saving..." : "Guardando...") : (language === "en" ? "Save service" : "Guardar servicio")}
           </button>

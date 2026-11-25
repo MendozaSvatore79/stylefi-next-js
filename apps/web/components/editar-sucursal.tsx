@@ -255,7 +255,7 @@ export default function EditarSucursal({
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(event) => setImagen(event.target.files?.[0] ?? null)}
-                className="block w-full min-w-0 text-xs text-transparent file:mr-0 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+                className="block w-full min-w-0 text-xs text-transparent file:mr-0 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
               />
               <span className="mt-1 block truncate">{imagen?.name ?? (en ? "No new file" : "Sin archivo nuevo")}</span>
             </label>
@@ -278,7 +278,7 @@ export default function EditarSucursal({
           type="file"
           accept="application/pdf,image/jpeg,image/png,image/webp"
           onChange={(event) => setComprobante(event.target.files?.[0] ?? null)}
-          className="block w-full min-w-0 text-xs text-transparent file:mr-0 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+          className="block w-full min-w-0 text-xs text-transparent file:mr-0 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
         />
         <span className="mt-1 block truncate">{comprobante?.name ?? (en ? "The current one is kept" : "Se conserva el actual")}</span>
       </label>
@@ -308,7 +308,7 @@ export default function EditarSucursal({
           type="button"
           onClick={() => void guardar()}
           disabled={guardando}
-          className="h-10 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+          className="h-10 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {guardando ? (en ? "Saving..." : "Guardando...") : en ? "Save changes" : "Guardar cambios"}
         </button>

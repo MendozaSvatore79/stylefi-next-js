@@ -232,7 +232,7 @@ export default function SalonesPage() {
               <button
                 type="button"
                 onClick={() => void toggleFavorite(business.id)}
-                className={`absolute left-3 top-3 z-10 h-8 w-8 rounded-full border border-white/40 bg-black/20 text-sm text-white backdrop-blur-sm transition hover:bg-black/35 ${
+                className={`absolute left-3 top-3 z-10 h-8 w-8 rounded-full border border-white/40 bg-black/55 text-sm text-white backdrop-blur-sm transition hover:bg-black/70 ${
                   favoriteLoadingId === business.id ? "opacity-60" : ""
                 }`}
                 aria-label={t("salons.favLabel")}
@@ -240,7 +240,7 @@ export default function SalonesPage() {
                 {favoriteIds.has(business.id) ? "❤" : "♡"}
               </button>
 
-              <div className="absolute right-3 top-3 z-10 rounded-full border border-white/40 bg-black/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+              <div className="absolute right-3 top-3 z-10 rounded-full border border-white/40 bg-black/55 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
                 {t("salons.verified")}
               </div>
 

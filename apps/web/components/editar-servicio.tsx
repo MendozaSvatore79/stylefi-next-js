@@ -154,7 +154,7 @@ export default function EditarServicio({
           type="button"
           onClick={() => void guardar()}
           disabled={guardando}
-          className="h-9 rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+          className="h-9 rounded-lg bg-emerald-700 px-4 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {guardando ? (en ? "Saving..." : "Guardando...") : en ? "Save changes" : "Guardar cambios"}
         </button>

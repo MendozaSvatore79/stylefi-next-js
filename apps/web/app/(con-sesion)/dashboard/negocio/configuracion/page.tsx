@@ -207,7 +207,7 @@ export default function NegocioConfiguracionPage() {
               {T.perfil[language]}
             </p>
             <p className={`mt-1 text-xs transition ${
-              activeSection === "profile" ? "text-emerald-600" : "text-slate-500"
+              activeSection === "profile" ? "text-emerald-800" : "text-slate-600"
             }`}>
               {T.datosSalon[language]}
             </p>
@@ -231,7 +231,7 @@ export default function NegocioConfiguracionPage() {
               {T.seguridad[language]}
             </p>
             <p className={`mt-1 text-xs transition ${
-              activeSection === "security" ? "text-emerald-600" : "text-slate-500"
+              activeSection === "security" ? "text-emerald-800" : "text-slate-600"
             }`}>
               {T.accesoContrasena[language]}
             </p>
@@ -255,7 +255,7 @@ export default function NegocioConfiguracionPage() {
               {T.facturacion[language]}
             </p>
             <p className={`mt-1 text-xs transition ${
-              activeSection === "billing" ? "text-emerald-600" : "text-slate-500"
+              activeSection === "billing" ? "text-emerald-800" : "text-slate-600"
             }`}>
               {T.pagosPlanes[language]}
             </p>
@@ -334,7 +334,7 @@ export default function NegocioConfiguracionPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSaving ? "Guardando..." : "Guardar cambios"}
             </button>

@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api, urlArchivo } from "@/lib/api";
 import { horarioAnterior, leerHorario, resumenHorario } from "@/lib/horario";
+import { useBloquearScrollDeFondo } from "@/lib/bloquear-scroll";
 
 type BusinessDetail = {
   id: string;
@@ -91,6 +92,7 @@ const TEXTOS_MODAL = {
   paso2: { es: "Paso 2 de 2", en: "Step 2 of 2" },
   ultimoPaso: { es: "Último paso para confirmar", en: "Last step to confirm" },
   saldo: { es: "Saldo wallet", en: "Wallet balance" },
+  principal: { es: "Principal", en: "Main" },
   eligeHorario: {
     es: "Selecciona un horario disponible para mostrar el método de pago.",
     en: "Choose an available time to see the payment method.",
@@ -128,6 +130,9 @@ export default function SalonModal({
   const [requiresAuth, setRequiresAuth] = useState(false);
   const paymentSectionRef = useRef<HTMLDivElement | null>(null);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
+  // Raíz del modal (las tres variantes: cargando, sin sesión y ficha): mientras esté abierto, el fondo no se desplaza
+  const raizRef = useRef<HTMLDivElement | null>(null);
+  useBloquearScrollDeFondo(raizRef);
   const [bookingForm, setBookingForm] = useState({
     serviceId: "",
     scheduledAt: "",
@@ -310,7 +315,7 @@ export default function SalonModal({
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div ref={raizRef} className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain bg-black/40 backdrop-blur-sm">
         <div className="h-96 w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl animate-pulse" />
       </div>
     );
@@ -318,7 +323,7 @@ export default function SalonModal({
 
   if (requiresAuth) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8 backdrop-blur-md">
+      <div ref={raizRef} className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain bg-black/55 px-4 py-8 backdrop-blur-md">
         <div className="w-full max-w-xl rounded-3xl border border-white/60 bg-white p-8 shadow-2xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-600">{TEXTOS_MODAL.accesoRestringido[language]}</p>
           <h2 className="mt-2 text-3xl font-black text-[#151138]">{TEXTOS_MODAL.iniciaSesion[language]}</h2>
@@ -363,9 +368,9 @@ export default function SalonModal({
   const headerLabel = selectedBranch?.branch_name || business.salon_name;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/55 px-4 py-8 backdrop-blur-md">
+    <div ref={raizRef} className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/55 px-4 py-8 backdrop-blur-md">
       <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/60 bg-white shadow-2xl ring-1 ring-indigo-100/60">
-        <div className="relative h-56 bg-linear-to-br from-indigo-100 via-indigo-50 to-purple-100">
+        <div className="relative h-56 bg-linear-to-br from-indigo-700 via-indigo-600 to-purple-700">
           {headerImage && (
             <div
               className="h-full w-full bg-cover bg-center"
@@ -394,10 +399,13 @@ export default function SalonModal({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 p-6 sm:p-8">
-          <div className="h-full overflow-hidden rounded-2xl">
+        {/* La cadena flex con min-h-0 le da altura real a la zona que se desplaza. Antes era h-full sobre un padre sin
+            altura definida: el contenido crecía, el modal (max-h 90vh, overflow-hidden) lo recortaba y "Agendar cita"
+            quedaba fuera de la pantalla sin forma de bajar. */}
+        <div className="flex min-h-0 flex-1 flex-col p-6 sm:p-8">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
             {view === "profile" ? (
-              <div className="h-full overflow-y-auto pr-2">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
               <div className="mt-1 flex flex-col gap-3 text-sm">
                 {branches.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-2">
@@ -409,7 +417,14 @@ export default function SalonModal({
                         className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${selectedBranchId === b.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-200"}`}
                       >
                         {b.branch_name}
-                        {b.is_primary ? <span className="ml-2 text-[10px] font-bold text-emerald-700">Principal</span> : null}
+                        {/* Verde sobre el azul de la sucursal elegida casi no se leía: en ese caso, blanco sobre blanco translúcido */}
+                        {b.is_primary ? (
+                          <span
+                            className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${selectedBranchId === b.id ? "bg-white/25 text-white" : "bg-emerald-50 text-emerald-800"}`}
+                          >
+                            {TEXTOS_MODAL.principal[language]}
+                          </span>
+                        ) : null}
                       </button>
                     ))}
                   </div>
@@ -438,7 +453,7 @@ export default function SalonModal({
                   if (!horario && !anterior) return null;
                   return (
                     <div data-horario-salon className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">🕒 {language === "en" ? "Hours" : "Horario"}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">🕒 {language === "en" ? "Hours" : "Horario"}</p>
                       {horario ? (
                         <ul className="mt-1 space-y-0.5 text-sm font-medium">
                           {resumenHorario(horario, language).map((linea) => (
@@ -567,7 +582,8 @@ export default function SalonModal({
                 </div>
               )}
 
-              <div className="mt-6 grid grid-cols-2 gap-4">
+              {/* Siempre a la vista al fondo del modal, aunque la lista de servicios sea larga */}
+              <div className="sticky bottom-0 mt-6 grid grid-cols-2 gap-4 bg-white pb-1 pt-3">
             <button
               onClick={onClose}
               className="rounded-2xl border-2 border-slate-300 px-6 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-50"
@@ -589,7 +605,7 @@ export default function SalonModal({
               </div>
             </div>
             ) : (
-              <div ref={bookingScrollRef} className="h-full overflow-y-auto pl-0 pr-1">
+              <div ref={bookingScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pl-0 pr-1">
               <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{t("modal.quickBooking")}</p>
                 <h3 className="mt-2 text-xl font-black text-[#151138]">{t("modal.bookTitle")}</h3>
