@@ -51,11 +51,9 @@ const T = {
   accesoSeguridad: { es: "Acceso y seguridad", en: "Access and security" },
   seguridadDesc: { es: "Administra tu contraseña, métodos de acceso y opciones de eliminación de cuenta.", en: "Manage your password, sign-in methods and account deletion options." },
   pagosSuscripcion: { es: "Pagos y suscripción", en: "Payments and subscription" },
-  facturacionDesc: { es: "Gestiona tu plan de suscripción, pagos y métodos de facturación.", en: "Manage your subscription plan, payments and billing methods." },
-  planActivo: { es: "Plan Premium activo", en: "Premium plan active" },
-  precioPlan: { es: "$29.99/mes", en: "$29.99/month" },
-  proximoPago: { es: "Próximo pago: 15 de mayo de 2026", en: "Next payment: May 15, 2026" },
-  cambiarPlan: { es: "Cambiar plan", en: "Change plan" },
+  facturacionDesc: { es: "Aquí verás tu plan y tus pagos cuando estén disponibles.", en: "Your plan and payments will appear here once they're available." },
+  proximamente: { es: "Próximamente", en: "Coming soon" },
+  proximamenteDesc: { es: "Los planes y la facturación para negocios llegarán pronto.", en: "Plans and billing for businesses are coming soon." },
   revisaFormulario: { es: "Revisa el formulario", en: "Check the form" },
   noSeGuardoPerfil: { es: "No se pudo guardar el perfil.", en: "The profile could not be saved." },
   perfilActualizado: { es: "Perfil actualizado", en: "Profile updated" },
@@ -377,13 +375,11 @@ export default function NegocioConfiguracionPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
-            <p className="text-sm text-slate-600">{T.planActivo[language]}</p>
-            <p className="mt-2 text-2xl font-black text-emerald-600">{T.precioPlan[language]}</p>
-            <p className="mt-1 text-xs text-slate-500">{T.proximoPago[language]}</p>
-            <button className="mt-4 inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-              {T.cambiarPlan[language]}
-            </button>
+          {/* Antes había un plan, un precio y una fecha de pago inventados, y un botón que no hacía nada: no hay
+              suscripciones ni pagos en línea. Decisión de Eric (2026-11-25): "Próximamente". */}
+          <div role="status" className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">{T.proximamente[language]}</p>
+            <p className="mt-2 text-sm text-slate-600">{T.proximamenteDesc[language]}</p>
           </div>
         </article>
       ) : null}
