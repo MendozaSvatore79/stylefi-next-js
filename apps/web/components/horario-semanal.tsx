@@ -38,7 +38,7 @@ export default function HorarioSemanal({
                   aria-label={`${nombre}: ${d.abierto ? (en ? "open" : "abierto") : en ? "closed" : "cerrado"}`}
                   onClick={() => onChange(cambiarDia(valor, d.dia, { abierto: !d.abierto }))}
                   className={`inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold transition ${
-                    d.abierto ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+                    d.abierto ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-slate-200 text-slate-600 hover:bg-slate-300"
                   }`}
                 >
                   {d.abierto ? (en ? "Open" : "Abierto") : en ? "Closed" : "Cerrado"}

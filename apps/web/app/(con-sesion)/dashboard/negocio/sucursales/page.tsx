@@ -541,7 +541,7 @@ export default function NegocioSucursalesPage() {
                   type="button"
                   onClick={() => void requestCurrentLocation()}
                   disabled={isLocating || isResolvingAddress}
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isLocating ? (en ? "Detecting..." : "Detectando...") : en ? "Update location" : "Actualizar ubicación"}
                 </button>
@@ -615,7 +615,7 @@ export default function NegocioSucursalesPage() {
                   type="file"
                   accept={campo.accept}
                   onChange={(event) => campo.elegir(event.target.files?.[0] ?? null)}
-                  className="block w-full min-w-0 text-xs text-transparent file:mr-0 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-emerald-700"
+                  className="block w-full min-w-0 text-xs text-transparent file:mr-0 file:cursor-pointer file:rounded-lg file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-emerald-700"
                   required={campo.required}
                 />
                 <span data-archivo-elegido className="mt-1 block truncate text-xs text-slate-600" title={campo.archivo?.name ?? undefined}>
@@ -647,7 +647,7 @@ export default function NegocioSucursalesPage() {
             <button
               type="submit"
               disabled={isSubmitting || branches.length >= 3}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70 @md:w-auto"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70 @md:w-auto"
             >
               {branches.length >= 3
                 ? en
@@ -860,7 +860,7 @@ export default function NegocioSucursalesPage() {
                       type="button"
                       onClick={() => void guardarHorario()}
                       disabled={guardandoHorario}
-                      className="h-10 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="h-10 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {guardandoHorario ? (language === "en" ? "Saving..." : "Guardando...") : language === "en" ? "Save hours" : "Guardar horario"}
                     </button>

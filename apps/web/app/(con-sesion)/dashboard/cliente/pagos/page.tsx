@@ -563,7 +563,7 @@ export default function ClientePagosPage() {
           <button
             type="submit"
             disabled={isRecharging}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isRecharging
               ? (language === "en" ? "Processing..." : "Procesando...")

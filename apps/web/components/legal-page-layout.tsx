@@ -100,7 +100,7 @@ export function LegalPageLayout({
               <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
                 {description}
               </p>
-              <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
+              <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
                 <span className="rounded-full border border-blue-950/10 bg-[#eef2ff] px-3 py-1.5 text-blue-800">
                   Última actualización
                 </span>

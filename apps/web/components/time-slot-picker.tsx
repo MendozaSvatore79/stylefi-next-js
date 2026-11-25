@@ -137,7 +137,7 @@ export default function TimeSlotPicker({
             className={`relative py-2 px-2 rounded-lg text-xs font-semibold transition-all ${
               slot.isAvailable
                 ? selectedTime === slot.iso
-                  ? "bg-emerald-600 text-white ring-2 ring-emerald-300"
+                  ? "bg-emerald-700 text-white ring-2 ring-emerald-300"
                   : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-pointer"
                 : "bg-red-100 text-red-500 cursor-not-allowed opacity-60"
             }`}

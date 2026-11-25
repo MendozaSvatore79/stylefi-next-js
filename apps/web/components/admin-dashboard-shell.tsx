@@ -232,7 +232,7 @@ export default function AdminDashboardShell({ children }: AdminDashboardShellPro
                   <Menu className="size-4" />
                 </Button>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{TEXTOS.administracion[language]}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">{TEXTOS.administracion[language]}</p>
                   <p className="text-sm font-bold text-slate-900">{TEXTOS.panelOficial[language]}</p>
                 </div>
               </div>
