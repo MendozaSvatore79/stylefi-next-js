@@ -75,9 +75,12 @@ type PaymentMethod = {
 export default function SalonModal({
   businessId,
   onClose,
+  reservable = true,
 }: {
   businessId: string;
   onClose: () => void;
+  /** Si es false (salón sin estilistas con horario), no se ofrece reservar y se explica por qué. */
+  reservable?: boolean;
 }) {
   const router = useRouter();
   const { status } = useSesion();
@@ -547,12 +550,18 @@ export default function SalonModal({
             >
               {t("modal.closeButton")}
             </button>
-            <button
-              onClick={handleAgendar}
-              className="rounded-2xl bg-linear-to-r from-indigo-600 to-purple-600 px-6 py-3 font-bold text-white transition-shadow hover:shadow-lg"
-            >
-              {t("modal.bookButton")}
-            </button>
+            {reservable ? (
+              <button
+                onClick={handleAgendar}
+                className="rounded-2xl bg-linear-to-r from-indigo-600 to-purple-600 px-6 py-3 font-bold text-white transition-shadow hover:shadow-lg"
+              >
+                {t("modal.bookButton")}
+              </button>
+            ) : (
+              <p role="status" className="flex items-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                {t("salons.noScheduleDesc")}
+              </p>
+            )}
               </div>
             </div>
             ) : (

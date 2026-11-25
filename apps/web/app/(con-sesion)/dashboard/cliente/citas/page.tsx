@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast";
 import { colorEstado, esDelHistorial, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
+import { esReservable } from "@/lib/salon-reservable";
 import { api } from "@/lib/api";
 import { estilistasParaElServicio, lugarDeLaCita, sucursalDelServicio, sucursalVisible, type SucursalBreve } from "@/lib/sucursal-de-reserva";
 import Campo from "@/components/campo";
@@ -16,6 +17,7 @@ type Business = {
   first_name: string | null;
   last_name: string | null;
   salon_name: string | null;
+  reservable?: boolean;
 };
 
 type Wallet = {
@@ -494,7 +496,8 @@ export default function ClienteCitasPage() {
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
             >
               <option value="">{t("appointments.selectBusiness")}</option>
-              {businesses.map((business) => (
+              {/* Solo salones que se pueden reservar (con estilistas con horario) */}
+              {businesses.filter(esReservable).map((business) => (
                 <option key={business.id} value={business.id}>
                   {business.business_name ||
                     `${business.first_name ?? ""} ${business.last_name ?? ""}`.trim() ||
