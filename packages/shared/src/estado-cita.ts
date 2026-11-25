@@ -49,6 +49,14 @@ export function puedeModificarCliente(
   return inicio > ahora.getTime() + PLAZO_CLIENTE_MIN * 60_000 ? "permitido" : "fuera-de-plazo";
 }
 
+/**
+ * Si la cita es del historial y el cliente puede borrarla: completada o cancelada, o que ya pasó. Es la misma regla
+ * que aplica el servidor en DELETE /client/appointments. Una cita futura activa no se borra: se cancela.
+ */
+export function esDelHistorial(cita: { status: string; scheduled_at: string | Date }, ahora: Date = new Date()): boolean {
+  return cita.status === "completed" || cita.status === "cancelled" || new Date(cita.scheduled_at).getTime() < ahora.getTime();
+}
+
 /** Fecha y hora de la cita en la zona del negocio, formato corto: "14 nov 2026, 10:00 a.m.". */
 export function fechaHoraCita(fecha: string | Date, language: string): string {
   return new Date(fecha).toLocaleString(language === "en" ? "en-US" : "es-MX", {
