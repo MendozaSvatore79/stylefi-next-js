@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
-import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
+import { colorEstado, esDelHistorial, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api } from "@/lib/api";
@@ -73,7 +73,6 @@ export default function ClienteCitasPage() {
   const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
   const [deletingAppointmentId, setDeletingAppointmentId] = useState<string | null>(null);
   const [isClearingPastHistory, setIsClearingPastHistory] = useState(false);
-  const [isDeletingAllAppointments, setIsDeletingAllAppointments] = useState(false);
   const [form, setForm] = useState({
     businessUserId: "",
     serviceName: "",
@@ -360,47 +359,6 @@ export default function ClienteCitasPage() {
     }
   };
 
-  const handleDeleteAllAppointments = async () => {
-    const confirmed = window.confirm(copy.clearAllConfirm);
-    if (!confirmed) {
-      return;
-    }
-
-    setIsDeletingAllAppointments(true);
-
-    try {
-      const response = await api("/api/client/appointments", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clearMode: "all" }),
-      });
-
-      const payload = (await response.json()) as { error?: string; deletedCount?: number };
-      if (!response.ok) {
-        throw new Error(payload.error ?? copy.clearAllErrorMsg);
-      }
-
-      showToast({
-        type: "success",
-        title: copy.deletedAll,
-        message:
-          language === "en"
-            ? `Deleted ${payload.deletedCount ?? 0} appointment(s) in total.`
-            : `Se borraron ${payload.deletedCount ?? 0} cita(s) en total.`,
-      });
-
-      await loadData();
-    } catch (error) {
-      showToast({
-        type: "error",
-        title: copy.clearAllError,
-        message: error instanceof Error ? error.message : copy.tryAgain,
-      });
-    } finally {
-      setIsDeletingAllAppointments(false);
-    }
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -489,11 +447,6 @@ export default function ClienteCitasPage() {
     clearPastErrorMsg: language === "en" ? "Could not clear history." : "No se pudo limpiar el historial.",
     clearPastTitle: language === "en" ? "Past history cleared" : "Historial pasado limpiado",
     clearPastMsg: language === "en" ? `Deleted ${0} past/completed/cancelled appointment(s).` : `Se borraron ${0} cita(s) pasadas/completadas/canceladas.`,
-    clearAllConfirm: language === "en" ? "This will DELETE ALL your appointments, including upcoming and pending ones. Do you want to continue?" : "Esto borrará TODAS tus citas, incluyendo próximas y pendientes. ¿Deseas continuar?",
-    clearAllError: language === "en" ? "Could not delete all" : "No se pudo borrar todo",
-    clearAllErrorMsg: language === "en" ? "Could not delete all appointments." : "No se pudieron borrar todas las citas.",
-    deletedAll: language === "en" ? "Appointments deleted" : "Citas eliminadas",
-    deletedAllMsg: language === "en" ? `Deleted ${0} appointment(s) in total.` : `Se borraron ${0} cita(s) en total.`,
     completeAppointment: language === "en" ? "Complete your appointment" : "Completa tu cita",
     selectBusinessServiceDate: language === "en" ? "Select business, service, and date/time." : "Selecciona negocio, servicio y fecha/hora.",
     insufficientBalance: language === "en" ? "Insufficient balance" : "Saldo insuficiente",
@@ -691,20 +644,12 @@ export default function ClienteCitasPage() {
             <button
               type="button"
               onClick={handleClearPastHistory}
-              disabled={isClearingPastHistory || isDeletingAllAppointments}
+              disabled={isClearingPastHistory}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isClearingPastHistory ? (language === "en" ? "Clearing..." : "Limpiando...") : (language === "en" ? "Clear past appointments only" : "Limpiar solo historial pasado")}
             </button>
 
-            <button
-              type="button"
-              onClick={handleDeleteAllAppointments}
-              disabled={isDeletingAllAppointments || isClearingPastHistory}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-rose-300 bg-rose-50 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isDeletingAllAppointments ? (language === "en" ? "Deleting all..." : "Borrando todo...") : (language === "en" ? "Delete all appointments" : "Borrar todas las citas")}
-            </button>
           </div>
         </div>
 
@@ -767,14 +712,17 @@ export default function ClienteCitasPage() {
                   </>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteAppointment(appointment.id)}
-                  disabled={deletingAppointmentId === appointment.id || cancellingAppointmentId === appointment.id}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deletingAppointmentId === appointment.id ? (language === "en" ? "Deleting..." : "Borrando...") : (language === "en" ? "Delete from history" : "Borrar del historial")}
-                </button>
+                {/* Solo citas del historial: una futura activa se cancela, no se borra (el servidor la rechaza) */}
+                {esDelHistorial(appointment) ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteAppointment(appointment.id)}
+                    disabled={deletingAppointmentId === appointment.id || cancellingAppointmentId === appointment.id}
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deletingAppointmentId === appointment.id ? (language === "en" ? "Deleting..." : "Borrando...") : (language === "en" ? "Delete from history" : "Borrar del historial")}
+                  </button>
+                ) : null}
               </div>
 
               {editingAppointmentId === appointment.id ? (
