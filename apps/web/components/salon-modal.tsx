@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
 import { api, urlArchivo } from "@/lib/api";
 import { horarioAnterior, leerHorario, resumenHorario } from "@/lib/horario";
+import { useBloquearScrollDeFondo } from "@/lib/bloquear-scroll";
 
 type BusinessDetail = {
   id: string;
@@ -129,6 +130,9 @@ export default function SalonModal({
   const [requiresAuth, setRequiresAuth] = useState(false);
   const paymentSectionRef = useRef<HTMLDivElement | null>(null);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
+  // Raíz del modal (las tres variantes: cargando, sin sesión y ficha): mientras esté abierto, el fondo no se desplaza
+  const raizRef = useRef<HTMLDivElement | null>(null);
+  useBloquearScrollDeFondo(raizRef);
   const [bookingForm, setBookingForm] = useState({
     serviceId: "",
     scheduledAt: "",
@@ -311,7 +315,7 @@ export default function SalonModal({
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div ref={raizRef} className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain bg-black/40 backdrop-blur-sm">
         <div className="h-96 w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl animate-pulse" />
       </div>
     );
@@ -319,7 +323,7 @@ export default function SalonModal({
 
   if (requiresAuth) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8 backdrop-blur-md">
+      <div ref={raizRef} className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain bg-black/55 px-4 py-8 backdrop-blur-md">
         <div className="w-full max-w-xl rounded-3xl border border-white/60 bg-white p-8 shadow-2xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-600">{TEXTOS_MODAL.accesoRestringido[language]}</p>
           <h2 className="mt-2 text-3xl font-black text-[#151138]">{TEXTOS_MODAL.iniciaSesion[language]}</h2>
@@ -364,7 +368,7 @@ export default function SalonModal({
   const headerLabel = selectedBranch?.branch_name || business.salon_name;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/55 px-4 py-8 backdrop-blur-md">
+    <div ref={raizRef} className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/55 px-4 py-8 backdrop-blur-md">
       <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/60 bg-white shadow-2xl ring-1 ring-indigo-100/60">
         <div className="relative h-56 bg-linear-to-br from-indigo-700 via-indigo-600 to-purple-700">
           {headerImage && (
@@ -401,7 +405,7 @@ export default function SalonModal({
         <div className="flex min-h-0 flex-1 flex-col p-6 sm:p-8">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
             {view === "profile" ? (
-              <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2">
               <div className="mt-1 flex flex-col gap-3 text-sm">
                 {branches.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-2">
@@ -601,7 +605,7 @@ export default function SalonModal({
               </div>
             </div>
             ) : (
-              <div ref={bookingScrollRef} className="min-h-0 flex-1 overflow-y-auto pl-0 pr-1">
+              <div ref={bookingScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pl-0 pr-1">
               <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{t("modal.quickBooking")}</p>
                 <h3 className="mt-2 text-xl font-black text-[#151138]">{t("modal.bookTitle")}</h3>
