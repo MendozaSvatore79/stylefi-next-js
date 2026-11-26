@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/toast";
-import { etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
+import { etiquetaDeCita, etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
-import { avisoCitasPorCerrar, citasPorCerrar, esPorCerrar } from "@/lib/citas-por-cerrar";
+import { avisoCitasPorCerrar, citasPorCerrar, esPorCerrar, esSinConfirmar } from "@/lib/citas-por-cerrar";
 
 type Appointment = {
   id: string;
@@ -127,86 +127,131 @@ export default function NegocioCitasPage() {
     }
   };
 
-  const aviso = avisoCitasPorCerrar(citasPorCerrar(appointments).length, language === "en" ? "en" : "es");
+  /** Tarjeta de una cita; las que ya pasaron y siguen abiertas traen botones para cerrarlas de un clic. */
+  const tarjeta = (appointment: Appointment) => {
+    const porCerrar = esPorCerrar(appointment);
+    const sinConfirmar = esSinConfirmar(appointment);
+    return (
+        <div
+          key={appointment.id}
+          data-cita-cierre={porCerrar ? "por-cerrar" : sinConfirmar ? "sin-confirmar" : undefined}
+          className={`rounded-2xl border p-4 ${porCerrar ? "border-amber-300 bg-amber-50/60" : "border-slate-200 bg-slate-50"}`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold text-slate-800">
+                {appointment.service_name}
+                {appointment.stylist_first_name ? (
+                  <span className="font-normal text-slate-500">
+                    {" · "}
+                    {language === "en" ? "with" : "con"} {appointment.stylist_first_name} {appointment.stylist_last_name ?? ""}
+                  </span>
+                ) : null}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                {language === "en" ? "Client:" : "Cliente:"} {appointment.first_name} {appointment.last_name}
+              </p>
+              <p className="text-sm text-slate-600">{appointment.email}</p>
+              <p data-sucursal-cita className={`mt-1 text-xs font-medium ${appointment.branch_name ? "text-indigo-600" : "text-amber-700"}`}>
+                📍{" "}
+                {appointment.branch_name
+                  ? `${language === "en" ? "Branch:" : "Sucursal:"} ${appointment.branch_name}`
+                  : language === "en"
+                    ? "No branch (deleted)"
+                    : "Sin sucursal (eliminada)"}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
+              {sinConfirmar ? (
+                <span data-sin-confirmar className="mt-1 inline-block rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                  {etiquetaDeCita(appointment, language)}
+                </span>
+              ) : null}
+              <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
+            </div>
+
+            <div className="min-w-48">
+              {porCerrar || sinConfirmar ? (
+                // Cerrar de un clic: lo mismo que elegir el estado en la lista de abajo
+                <div data-cerrar-rapido className="mb-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void updateStatus(appointment.id, "completed")}
+                    disabled={loadingStatusId === appointment.id}
+                    className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                  >
+                    {etiquetaEstado("completed", language)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void updateStatus(appointment.id, "no_show")}
+                    disabled={loadingStatusId === appointment.id}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+                  >
+                    {etiquetaEstado("no_show", language)}
+                  </button>
+                </div>
+              ) : null}
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{language === "en" ? "Status" : "Estado"}</label>
+              <select
+                value={appointment.status}
+                onChange={(event) => void updateStatus(appointment.id, event.target.value as Appointment["status"])}
+                disabled={loadingStatusId === appointment.id || estadosPermitidos(appointment).length === 1}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
+              >
+                {estadosPermitidos(appointment).map((status) => (
+                  <option key={status} value={status}>
+                    {etiquetaEstado(status, language)}
+                  </option>
+                ))}
+              </select>
+
+              {loadingStatusId === appointment.id ? (
+                <p className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-emerald-700">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                  {language === "en" ? "Syncing changes..." : "Sincronizando cambios..."}
+                </p>
+              ) : null}
+
+              {savedStatusId === appointment.id ? (
+                <p className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-emerald-700">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
+                    ✓
+                  </span>
+                  {language === "en" ? "Saved successfully" : "Guardado exitoso"}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+    );
+  };
+
+  const porCerrar = citasPorCerrar(appointments);
+  const demas = appointments.filter((a) => !esPorCerrar(a));
+  const aviso = avisoCitasPorCerrar(porCerrar.length, language === "en" ? "en" : "es");
 
   return (
     <section className="space-y-6">
+      {porCerrar.length > 0 ? (
+        <article data-seccion-por-cerrar className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-[#151138]">
+            {language === "en" ? "Appointments to close" : "Citas por cerrar"} ({porCerrar.length})
+          </h2>
+          {aviso ? (
+            <p role="status" data-citas-por-cerrar className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {aviso}
+            </p>
+          ) : null}
+          <div className="mt-4 space-y-3">{porCerrar.map(tarjeta)}</div>
+        </article>
+      ) : null}
+
       <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Schedule" : "Agenda"}</p>
         <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Appointment management" : "Gestión de citas"}</h2>
-        {aviso ? (
-          <p role="status" data-citas-por-cerrar className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            {aviso}
-          </p>
-        ) : null}
 
         <div className="mt-5 space-y-3">
-          {appointments.map((appointment) => (
-            <div
-              key={appointment.id}
-              className={`rounded-2xl border p-4 ${esPorCerrar(appointment) ? "border-amber-300 bg-amber-50/60" : "border-slate-200 bg-slate-50"}`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-slate-800">
-                    {appointment.service_name}
-                    {appointment.stylist_first_name ? (
-                      <span className="font-normal text-slate-500">
-                        {" · "}
-                        {language === "en" ? "with" : "con"} {appointment.stylist_first_name} {appointment.stylist_last_name ?? ""}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {language === "en" ? "Client:" : "Cliente:"} {appointment.first_name} {appointment.last_name}
-                  </p>
-                  <p className="text-sm text-slate-600">{appointment.email}</p>
-                  <p data-sucursal-cita className={`mt-1 text-xs font-medium ${appointment.branch_name ? "text-indigo-600" : "text-amber-700"}`}>
-                    📍{" "}
-                    {appointment.branch_name
-                      ? `${language === "en" ? "Branch:" : "Sucursal:"} ${appointment.branch_name}`
-                      : language === "en"
-                        ? "No branch (deleted)"
-                        : "Sin sucursal (eliminada)"}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
-                </div>
-
-                <div className="min-w-48">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{language === "en" ? "Status" : "Estado"}</label>
-                  <select
-                    value={appointment.status}
-                    onChange={(event) => void updateStatus(appointment.id, event.target.value as Appointment["status"])}
-                    disabled={loadingStatusId === appointment.id || estadosPermitidos(appointment).length === 1}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-emerald-300 focus:ring"
-                  >
-                    {estadosPermitidos(appointment).map((status) => (
-                      <option key={status} value={status}>
-                        {etiquetaEstado(status, language)}
-                      </option>
-                    ))}
-                  </select>
-
-                  {loadingStatusId === appointment.id ? (
-                    <p className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-emerald-700">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                      {language === "en" ? "Syncing changes..." : "Sincronizando cambios..."}
-                    </p>
-                  ) : null}
-
-                  {savedStatusId === appointment.id ? (
-                    <p className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-emerald-700">
-                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
-                        ✓
-                      </span>
-                      {language === "en" ? "Saved successfully" : "Guardado exitoso"}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ))}
+          {demas.map(tarjeta)}
 
           {appointments.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">

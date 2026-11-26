@@ -1,18 +1,27 @@
+import { cierrePendiente } from "@stylefi/shared";
+
 /**
- * Citas por cerrar (decisión de producto, 2026-11-19): las pendientes o confirmadas cuya hora ya pasó no cambian
- * solas de estado; las cierra el negocio (completada o no asistió) y la agenda le avisa cuántas tiene.
- * Misma regla que el backend para dejar marcarlas: a partir de la hora de la cita.
+ * Citas por cerrar (decisión de producto, 2026-11-19; los 7 días, 2026-11-25): las pendientes o confirmadas cuya
+ * hora ya pasó no cambian solas de estado; las cierra el negocio (completada o no asistió). Se le piden durante 7
+ * días; después se muestran como "Pasada sin confirmar" y aún se pueden cerrar. Regla en cierrePendiente (shared).
  */
 type CitaConEstado = { scheduled_at: string; status: string };
 
+/** Pasó hace 7 días o menos y sigue abierta: se le pide al negocio que la cierre. */
 export function esPorCerrar(cita: CitaConEstado, ahora = Date.now()) {
-  return (cita.status === "pending" || cita.status === "confirmed") && new Date(cita.scheduled_at).getTime() <= ahora;
+  return cierrePendiente(cita, new Date(ahora)) === "por-cerrar";
+}
+
+/** Pasó hace más de 7 días y sigue abierta: "Pasada sin confirmar". */
+export function esSinConfirmar(cita: CitaConEstado, ahora = Date.now()) {
+  return cierrePendiente(cita, new Date(ahora)) === "sin-confirmar";
 }
 
 export function citasPorCerrar<T extends CitaConEstado>(citas: T[], ahora = Date.now()): T[] {
   return citas.filter((c) => esPorCerrar(c, ahora));
 }
 
+/** Aviso con el conteo de citas por cerrar (null si no hay), en singular o plural. */
 export function avisoCitasPorCerrar(n: number, idioma: "es" | "en"): string | null {
   if (n <= 0) return null;
   if (idioma === "en") {
