@@ -1,7 +1,17 @@
 /** Estados de cita: nombres, colores, plazo del cliente y formato de hora (reglas puras). */
 import { describe, expect, it } from "vitest";
 
-import { colorEstado, ESTADOS_CITA, etiquetaEstado, fechaHoraCita, PLAZO_CLIENTE_MIN, puedeModificarCliente } from "../src/estado-cita.js";
+import {
+  cierrePendiente,
+  colorEstado,
+  DIAS_PARA_SIN_CONFIRMAR,
+  ESTADOS_CITA,
+  etiquetaDeCita,
+  etiquetaEstado,
+  fechaHoraCita,
+  PLAZO_CLIENTE_MIN,
+  puedeModificarCliente,
+} from "../src/estado-cita.js";
 
 describe("etiquetaEstado", () => {
   it("traduce cada estado en español e inglés", () => {
@@ -55,5 +65,39 @@ describe("fechaHoraCita", () => {
     expect(es).toMatch(/10:00/);
     expect(es).not.toMatch(/10:00:00/);
     expect(fechaHoraCita(fecha, "en")).toMatch(/Nov 14, 2026.*10:00/);
+  });
+});
+
+describe("cierrePendiente", () => {
+  const ahora = new Date("2026-11-25T18:00:00Z");
+  const hace = (ms: number) => new Date(ahora.getTime() - ms).toISOString();
+  const DIA = 24 * 60 * 60_000;
+
+  it("son 7 días", () => {
+    expect(DIAS_PARA_SIN_CONFIRMAR).toBe(7);
+  });
+
+  it("antes de su hora no hay nada que cerrar; justo a su hora ya está por cerrar", () => {
+    expect(cierrePendiente({ status: "confirmed", scheduled_at: hace(-60_000) }, ahora)).toBeNull();
+    expect(cierrePendiente({ status: "confirmed", scheduled_at: hace(0) }, ahora)).toBe("por-cerrar");
+  });
+
+  it("por cerrar hasta 7 días exactos; un minuto después, sin confirmar", () => {
+    expect(cierrePendiente({ status: "pending", scheduled_at: hace(7 * DIA) }, ahora)).toBe("por-cerrar");
+    expect(cierrePendiente({ status: "pending", scheduled_at: hace(7 * DIA + 60_000) }, ahora)).toBe("sin-confirmar");
+    expect(cierrePendiente({ status: "confirmed", scheduled_at: hace(40 * DIA) }, ahora)).toBe("sin-confirmar");
+  });
+
+  it("las cerradas o canceladas nunca quedan pendientes de cierre", () => {
+    for (const status of ["completed", "no_show", "cancelled"]) {
+      expect(cierrePendiente({ status, scheduled_at: hace(30 * DIA) }, ahora)).toBeNull();
+    }
+  });
+
+  it("la etiqueta dice «Pasada sin confirmar» solo después de los 7 días", () => {
+    expect(etiquetaDeCita({ status: "confirmed", scheduled_at: hace(8 * DIA) }, "es", ahora)).toBe("Pasada sin confirmar");
+    expect(etiquetaDeCita({ status: "confirmed", scheduled_at: hace(8 * DIA) }, "en", ahora)).toBe("Past, unconfirmed");
+    expect(etiquetaDeCita({ status: "confirmed", scheduled_at: hace(DIA) }, "es", ahora)).toBe("Confirmada");
+    expect(etiquetaDeCita({ status: "completed", scheduled_at: hace(8 * DIA) }, "es", ahora)).toBe("Completada");
   });
 });

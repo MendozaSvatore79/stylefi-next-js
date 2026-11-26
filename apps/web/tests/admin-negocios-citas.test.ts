@@ -112,7 +112,8 @@ describe("pantallas de Negocios y Citas", () => {
 
   it("Citas usa los helpers compartidos para fecha y estado, y no pide con un rango inválido", () => {
     expect(citas).toContain("fechaHoraCita(cita.scheduled_at, language)");
-    expect(citas).toContain("etiquetaEstado(cita.status, language)");
+    // etiquetaDeCita: la de su estado, o "Pasada sin confirmar" (helper compartido)
+    expect(citas).toContain("etiquetaDeCita(cita, language)");
     // Ninguna fecha formateada a mano (el monto sí usa toLocaleString de Number, para la moneda)
     expect(citas).not.toMatch(/new Date\([^)]+\)\.toLocale/);
     expect(citas).not.toMatch(/scheduled_at\)?\.toLocale/);

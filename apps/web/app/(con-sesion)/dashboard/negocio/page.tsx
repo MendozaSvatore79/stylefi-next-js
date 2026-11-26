@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import PlatformOnboardingModal from "@/components/platform-onboarding-modal";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
+import { avisoCitasPorCerrar } from "@/lib/citas-por-cerrar";
 
 type Summary = {
   services: number;
@@ -15,6 +16,8 @@ type Summary = {
   branches: number;
   /** Sin ninguna aprobada el negocio no aparece en el catálogo. */
   approvedBranches: number;
+  /** Ya pasaron (hace 7 días o menos) y siguen abiertas; un backend anterior no lo manda. */
+  citasPorCerrar?: number;
 };
 
 export default function NegocioDashboardPage() {
@@ -79,6 +82,8 @@ export default function NegocioDashboardPage() {
     [summary, language],
   );
 
+  const avisoPorCerrar = cargado ? avisoCitasPorCerrar(summary.citasPorCerrar ?? 0, language === "en" ? "en" : "es") : null;
+
   return (
     <section className="space-y-8">
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -86,6 +91,17 @@ export default function NegocioDashboardPage() {
         <h2 className="mt-2 text-3xl font-black text-[#151138]">{t("dashboard.business.title")}</h2>
         <p className="mt-2 text-slate-600">{t("dashboard.business.subtitle")}</p>
       </div>
+
+      {avisoPorCerrar ? (
+        <div role="status" data-aviso-por-cerrar className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <p>
+            {avisoPorCerrar}{" "}
+            <Link href="/dashboard/negocio/citas" className="font-semibold underline">
+              {language === "en" ? "Go to Appointments" : "Ir a Citas"}
+            </Link>
+          </p>
+        </div>
+      ) : null}
 
       {cargado && summary.approvedBranches === 0 ? (
         <div role="status" data-aviso-visibilidad className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">

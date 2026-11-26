@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { ESTADOS_CITA, type EstadoCita, etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
+import { ESTADOS_CITA, type EstadoCita, etiquetaDeCita, etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 
 import Campo from "@/components/campo";
 import { useToast } from "@/components/toast";
@@ -16,6 +16,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { api } from "@/lib/api";
 import { consultaDeCitas, DIAS_MAXIMOS_CITAS, type ErrorDeRango, rangoInicialDeCitas } from "@/lib/admin-listas";
 import { useLanguage } from "@/lib/language-context";
+
+
+/**
+ * Estados para contar y filtrar: los de la cita y dos calculados por el backend para las abiertas cuya hora ya pasó
+ * (decisión de producto del 2026-11-25): por cerrar (7 días o menos) y sin confirmar (más de 7).
+ */
+const ESTADOS_ADMIN = [...ESTADOS_CITA, "por_cerrar", "sin_confirmar"] as const;
+type EstadoAdmin = (typeof ESTADOS_ADMIN)[number];
 
 type Cita = {
   id: string;
@@ -33,11 +41,13 @@ type Cita = {
 
 type RespuestaCitas = {
   appointments: Cita[];
-  summary: { total: number; byStatus: Record<EstadoCita, number> };
+  summary: { total: number; byStatus: Partial<Record<EstadoAdmin, number>> };
   pagination: { page: number; pageSize: number; totalFiltered: number; totalPages: number };
 };
 
 const TEXTOS = {
+  porCerrar: { es: "Por cerrar", en: "To close" },
+  sinConfirmar: { es: "Sin confirmar", en: "Unconfirmed" },
   titulo: { es: "Citas de la plataforma", en: "Platform appointments" },
   descripcion: {
     es: "Citas de todos los salones, en solo lectura. Del cliente solo se muestran el nombre y el correo enmascarado.",
@@ -95,7 +105,7 @@ export default function CitasAdminPage() {
   const nombreDelFiltro = [parametros.get("nombre"), parametros.get("nombreSucursal")].filter(Boolean).join(" · ");
 
   const [rango, setRango] = useState(() => rangoInicialDeCitas(new Date()));
-  const [estado, setEstado] = useState<"all" | EstadoCita>("all");
+  const [estado, setEstado] = useState<"all" | EstadoAdmin>("all");
   const [pagina, setPagina] = useState(1);
   const [intento, setIntento] = useState(0);
   const [datos, setDatos] = useState<RespuestaCitas | null>(null);
@@ -149,19 +159,22 @@ export default function CitasAdminPage() {
   const monto = (valor: string) =>
     Number(valor).toLocaleString(language === "en" ? "en-US" : "es-MX", { style: "currency", currency: "MXN" });
 
+  const etiquetaAdmin = (e: EstadoAdmin) =>
+    e === "por_cerrar" ? TEXTOS.porCerrar[language] : e === "sin_confirmar" ? TEXTOS.sinConfirmar[language] : etiquetaEstado(e, language);
+
   return (
     <div className="space-y-4">
-      <section className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+      <section className="grid gap-4 sm:grid-cols-4 xl:grid-cols-8">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>{TEXTOS.total[language]}</CardDescription>
             <CardTitle className="text-3xl font-black">{datos?.summary.total ?? "—"}</CardTitle>
           </CardHeader>
         </Card>
-        {ESTADOS_CITA.map((e) => (
+        {ESTADOS_ADMIN.map((e) => (
           <Card key={e}>
             <CardHeader className="pb-2">
-              <CardDescription>{etiquetaEstado(e, language)}</CardDescription>
+              <CardDescription>{etiquetaAdmin(e)}</CardDescription>
               <CardTitle className="text-3xl font-black">{datos?.summary.byStatus[e] ?? "—"}</CardTitle>
             </CardHeader>
           </Card>
@@ -216,15 +229,15 @@ export default function CitasAdminPage() {
               <select
                 value={estado}
                 onChange={(evento) => {
-                  const valor = evento.target.value as "all" | EstadoCita;
+                  const valor = evento.target.value as "all" | EstadoAdmin;
                   cambiar(() => setEstado(valor));
                 }}
                 className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
               >
                 <option value="all">{TEXTOS.todos[language]}</option>
-                {ESTADOS_CITA.map((e) => (
+                {ESTADOS_ADMIN.map((e) => (
                   <option key={e} value={e}>
-                    {etiquetaEstado(e, language)}
+                    {etiquetaAdmin(e)}
                   </option>
                 ))}
               </select>
@@ -291,7 +304,7 @@ export default function CitasAdminPage() {
                           <p className="text-xs text-slate-500">{cita.client.email}</p>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{etiquetaEstado(cita.status, language)}</Badge>
+                          <Badge variant="secondary">{etiquetaDeCita(cita, language)}</Badge>
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">{monto(cita.total_amount)}</TableCell>
                       </TableRow>

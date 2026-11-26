@@ -65,3 +65,39 @@ export function fechaHoraCita(fecha: string | Date, language: string): string {
     timeStyle: "short",
   });
 }
+
+/**
+ * Días tras la hora de la cita en que una cita que el negocio no cerró deja de pedirse como "por cerrar" y se muestra
+ * como "Pasada sin confirmar" (decisión de producto del 2026-11-25). El servidor usa el mismo número.
+ */
+export const DIAS_PARA_SIN_CONFIRMAR = 7;
+
+/**
+ * Cita pendiente o confirmada cuya hora ya pasó, que el negocio no ha cerrado (completada o no asistió). No cambia
+ * su estado en la base: es un estado calculado para mostrar y contar.
+ * - "por-cerrar": pasó hace 7 días o menos; se le pide al negocio que la cierre.
+ * - "sin-confirmar": pasó hace más de 7 días; sale de las activas y de los reportes, y aún se puede cerrar.
+ * - null: no está activa o todavía no llega su hora.
+ */
+export function cierrePendiente(
+  cita: { status: string; scheduled_at: string | Date },
+  ahora: Date = new Date(),
+): "por-cerrar" | "sin-confirmar" | null {
+  if (cita.status !== "pending" && cita.status !== "confirmed") return null;
+  const pasado = ahora.getTime() - new Date(cita.scheduled_at).getTime();
+  if (pasado < 0) return null;
+  return pasado > DIAS_PARA_SIN_CONFIRMAR * 24 * 60 * 60_000 ? "sin-confirmar" : "por-cerrar";
+}
+
+const ETIQUETA_SIN_CONFIRMAR = { es: "Pasada sin confirmar", en: "Past, unconfirmed" };
+
+/** Etiqueta de la cita para mostrar: "Pasada sin confirmar" si corresponde; si no, la de su estado. */
+export function etiquetaDeCita(
+  cita: { status: string; scheduled_at: string | Date },
+  language: string,
+  ahora: Date = new Date(),
+): string {
+  return cierrePendiente(cita, ahora) === "sin-confirmar"
+    ? ETIQUETA_SIN_CONFIRMAR[language === "en" ? "en" : "es"]
+    : etiquetaEstado(cita.status, language);
+}
