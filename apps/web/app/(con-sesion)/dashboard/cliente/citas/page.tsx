@@ -10,6 +10,7 @@ import { esReservable } from "@/lib/salon-reservable";
 import { api } from "@/lib/api";
 import { estilistasParaElServicio, lugarDeLaCita, sucursalDelServicio, sucursalVisible, type SucursalBreve } from "@/lib/sucursal-de-reserva";
 import Campo from "@/components/campo";
+import { pagosEnLineaDe } from "@/lib/pagos-en-linea";
 
 type Business = {
   id: string;
@@ -68,6 +69,8 @@ export default function ClienteCitasPage() {
   const searchParams = useSearchParams();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  // Sin pagos en línea solo se paga en el salón (decisión del 2026-11-25). Empieza en false: no ofrecer el saldo antes de saber
+  const [pagosEnLinea, setPagosEnLinea] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
@@ -145,8 +148,9 @@ export default function ClienteCitasPage() {
     }
 
     if (methodsResponse.ok) {
-      const payload = (await methodsResponse.json()) as { wallet?: Wallet };
+      const payload = (await methodsResponse.json()) as { wallet?: Wallet; pagosEnLinea?: unknown };
       setWallet(payload.wallet ?? null);
+      setPagosEnLinea(pagosEnLineaDe(payload));
     }
 
     if (appointmentsResponse.ok) {
@@ -382,7 +386,8 @@ export default function ClienteCitasPage() {
       return;
     }
 
-    if (form.paymentProvider === "wallet" && wallet && Number(wallet.balance) < Number(form.totalAmount)) {
+    const pago = pagosEnLinea ? form.paymentProvider : "cash";
+    if (pago === "wallet" && wallet && Number(wallet.balance) < Number(form.totalAmount)) {
       showToast({
         type: "error",
         title: copy.insufficientBalance,
@@ -405,7 +410,7 @@ export default function ClienteCitasPage() {
           branchId: sucursalDelServicio(services, form.serviceId),
           stylistId: form.stylistId,
           scheduledAt: form.scheduledAt,
-          paymentProvider: form.paymentProvider,
+          paymentProvider: pago,
           notes: form.notes,
         }),
       });
@@ -585,36 +590,47 @@ export default function ClienteCitasPage() {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">{t("appointments.payment")}</label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setForm((current) => ({ ...current, paymentProvider: "cash" }))}
-                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                  form.paymentProvider === "cash"
-                    ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {t("appointments.cashLocal")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm((current) => ({ ...current, paymentProvider: "wallet" }))}
-                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                  form.paymentProvider === "wallet"
-                    ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {t("appointments.walletBalance")}
-              </button>
-            </div>
-            {form.paymentProvider === "wallet" ? (
-              <p className="mt-2 text-xs text-slate-600">
-                {wallet ? (language === "en" ? `Available balance: $${Number(wallet.balance).toFixed(2)}` : `Saldo disponible: $${Number(wallet.balance).toFixed(2)}`) : (language === "en" ? "We couldn't load your balance." : "No pudimos cargar tu saldo.")}
-              </p>
+            {pagosEnLinea ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, paymentProvider: "cash" }))}
+                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      form.paymentProvider === "cash"
+                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {t("appointments.cashLocal")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, paymentProvider: "wallet" }))}
+                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      form.paymentProvider === "wallet"
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {t("appointments.walletBalance")}
+                  </button>
+                </div>
+                {form.paymentProvider === "wallet" ? (
+                  <p className="mt-2 text-xs text-slate-600">
+                    {wallet ? (language === "en" ? `Available balance: $${Number(wallet.balance).toFixed(2)}` : `Saldo disponible: $${Number(wallet.balance).toFixed(2)}`) : (language === "en" ? "We couldn't load your balance." : "No pudimos cargar tu saldo.")}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en el local al finalizar la cita."}</p>
+                )}
+              </>
             ) : (
-              <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en el local al finalizar la cita."}</p>
+              <>
+                <p className="rounded-xl border border-indigo-600 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">
+                  {t("appointments.cashLocal")}
+                </p>
+                <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en el local al finalizar la cita."}</p>
+              </>
             )}
           </div>
 

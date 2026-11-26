@@ -10,6 +10,7 @@ import TimeSlotPicker from "@/components/time-slot-picker";
 import { api, urlArchivo } from "@/lib/api";
 import { horarioAnterior, leerHorario, resumenHorario } from "@/lib/horario";
 import { useBloquearScrollDeFondo } from "@/lib/bloquear-scroll";
+import { pagosEnLineaDe } from "@/lib/pagos-en-linea";
 
 type BusinessDetail = {
   id: string;
@@ -121,6 +122,9 @@ export default function SalonModal({
   // Las tarjetas guardadas ya no se usan para citas; se conservan para Pagos
   const [, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  // Sin pagos en línea solo se paga en el salón: el salón no recibe lo cobrado del monedero (decisión del 2026-11-25).
+  // Empieza en false para no ofrecer el saldo antes de saber; el backend también lo rechaza.
+  const [pagosEnLinea, setPagosEnLinea] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"servicios" | "estilistas" | "ubicacion">("servicios");
   const [view, setView] = useState<"profile" | "booking">("profile");
@@ -182,10 +186,12 @@ export default function SalonModal({
           const paymentMethodsData = (await paymentMethodsRes.json()) as {
             methods?: PaymentMethod[];
             wallet?: { balance: string };
+            pagosEnLinea?: unknown;
           };
 
           setPaymentMethods(paymentMethodsData.methods ?? []);
           setWalletBalance(paymentMethodsData.wallet ? Number(paymentMethodsData.wallet.balance) : null);
+          setPagosEnLinea(pagosEnLineaDe(paymentMethodsData));
         }
       } catch (error) {
         console.error(t("modal.loadError"), error);
@@ -244,8 +250,9 @@ export default function SalonModal({
 
     // Un servicio de $0 se reserva sin cobro: no hace falta saldo ni tarjeta
     const sinCosto = Number(selectedService.price) === 0;
+    const pago = pagosEnLinea ? bookingForm.paymentProvider : "cash";
 
-    if (!sinCosto && bookingForm.paymentProvider === "wallet" && walletBalance !== null && walletBalance < Number(selectedService.price)) {
+    if (!sinCosto && pago === "wallet" && walletBalance !== null && walletBalance < Number(selectedService.price)) {
       showToast({
         type: "error",
         title: t("modal.insufficientBalance"),
@@ -265,7 +272,7 @@ export default function SalonModal({
           branchId: selectedBranchId,
           serviceId: selectedService.id,
           scheduledAt: bookingForm.scheduledAt,
-          paymentProvider: bookingForm.paymentProvider,
+          paymentProvider: pago,
           stylistId: bookingForm.stylistId || null,
           notes: bookingForm.notes || null,
         }),
@@ -718,38 +725,49 @@ export default function SalonModal({
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">{TEXTOS_MODAL.paso2[language]}</p>
                         <p className="text-xs text-slate-500">{TEXTOS_MODAL.ultimoPaso[language]}</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "cash" }))}
-                          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                            bookingForm.paymentProvider === "cash"
-                              ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {t("modal.cashLocal")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "wallet" }))}
-                          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                            bookingForm.paymentProvider === "wallet"
-                              ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {TEXTOS_MODAL.saldo[language]}
-                        </button>
-                      </div>
-                      {bookingForm.paymentProvider === "wallet" ? (
-                        <p className="mt-2 text-xs text-slate-600">
-                          {walletBalance !== null
-                            ? `${t("modal.availableBalance")} $${walletBalance.toFixed(2)}`
-                            : t("modal.noBalance")}
-                        </p>
+                      {pagosEnLinea ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "cash" }))}
+                              className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                                bookingForm.paymentProvider === "cash"
+                                  ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {t("modal.cashLocal")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "wallet" }))}
+                              className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                                bookingForm.paymentProvider === "wallet"
+                                  ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {TEXTOS_MODAL.saldo[language]}
+                            </button>
+                          </div>
+                          {bookingForm.paymentProvider === "wallet" ? (
+                            <p className="mt-2 text-xs text-slate-600">
+                              {walletBalance !== null
+                                ? `${t("modal.availableBalance")} $${walletBalance.toFixed(2)}`
+                                : t("modal.noBalance")}
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-xs text-slate-600">{t("modal.payAtSalon")}</p>
+                          )}
+                        </>
                       ) : (
-                        <p className="mt-2 text-xs text-slate-600">{t("modal.payAtSalon")}</p>
+                        <>
+                          <p className="rounded-xl border border-indigo-600 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">
+                            {t("modal.cashLocal")}
+                          </p>
+                          <p className="mt-2 text-xs text-slate-600">{t("modal.payAtSalon")}</p>
+                        </>
                       )}
                     </>
                   ) : (
