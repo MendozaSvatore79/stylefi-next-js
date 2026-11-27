@@ -27,9 +27,13 @@ describe("modal del salón", () => {
 
 describe("idioma", () => {
   it("el proveedor lee el idioma con useSyncExternalStore (sin setState en un efecto) y el servidor usa el de omisión", () => {
+    // La lectura vive en lib/idioma-actual.ts, compartida con app/global-error.tsx (que no tiene proveedor)
     const fuente = leer("lib/language-context.tsx");
+    const lectura = leer("lib/idioma-actual.ts");
     expect(fuente).not.toMatch(/useEffect|useState/);
-    expect(fuente).toContain("useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION)");
+    expect(lectura).not.toMatch(/useEffect|useState/);
+    expect(fuente).toContain("const language = useIdiomaActual();");
+    expect(lectura).toContain("useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION)");
   });
 });
 

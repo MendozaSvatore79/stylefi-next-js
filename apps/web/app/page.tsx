@@ -346,7 +346,7 @@ export default async function Home() {
             </div>
 
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-400">Comienza ahora</p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-600">Comienza ahora</p>
               <p className="mt-4 text-sm leading-6 text-neutral-600">
                 Reserva tu próximo servicio o administra tu negocio desde un solo lugar.
               </p>

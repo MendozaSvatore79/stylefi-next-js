@@ -1,10 +1,10 @@
-/** Pantallas de error y 404 en español (no hay pruebas de componentes: función pura más guardia sobre el código). */
+/** Pantallas de error (ES/EN) y 404 (no hay pruebas de componentes: función pura más guardia sobre el código). */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { codigoDeError } from "@/lib/pagina-error";
+import { codigoDeError, TEXTO_ERROR } from "@/lib/pagina-error";
 
 const leer = (archivo: string) => readFileSync(path.resolve(import.meta.dirname, "..", archivo), "utf8");
 
@@ -38,7 +38,37 @@ describe("archivos de error de la app", () => {
     }
   });
 
-  it("global-error trae su propio documento en español", () => {
-    expect(leer("app/global-error.tsx")).toContain('<html lang="es">');
+  it("global-error trae su propio documento con el idioma guardado (no tiene LanguageProvider)", () => {
+    const fuente = leer("app/global-error.tsx");
+    expect(fuente).toContain("const idioma = useIdiomaActual();");
+    expect(fuente).toContain("<html lang={idioma}>");
+    expect(fuente).toContain("TEXTO_ERROR[idioma]");
+    expect(fuente).not.toContain("language-context");
+  });
+
+  it("error.tsx usa el idioma de LanguageProvider", () => {
+    expect(leer("app/error.tsx")).toContain("TEXTO_ERROR[useLanguage().language]");
+  });
+
+  it("ningún texto fijo: todo sale de TEXTO_ERROR del idioma elegido", () => {
+    for (const f of ["app/error.tsx", "app/global-error.tsx"]) {
+      const fuente = leer(f);
+      expect(fuente).not.toMatch(/TEXTO_ERROR\.|Código:|Algo salió mal/);
+    }
+  });
+});
+
+describe("TEXTO_ERROR", () => {
+  it("español e inglés tienen las mismas claves, sin textos vacíos", () => {
+    expect(Object.keys(TEXTO_ERROR.en).sort()).toEqual(Object.keys(TEXTO_ERROR.es).sort());
+    for (const idioma of ["es", "en"] as const) {
+      for (const valor of Object.values(TEXTO_ERROR[idioma])) expect(valor.trim()).not.toBe("");
+    }
+  });
+
+  it("el inglés está traducido (no repite el español)", () => {
+    for (const clave of Object.keys(TEXTO_ERROR.es) as (keyof (typeof TEXTO_ERROR)["es"])[]) {
+      expect(TEXTO_ERROR.en[clave]).not.toBe(TEXTO_ERROR.es[clave]);
+    }
   });
 });

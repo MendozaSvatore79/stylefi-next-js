@@ -7,6 +7,7 @@ import { Building2, CreditCard, ShieldCheck } from "lucide-react";
 import AccountSecurityPanel from "@/components/account-security-panel";
 import { useToast } from "@/components/toast";
 import { api } from "@/lib/api";
+import { useLanguage } from "@/lib/language-context";
 import { errorTelefono, errorTexto, LIMITES, limpiarTelefono, primerError } from "@/lib/validacion";
 
 type BusinessProfile = {
@@ -26,7 +27,43 @@ type BusinessProfile = {
   closing_hours: string | null;
 };
 
+
+/** Textos de la pantalla (antes solo en español). */
+const T = {
+  seccion: { es: "Configuración", en: "Settings" },
+  titulo: { es: "Ajustes del negocio", en: "Business settings" },
+  descripcion: { es: "Administra tu perfil de salón, horarios, seguridad y opciones de negocio.", en: "Manage your salon profile, hours, security and business options." },
+  perfil: { es: "Perfil", en: "Profile" },
+  datosSalon: { es: "Datos del salón", en: "Salon details" },
+  seguridad: { es: "Seguridad", en: "Security" },
+  accesoContrasena: { es: "Acceso y contraseña", en: "Access and password" },
+  facturacion: { es: "Facturación", en: "Billing" },
+  pagosPlanes: { es: "Pagos y planes", en: "Payments and plans" },
+  datosNegocio: { es: "Datos del negocio", en: "Business details" },
+  porSucursal: { es: "El nombre, la dirección, el horario y la foto que ven los clientes son los de cada sucursal.", en: "The name, address, hours and photo clients see are those of each branch." },
+  principal: { es: "Sucursal principal", en: "Main branch" },
+  sinSucursales: { es: "Todavía no tienes sucursales.", en: "You don't have any branches yet." },
+  editarSucursales: { es: "Editar en Sucursales", en: "Edit in Branches" },
+  infoCuenta: { es: "Información de la cuenta", en: "Account information" },
+  nombreLegal: { es: "Nombre legal del negocio", en: "Legal business name" },
+  telefonoContacto: { es: "Teléfono de contacto", en: "Contact phone" },
+  telefonoPlaceholder: { es: "Teléfono (10 dígitos)", en: "Phone (10 digits)" },
+  accesoSeguridad: { es: "Acceso y seguridad", en: "Access and security" },
+  seguridadDesc: { es: "Administra tu contraseña, métodos de acceso y opciones de eliminación de cuenta.", en: "Manage your password, sign-in methods and account deletion options." },
+  pagosSuscripcion: { es: "Pagos y suscripción", en: "Payments and subscription" },
+  facturacionDesc: { es: "Aquí verás tu plan y tus pagos cuando estén disponibles.", en: "Your plan and payments will appear here once they're available." },
+  proximamente: { es: "Próximamente", en: "Coming soon" },
+  proximamenteDesc: { es: "Los planes y la facturación para negocios llegarán pronto.", en: "Plans and billing for businesses are coming soon." },
+  revisaFormulario: { es: "Revisa el formulario", en: "Check the form" },
+  noSeGuardoPerfil: { es: "No se pudo guardar el perfil.", en: "The profile could not be saved." },
+  perfilActualizado: { es: "Perfil actualizado", en: "Profile updated" },
+  perfilActualizadoDesc: { es: "Tus datos de negocio se guardaron correctamente.", en: "Your business details were saved." },
+  noSeGuardo: { es: "No se pudo guardar", en: "Could not save" },
+  intentaDeNuevo: { es: "Intenta de nuevo", en: "Please try again" },
+} as const;
+
 export default function NegocioConfiguracionPage() {
+  const { language } = useLanguage();
   const { showToast } = useToast();
   const [activeSection, setActiveSection] = useState<"profile" | "security" | "billing">("profile");
   const [isSaving, setIsSaving] = useState(false);
@@ -90,11 +127,11 @@ export default function NegocioConfiguracionPage() {
     event.preventDefault();
     // Mismos límites y formatos que el backend (lib/validacion.ts)
     const errorDeCampos = primerError(
-      errorTexto(form.businessName, { es: "El nombre legal del negocio", en: "The legal name" }, LIMITES.nombreLegal, "es"),
-      form.phone === telefonoGuardado ? null : errorTelefono(form.phone, "es"),
+      errorTexto(form.businessName, { es: "El nombre legal del negocio", en: "The legal name" }, LIMITES.nombreLegal, language),
+      form.phone === telefonoGuardado ? null : errorTelefono(form.phone, language),
     );
     if (errorDeCampos) {
-      showToast({ type: "error", title: "Revisa el formulario", message: errorDeCampos });
+      showToast({ type: "error", title: T.revisaFormulario[language], message: errorDeCampos });
       return;
     }
     setIsSaving(true);
@@ -123,19 +160,19 @@ export default function NegocioConfiguracionPage() {
 
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error ?? "No se pudo guardar el perfil.");
+        throw new Error(payload.error ?? T.noSeGuardoPerfil[language]);
       }
 
       showToast({
         type: "success",
-        title: "Perfil actualizado",
-        message: "Tus datos de negocio se guardaron correctamente.",
+        title: T.perfilActualizado[language],
+        message: T.perfilActualizadoDesc[language],
       });
     } catch (error) {
       showToast({
         type: "error",
-        title: "No se pudo guardar",
-        message: error instanceof Error ? error.message : "Intenta de nuevo",
+        title: T.noSeGuardo[language],
+        message: error instanceof Error ? error.message : T.intentaDeNuevo[language],
       });
     } finally {
       setIsSaving(false);
@@ -145,10 +182,10 @@ export default function NegocioConfiguracionPage() {
   return (
     <section className="space-y-6">
       <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Configuración</p>
-        <h2 className="mt-2 text-2xl font-black text-[#151138]">Ajustes del negocio</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{T.seccion[language]}</p>
+        <h2 className="mt-2 text-2xl font-black text-[#151138]">{T.titulo[language]}</h2>
         <p className="mt-3 max-w-2xl text-sm text-slate-600">
-          Administra tu perfil de salón, horarios, seguridad y opciones de negocio.
+          {T.descripcion[language]}
         </p>
 
         <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
@@ -167,12 +204,12 @@ export default function NegocioConfiguracionPage() {
             <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "profile" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
-              Perfil
+              {T.perfil[language]}
             </p>
             <p className={`mt-1 text-xs transition ${
-              activeSection === "profile" ? "text-emerald-600" : "text-slate-500"
+              activeSection === "profile" ? "text-emerald-800" : "text-slate-600"
             }`}>
-              Datos del salón
+              {T.datosSalon[language]}
             </p>
           </button>
 
@@ -191,12 +228,12 @@ export default function NegocioConfiguracionPage() {
             <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "security" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
-              Seguridad
+              {T.seguridad[language]}
             </p>
             <p className={`mt-1 text-xs transition ${
-              activeSection === "security" ? "text-emerald-600" : "text-slate-500"
+              activeSection === "security" ? "text-emerald-800" : "text-slate-600"
             }`}>
-              Acceso y contraseña
+              {T.accesoContrasena[language]}
             </p>
           </button>
 
@@ -215,12 +252,12 @@ export default function NegocioConfiguracionPage() {
             <p className={`mt-2 text-xs font-semibold wrap-break-word transition sm:text-sm ${
               activeSection === "billing" ? "text-emerald-700" : "text-slate-700 group-hover:text-slate-900"
             }`}>
-              Facturación
+              {T.facturacion[language]}
             </p>
             <p className={`mt-1 text-xs transition ${
-              activeSection === "billing" ? "text-emerald-600" : "text-slate-500"
+              activeSection === "billing" ? "text-emerald-800" : "text-slate-600"
             }`}>
-              Pagos y planes
+              {T.pagosPlanes[language]}
             </p>
           </button>
         </div>
@@ -233,16 +270,16 @@ export default function NegocioConfiguracionPage() {
               <Building2 className="size-8" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Perfil</p>
-              <h3 className="mt-2 text-xl font-black text-[#151138]">Datos del negocio</h3>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{T.perfil[language]}</p>
+              <h3 className="mt-2 text-xl font-black text-[#151138]">{T.datosNegocio[language]}</h3>
               <p className="mt-2 text-sm text-slate-600">
-                El nombre, la dirección, el horario y la foto que ven los clientes son los de cada sucursal.
+                {T.porSucursal[language]}
               </p>
             </div>
           </div>
 
           <div data-sucursal-principal className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Sucursal principal</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">{T.principal[language]}</p>
             {primaryBranch ? (
               <>
                 <p className="mt-1 text-lg font-bold text-[#151138]">{primaryBranch.branch_name}</p>
@@ -257,10 +294,10 @@ export default function NegocioConfiguracionPage() {
                 </p>
               </>
             ) : cargado ? (
-              <p className="mt-1 text-sm text-slate-600">Todavía no tienes sucursales.</p>
+              <p className="mt-1 text-sm text-slate-600">{T.sinSucursales[language]}</p>
             ) : null}
             <Link href="/dashboard/negocio/sucursales" className="mt-2 inline-block text-sm font-semibold text-indigo-700 underline">
-              Editar en Sucursales
+              {T.editarSucursales[language]}
             </Link>
           </div>
 
@@ -268,26 +305,26 @@ export default function NegocioConfiguracionPage() {
               quitaron de la pantalla (decisión de producto). Se siguen enviando con su valor guardado para no borrarlos. */}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Información de la cuenta</p>
+              <p className="text-sm font-semibold text-slate-700">{T.infoCuenta[language]}</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs font-medium text-slate-600">
-                  Nombre legal del negocio
+                  {T.nombreLegal[language]}
                   <input
                     value={form.businessName}
                     onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
                     maxLength={LIMITES.nombreLegal}
-                    placeholder="Nombre legal del negocio"
+                    placeholder={T.nombreLegal[language]}
                     className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
                   />
                 </label>
                 <label className="text-xs font-medium text-slate-600">
-                  Teléfono de contacto
+                  {T.telefonoContacto[language]}
                   <input
                     value={form.phone}
                     onChange={(event) => setForm((current) => ({ ...current, phone: limpiarTelefono(event.target.value) }))}
                     inputMode="numeric"
                     autoComplete="tel"
-                    placeholder="Teléfono (10 dígitos)"
+                    placeholder={T.telefonoPlaceholder[language]}
                     className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-emerald-300 focus:ring"
                   />
                 </label>
@@ -297,7 +334,7 @@ export default function NegocioConfiguracionPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSaving ? "Guardando..." : "Guardar cambios"}
             </button>
@@ -312,10 +349,10 @@ export default function NegocioConfiguracionPage() {
               <ShieldCheck className="size-8" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Seguridad</p>
-              <h3 className="mt-2 text-xl font-black text-[#151138]">Acceso y seguridad</h3>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{T.seguridad[language]}</p>
+              <h3 className="mt-2 text-xl font-black text-[#151138]">{T.accesoSeguridad[language]}</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Administra tu contraseña, métodos de acceso y opciones de eliminación de cuenta.
+                {T.seguridadDesc[language]}
               </p>
             </div>
           </div>
@@ -330,21 +367,19 @@ export default function NegocioConfiguracionPage() {
               <CreditCard className="size-8" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Facturación</p>
-              <h3 className="mt-2 text-xl font-black text-[#151138]">Pagos y suscripción</h3>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{T.facturacion[language]}</p>
+              <h3 className="mt-2 text-xl font-black text-[#151138]">{T.pagosSuscripcion[language]}</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Gestiona tu plan de suscripción, pagos y métodos de facturación.
+                {T.facturacionDesc[language]}
               </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
-            <p className="text-sm text-slate-600">Plan Premium activo</p>
-            <p className="mt-2 text-2xl font-black text-emerald-600">$29.99/mes</p>
-            <p className="mt-1 text-xs text-slate-500">Próximo pago: 15 de mayo de 2026</p>
-            <button className="mt-4 inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-              Cambiar plan
-            </button>
+          {/* Antes había un plan, un precio y una fecha de pago inventados, y un botón que no hacía nada: no hay
+              suscripciones ni pagos en línea. Decisión de Eric (2026-11-25): "Próximamente". */}
+          <div role="status" className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">{T.proximamente[language]}</p>
+            <p className="mt-2 text-sm text-slate-600">{T.proximamenteDesc[language]}</p>
           </div>
         </article>
       ) : null}

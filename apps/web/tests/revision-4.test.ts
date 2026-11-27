@@ -35,9 +35,10 @@ describe("favicon", () => {
 
 describe("botones de icono con nombre", () => {
   it("el botón de menú móvil del panel de admin se anuncia como «Abrir menú» (como en cliente y negocio)", () => {
-    expect(leer("components/admin-dashboard-shell.tsx")).toContain(
-      'onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">',
-    );
+    // El panel de admin ya está en ES/EN: el nombre sale de TEXTOS.abrirMenu, que en español sigue siendo «Abrir menú»
+    const admin = leer("components/admin-dashboard-shell.tsx");
+    expect(admin).toContain("onClick={() => setSidebarOpen(true)} aria-label={TEXTOS.abrirMenu[language]}>");
+    expect(admin).toContain('abrirMenu: { es: "Abrir menú", en: "Open menu" }');
     for (const panel of ["business", "client"]) expect(leer(`components/${panel}-dashboard-shell.tsx`)).toContain('aria-label="Abrir menú"');
   });
 });

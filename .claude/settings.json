@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.next/**)",
+      "Read(**/out/**)",
+      "Read(./apps/web/dist/**)",
+      "Read(./packages/*/dist/**)",
+      "Read(**/build/**)",
+      "Read(**/coverage/**)",
+      "Read(**/*.lock)",
+      "Read(**/pnpm-lock.yaml)",
+      "Read(**/package-lock.json)",
+      "Read(**/*.tsbuildinfo)",
+      "Read(**/next-env.d.ts)"
+    ]
+  }
+}

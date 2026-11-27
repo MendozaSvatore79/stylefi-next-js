@@ -1,5 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { esMX } from "@clerk/localizations";
+import { localizacionClerk } from "@/lib/sesion-localizacion";
 
 import ConSesion from "./con-sesion";
 
@@ -11,7 +11,7 @@ import ConSesion from "./con-sesion";
 export default function LayoutConSesion({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
-      localization={esMX}
+      localization={localizacionClerk}
       signInUrl="/iniciar-sesion"
       signUpUrl="/register"
       // Todo inicio de sesión o registro pasa por /entrar (que decide: panel o /registro/completar), también cuando

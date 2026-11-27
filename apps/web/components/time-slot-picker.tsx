@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useLanguage } from "@/lib/language-context";
+
+/** Textos del selector (antes solo en español). */
+const TEXTOS_HORARIOS = {
+  faltanDatos: { es: "Selecciona negocio, servicio y fecha para ver horarios disponibles", en: "Choose a business, service and date to see available times" },
+  cargando: { es: "Cargando horarios...", en: "Loading times..." },
+  sinHorarios: { es: "No hay horarios disponibles para esta fecha", en: "No times available for this date" },
+  disponibles: { es: "Horarios disponibles", en: "Available times" },
+  minCadaUno: { es: "min cada uno", en: "min each" },
+  ocupado: { es: "Ocupado", en: "Taken" },
+} as const;
 
 type Slot = {
   time: string;
@@ -30,6 +41,7 @@ export default function TimeSlotPicker({
   isLoading = false,
   serviceDuration = 30,
 }: TimeSlotPickerProps) {
+  const { language } = useLanguage();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -85,7 +97,7 @@ export default function TimeSlotPicker({
   if (!businessUserId || !selectedDate) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-8 text-center">
-        <p className="text-sm text-slate-600">Selecciona negocio, servicio y fecha para ver horarios disponibles</p>
+        <p className="text-sm text-slate-600">{TEXTOS_HORARIOS.faltanDatos[language]}</p>
       </div>
     );
   }
@@ -96,7 +108,7 @@ export default function TimeSlotPicker({
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
-          <p className="text-sm text-slate-600">Cargando horarios...</p>
+          <p className="text-sm text-slate-600">{TEXTOS_HORARIOS.cargando[language]}</p>
         </div>
       </div>
     );
@@ -105,7 +117,7 @@ export default function TimeSlotPicker({
   if (visibles.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-8 text-center">
-        <p className="text-sm text-amber-700">No hay horarios disponibles para esta fecha</p>
+        <p className="text-sm text-amber-700">{TEXTOS_HORARIOS.sinHorarios[language]}</p>
       </div>
     );
   }
@@ -113,7 +125,7 @@ export default function TimeSlotPicker({
   return (
     <div className="space-y-3">
       <label className="block text-sm font-semibold text-slate-700">
-        Horarios disponibles ({duration} min cada uno)
+        {TEXTOS_HORARIOS.disponibles[language]} ({duration} {TEXTOS_HORARIOS.minCadaUno[language]})
       </label>
       <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 md:grid-cols-6">
         {visibles.map((slot) => (
@@ -125,14 +137,14 @@ export default function TimeSlotPicker({
             className={`relative py-2 px-2 rounded-lg text-xs font-semibold transition-all ${
               slot.isAvailable
                 ? selectedTime === slot.iso
-                  ? "bg-emerald-600 text-white ring-2 ring-emerald-300"
+                  ? "bg-emerald-700 text-white ring-2 ring-emerald-300"
                   : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-pointer"
                 : "bg-red-100 text-red-500 cursor-not-allowed opacity-60"
             }`}
           >
             {slot.time}
             {!slot.isAvailable && (
-              <span className="absolute top-0.5 right-0.5 text-xs" title="Ocupado">
+              <span className="absolute top-0.5 right-0.5 text-xs" title={TEXTOS_HORARIOS.ocupado[language]}>
                 ✕
               </span>
             )}

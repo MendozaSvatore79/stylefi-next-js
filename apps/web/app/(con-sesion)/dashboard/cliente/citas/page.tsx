@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useToast } from "@/components/toast";
-import { colorEstado, etiquetaEstado, fechaHoraCita, puedeModificarCliente } from "@stylefi/shared";
+import { colorEstado, esDelHistorial, etiquetaEstado, fechaHoraCita, fechaLocal, puedeModificarCliente } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import TimeSlotPicker from "@/components/time-slot-picker";
+import { esReservable } from "@/lib/salon-reservable";
 import { api } from "@/lib/api";
+import { estilistasParaElServicio, lugarDeLaCita, sucursalDelServicio, sucursalVisible, type SucursalBreve } from "@/lib/sucursal-de-reserva";
 import Campo from "@/components/campo";
+import { pagosEnLineaDe } from "@/lib/pagos-en-linea";
 
 type Business = {
   id: string;
@@ -16,6 +19,7 @@ type Business = {
   first_name: string | null;
   last_name: string | null;
   salon_name: string | null;
+  reservable?: boolean;
 };
 
 type Wallet = {
@@ -35,6 +39,8 @@ type Appointment = {
   business_user_id: string;
   service_id: string | null;
   branch_id: string | null;
+  branch_name?: string | null;
+  branch_city?: string | null;
   stylist_id: string | null;
   stylist_first_name: string | null;
   stylist_last_name: string | null;
@@ -45,6 +51,7 @@ type Service = {
   service_name: string;
   description: string | null;
   price: number | string;
+  branch_id?: string | null;
 };
 
 type Stylist = {
@@ -54,6 +61,7 @@ type Stylist = {
   specialization: string;
   available?: boolean;
   service_ids?: string[];
+  branch_id?: string | null;
 };
 
 export default function ClienteCitasPage() {
@@ -62,9 +70,12 @@ export default function ClienteCitasPage() {
   const searchParams = useSearchParams();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  // Sin pagos en línea solo se paga en el salón (decisión del 2026-11-25). Empieza en false: no ofrecer el saldo antes de saber
+  const [pagosEnLinea, setPagosEnLinea] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
+  const [branches, setBranches] = useState<SucursalBreve[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [editScheduledAt, setEditScheduledAt] = useState("");
@@ -74,7 +85,6 @@ export default function ClienteCitasPage() {
   const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
   const [deletingAppointmentId, setDeletingAppointmentId] = useState<string | null>(null);
   const [isClearingPastHistory, setIsClearingPastHistory] = useState(false);
-  const [isDeletingAllAppointments, setIsDeletingAllAppointments] = useState(false);
   const [form, setForm] = useState({
     businessUserId: "",
     serviceName: "",
@@ -93,6 +103,7 @@ export default function ClienteCitasPage() {
     if (!businessId) {
       setServices([]);
       setStylists([]);
+      setBranches([]);
       setForm((current) => ({
         ...current,
         serviceId: "",
@@ -111,6 +122,7 @@ export default function ClienteCitasPage() {
       const payload = (await response.json()) as {
         services: Service[];
         stylists: Stylist[];
+        branches?: SucursalBreve[];
       };
       if (pedido !== pedidoDeCatalogoRef.current) {
         return;
@@ -118,6 +130,7 @@ export default function ClienteCitasPage() {
 
       setServices(payload.services ?? []);
       setStylists(payload.stylists ?? []);
+      setBranches(payload.branches ?? []);
     } catch (error) {
       console.error("Error cargando catálogo del negocio:", error);
     }
@@ -136,8 +149,9 @@ export default function ClienteCitasPage() {
     }
 
     if (methodsResponse.ok) {
-      const payload = (await methodsResponse.json()) as { wallet?: Wallet };
+      const payload = (await methodsResponse.json()) as { wallet?: Wallet; pagosEnLinea?: unknown };
       setWallet(payload.wallet ?? null);
+      setPagosEnLinea(pagosEnLineaDe(payload));
     }
 
     if (appointmentsResponse.ok) {
@@ -361,47 +375,6 @@ export default function ClienteCitasPage() {
     }
   };
 
-  const handleDeleteAllAppointments = async () => {
-    const confirmed = window.confirm(copy.clearAllConfirm);
-    if (!confirmed) {
-      return;
-    }
-
-    setIsDeletingAllAppointments(true);
-
-    try {
-      const response = await api("/api/client/appointments", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clearMode: "all" }),
-      });
-
-      const payload = (await response.json()) as { error?: string; deletedCount?: number };
-      if (!response.ok) {
-        throw new Error(payload.error ?? copy.clearAllErrorMsg);
-      }
-
-      showToast({
-        type: "success",
-        title: copy.deletedAll,
-        message:
-          language === "en"
-            ? `Deleted ${payload.deletedCount ?? 0} appointment(s) in total.`
-            : `Se borraron ${payload.deletedCount ?? 0} cita(s) en total.`,
-      });
-
-      await loadData();
-    } catch (error) {
-      showToast({
-        type: "error",
-        title: copy.clearAllError,
-        message: error instanceof Error ? error.message : copy.tryAgain,
-      });
-    } finally {
-      setIsDeletingAllAppointments(false);
-    }
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -414,7 +387,8 @@ export default function ClienteCitasPage() {
       return;
     }
 
-    if (form.paymentProvider === "wallet" && wallet && Number(wallet.balance) < Number(form.totalAmount)) {
+    const pago = pagosEnLinea ? form.paymentProvider : "cash";
+    if (pago === "wallet" && wallet && Number(wallet.balance) < Number(form.totalAmount)) {
       showToast({
         type: "error",
         title: copy.insufficientBalance,
@@ -433,9 +407,11 @@ export default function ClienteCitasPage() {
         body: JSON.stringify({
           businessUserId: form.businessUserId,
           serviceId: form.serviceId,
+          // La sucursal del servicio: sin ella la cita quedaba sin sucursal (el servidor ahora también la deduce)
+          branchId: sucursalDelServicio(services, form.serviceId),
           stylistId: form.stylistId,
           scheduledAt: form.scheduledAt,
-          paymentProvider: form.paymentProvider,
+          paymentProvider: pago,
           notes: form.notes,
         }),
       });
@@ -490,11 +466,6 @@ export default function ClienteCitasPage() {
     clearPastErrorMsg: language === "en" ? "Could not clear history." : "No se pudo limpiar el historial.",
     clearPastTitle: language === "en" ? "Past history cleared" : "Historial pasado limpiado",
     clearPastMsg: language === "en" ? `Deleted ${0} past/completed/cancelled appointment(s).` : `Se borraron ${0} cita(s) pasadas/completadas/canceladas.`,
-    clearAllConfirm: language === "en" ? "This will DELETE ALL your appointments, including upcoming and pending ones. Do you want to continue?" : "Esto borrará TODAS tus citas, incluyendo próximas y pendientes. ¿Deseas continuar?",
-    clearAllError: language === "en" ? "Could not delete all" : "No se pudo borrar todo",
-    clearAllErrorMsg: language === "en" ? "Could not delete all appointments." : "No se pudieron borrar todas las citas.",
-    deletedAll: language === "en" ? "Appointments deleted" : "Citas eliminadas",
-    deletedAllMsg: language === "en" ? `Deleted ${0} appointment(s) in total.` : `Se borraron ${0} cita(s) en total.`,
     completeAppointment: language === "en" ? "Complete your appointment" : "Completa tu cita",
     selectBusinessServiceDate: language === "en" ? "Select business, service, and date/time." : "Selecciona negocio, servicio y fecha/hora.",
     insufficientBalance: language === "en" ? "Insufficient balance" : "Saldo insuficiente",
@@ -531,10 +502,9 @@ export default function ClienteCitasPage() {
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
             >
               <option value="">{t("appointments.selectBusiness")}</option>
-              {businesses.map((business) => (
-                <option key={business.branch_id ?? business.id} value={business.id}>
-                  {business.salon_name ||
-                    business.business_name ||
+              {businesses.filter(esReservable).map((business) => (
+                <option key={business.id} value={business.id}>
+                  {business.business_name ||
                     `${business.first_name ?? ""} ${business.last_name ?? ""}`.trim() ||
                     (language === "en" ? "Business" : "Negocio")}
                 </option>
@@ -562,7 +532,7 @@ export default function ClienteCitasPage() {
                 <option value="">{language === "en" ? "Select a service" : "Selecciona un servicio"}</option>
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>
-                    {service.service_name} · ${Number(service.price).toFixed(2)}
+                    {[service.service_name, sucursalVisible(branches, service.branch_id), `$${Number(service.price).toFixed(2)}`].filter(Boolean).join(" · ")}
                   </option>
                 ))}
               </select>
@@ -577,7 +547,7 @@ export default function ClienteCitasPage() {
                     scheduledAt: event.target.value ? `${event.target.value}T00:00` : "",
                   }));
                 }}
-                min={new Date().toISOString().split("T")[0]}
+                min={fechaLocal(new Date())}
                 className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
               />
             </Campo>
@@ -609,8 +579,7 @@ export default function ClienteCitasPage() {
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
             >
               <option value="">{language === "en" ? "Anyone available" : "Cualquiera disponible"}</option>
-              {stylists
-                .filter((stylist) => stylist.available !== false && (stylist.service_ids ?? []).includes(form.serviceId))
+              {estilistasParaElServicio(stylists, form.serviceId, sucursalDelServicio(services, form.serviceId))
                 .map((stylist) => (
                 <option key={stylist.id} value={stylist.id}>
                   {stylist.first_name} {stylist.last_name}
@@ -621,36 +590,47 @@ export default function ClienteCitasPage() {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">{t("appointments.payment")}</label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setForm((current) => ({ ...current, paymentProvider: "cash" }))}
-                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                  form.paymentProvider === "cash"
-                    ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {t("appointments.cashLocal")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm((current) => ({ ...current, paymentProvider: "wallet" }))}
-                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                  form.paymentProvider === "wallet"
-                    ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {t("appointments.walletBalance")}
-              </button>
-            </div>
-            {form.paymentProvider === "wallet" ? (
-              <p className="mt-2 text-xs text-slate-600">
-                {wallet ? (language === "en" ? `Available balance: $${Number(wallet.balance).toFixed(2)}` : `Saldo disponible: $${Number(wallet.balance).toFixed(2)}`) : (language === "en" ? "We couldn't load your balance." : "No pudimos cargar tu saldo.")}
-              </p>
+            {pagosEnLinea ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, paymentProvider: "cash" }))}
+                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      form.paymentProvider === "cash"
+                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {t("appointments.cashLocal")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, paymentProvider: "wallet" }))}
+                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      form.paymentProvider === "wallet"
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {t("appointments.walletBalance")}
+                  </button>
+                </div>
+                {form.paymentProvider === "wallet" ? (
+                  <p className="mt-2 text-xs text-slate-600">
+                    {wallet ? (language === "en" ? `Available balance: $${Number(wallet.balance).toFixed(2)}` : `Saldo disponible: $${Number(wallet.balance).toFixed(2)}`) : (language === "en" ? "We couldn't load your balance." : "No pudimos cargar tu saldo.")}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en el local al finalizar la cita."}</p>
+                )}
+              </>
             ) : (
-              <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en el local al finalizar la cita."}</p>
+              <>
+                <p className="rounded-xl border border-indigo-600 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">
+                  {t("appointments.cashLocal")}
+                </p>
+                <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en el local al finalizar la cita."}</p>
+              </>
             )}
           </div>
 
@@ -693,20 +673,12 @@ export default function ClienteCitasPage() {
             <button
               type="button"
               onClick={handleClearPastHistory}
-              disabled={isClearingPastHistory || isDeletingAllAppointments}
+              disabled={isClearingPastHistory}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isClearingPastHistory ? (language === "en" ? "Clearing..." : "Limpiando...") : (language === "en" ? "Clear past appointments only" : "Limpiar solo historial pasado")}
             </button>
 
-            <button
-              type="button"
-              onClick={handleDeleteAllAppointments}
-              disabled={isDeletingAllAppointments || isClearingPastHistory}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-rose-300 bg-rose-50 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isDeletingAllAppointments ? (language === "en" ? "Deleting all..." : "Borrando todo...") : (language === "en" ? "Delete all appointments" : "Borrar todas las citas")}
-            </button>
           </div>
         </div>
 
@@ -731,6 +703,11 @@ export default function ClienteCitasPage() {
                 {(appointment.business_name || `${appointment.first_name ?? ""} ${appointment.last_name ?? ""}`.trim()) ||
                   (language === "en" ? "Business" : "Negocio")}
               </p>
+              {lugarDeLaCita(appointment) ? (
+                <p className="mt-1 text-sm text-slate-600">
+                  <span className="sr-only">{language === "en" ? "Branch:" : "Sucursal:"} </span>📍 {lugarDeLaCita(appointment)}
+                </p>
+              ) : null}
               <p className="mt-1 text-sm text-slate-600">{fechaHoraCita(appointment.scheduled_at, language)}</p>
               <p className="mt-2 text-sm font-semibold text-slate-800">${Number(appointment.total_amount).toFixed(2)}</p>
 
@@ -769,31 +746,36 @@ export default function ClienteCitasPage() {
                   </>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteAppointment(appointment.id)}
-                  disabled={deletingAppointmentId === appointment.id || cancellingAppointmentId === appointment.id}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deletingAppointmentId === appointment.id ? (language === "en" ? "Deleting..." : "Borrando...") : (language === "en" ? "Delete from history" : "Borrar del historial")}
-                </button>
+                {/* Solo citas del historial: una futura activa se cancela, no se borra (el servidor la rechaza) */}
+                {esDelHistorial(appointment) ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteAppointment(appointment.id)}
+                    disabled={deletingAppointmentId === appointment.id || cancellingAppointmentId === appointment.id}
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deletingAppointmentId === appointment.id ? (language === "en" ? "Deleting..." : "Borrando...") : (language === "en" ? "Delete from history" : "Borrar del historial")}
+                  </button>
+                ) : null}
               </div>
 
               {editingAppointmentId === appointment.id ? (
                 <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">{language === "en" ? "Reschedule appointment" : "Reagendar cita"}</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <input
-                      type="date"
-                      value={editDate}
-                      min={new Date().toISOString().split("T")[0]}
-                      aria-label={language === "en" ? "New date" : "Nueva fecha"}
-                      onChange={(event) => {
-                        setEditDate(event.target.value);
-                        setEditScheduledAt("");
-                      }}
-                      className="h-10 rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                    />
+                    <Campo etiqueta={language === "en" ? "New date" : "Nueva fecha"}>
+                      <input
+                        type="date"
+                        value={editDate}
+                        // Hoy en hora de México: con toISOString (UTC), de 18:00 a medianoche ya no dejaba elegir hoy
+                        min={fechaLocal(new Date())}
+                        onChange={(event) => {
+                          setEditDate(event.target.value);
+                          setEditScheduledAt("");
+                        }}
+                        className="h-10 w-full rounded-lg border border-indigo-200 bg-white px-3 text-sm outline-none ring-indigo-300 focus:ring"
+                      />
+                    </Campo>
                     <Campo etiqueta={language === "en" ? "Notes (optional)" : "Notas (opcional)"}>
                       <input
                         value={editNotes}

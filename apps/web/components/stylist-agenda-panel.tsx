@@ -109,7 +109,7 @@ export default function StylistAgendaPanel({
           onClick={() =>
             void guardar("servicios", () => pedir("/api/business/stylists/services", { method: "PUT", body: JSON.stringify({ stylistId, serviceIds: elegidos.filter((id) => disponibles.some((s) => s.id === id)) }) }), en ? "Services updated." : "Servicios actualizados.")
           }
-          className="mt-3 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+          className="mt-3 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
         >
           {guardando === "servicios" ? (en ? "Saving..." : "Guardando...") : en ? "Save services" : "Guardar servicios"}
         </button>
@@ -181,7 +181,7 @@ export default function StylistAgendaPanel({
               en ? "Schedule updated." : "Horario actualizado.",
             )
           }
-          className="mt-3 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+          className="mt-3 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
         >
           {guardando === "horario" ? (en ? "Saving..." : "Guardando...") : en ? "Save schedule" : "Guardar horario"}
         </button>

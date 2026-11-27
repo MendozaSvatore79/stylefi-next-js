@@ -21,7 +21,8 @@ export function politicaDeContenido(urlBackend: string, origenSentry: string | n
     "img-src 'self' data: blob: https://img.clerk.com " + backend,
     "font-src 'self' data:",
     `connect-src 'self' ${backend} ${clerk} ${clerkProtect.conexion} https://api.stripe.com${sentry}`,
-    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
+    // www.google.com: el mapa de la sucursal en el modal del salón (iframe de Google Maps); sin esto salía bloqueado
+    "frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.google.com",
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

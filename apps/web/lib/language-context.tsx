@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 
-import { crearIdiomaGuardado, IDIOMA_POR_OMISION, type Language } from "@/lib/idioma-guardado";
+import { idiomaGuardado, useIdiomaActual } from "@/lib/idioma-actual";
+import type { Language } from "@/lib/idioma-guardado";
 
 type LanguageContextType = {
   language: Language;
@@ -31,7 +32,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.home": "Inicio",
     "nav.logout": "Salir",
     "tip.client.title": "Consejo",
-    "tip.client.body": "Agenda con anticipación y guarda una tarjeta para checkout rápido.",
+    "tip.client.body": "Agenda con anticipación para asegurar el horario y el estilista que prefieres.",
     "tip.business.title": "Tip negocio",
     "tip.business.body": "Mantén tus servicios y estilistas actualizados para convertir más reservas.",
     "dashboard.client.welcome": "¡Bienvenido de vuelta! 👋",
@@ -51,7 +52,7 @@ const translations: Record<Language, Record<string, string>> = {
     "dashboard.client.methodsActive": "Tienes opciones de pago activas.",
     "dashboard.client.steps": "Próximos pasos",
     "dashboard.client.step1": "Agenda tu primera cita",
-    "dashboard.client.step2": "Guarda un método de pago",
+    "dashboard.client.step2": "Paga en el salón o con tu saldo",
     "dashboard.client.step3": "Recibe confirmaciones por email",
     "dashboard.client.noUpcoming": "Sin citas próximas",
     "dashboard.client.noUpcomingDesc": "Agenda una cita para ver tu calendario.",
@@ -85,6 +86,12 @@ const translations: Record<Language, Record<string, string>> = {
     "salons.noAvailable": "No hay salones disponibles",
     "salons.noAvailableDesc": "Vuelve más tarde para ver nuevas opciones de reserva.",
     "salons.verified": "Verificado",
+    "salons.noSchedule": "Aún sin horarios",
+    "module.status": "Estado del módulo",
+    "module.fallback": "Módulo",
+    "module.maintenance": "Este módulo está temporalmente en mantenimiento.",
+    "module.disabled": "Este módulo está desactivado por administración.",
+    "salons.noScheduleDesc": "Este salón todavía no tiene horarios para reservar.",
     "salons.viewServices": "Ver servicios",
     "salons.welcomeTitle": "Tu nueva experiencia de belleza ✨",
     "salons.welcomeSubtitle": "Explora salones, guarda tus favoritos y agenda con estilistas expertos en minutos.",
@@ -107,6 +114,15 @@ const translations: Record<Language, Record<string, string>> = {
     "payments.wallet": "Wallet",
     "payments.secureCardTitle": "Tarjeta segura con Stripe",
     "payments.secureCardDesc": "Aquí se capturan número, vencimiento y CVC de forma segura para guardar la tarjeta.",
+    "payments.cardLabel": "Tarjeta segura con Stripe",
+    "payments.cardDesc": "Número, vencimiento y CVC se capturan de forma segura para guardar la tarjeta.",
+    "payments.errorLoadRetry": "Inténtalo de nuevo.",
+    "payments.successAdd": "Método de pago agregado",
+    "payments.successAdd.desc": "Tu método ya está disponible para pagar.",
+    "payments.successRecharge": "Recarga confirmada",
+    "payments.errorAdd": "No se pudo agregar el método",
+    "payments.errorRecharge": "Recarga pendiente de confirmación",
+    "payments.errorRecharge.desc": "Stripe aún no confirma el pago.",
     "payments.cardSaved": "Tarjeta guardada",
     "payments.cardSavedDesc": "Ya puedes recargar sin volver a capturar la tarjeta.",
     "security.loading": "Cargando seguridad de cuenta...",
@@ -220,10 +236,10 @@ const translations: Record<Language, Record<string, string>> = {
     "onboarding.client.step1.desc": "En Salones puedes explorar negocios verificados, guardar favoritos y abrir la card de cada salón para ver servicios, estilistas y ubicación.",
     "onboarding.client.step2.title": "Agenda tu cita",
     "onboarding.client.step2.desc": "Desde la card del salón o desde Citas eliges servicio, fecha y forma de pago: efectivo en local o saldo en tu cuenta.",
-    "onboarding.client.step3.title": "Wallet y pagos",
-    "onboarding.client.step3.desc": "En Pagos recargas saldo, guardas tarjetas seguras con Stripe, gestionas métodos y revisas movimientos de wallet.",
+    "onboarding.client.step3.title": "Saldo y pagos",
+    "onboarding.client.step3.desc": "En Pagos ves tu saldo y sus movimientos. Los pagos en línea llegarán pronto; por ahora pagas en el salón o con tu saldo.",
     "onboarding.client.step4.title": "Controla tu cuenta",
-    "onboarding.client.step4.desc": "Desde Configuración actualizas datos de perfil. Tu dashboard te muestra resumen de citas, métodos y actividad reciente.",
+    "onboarding.client.step4.desc": "Desde Configuración actualizas datos de perfil. Tu dashboard te muestra el resumen de tus citas y tu actividad reciente.",
     "onboarding.business.step1.title": "Configura tu negocio",
     "onboarding.business.step1.desc": "En Configuración completas perfil, datos de contacto y parámetros base para operar tu salón en la plataforma.",
     "onboarding.business.step2.title": "Define tu oferta",
@@ -346,7 +362,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.home": "Home",
     "nav.logout": "Logout",
     "tip.client.title": "Tip",
-    "tip.client.body": "Book in advance and save a card for quick checkout.",
+    "tip.client.body": "Book ahead to secure the time and stylist you prefer.",
     "tip.business.title": "Business tip",
     "tip.business.body": "Keep your services and stylists updated to convert more bookings.",
     "dashboard.client.welcome": "Welcome back! 👋",
@@ -366,7 +382,7 @@ const translations: Record<Language, Record<string, string>> = {
     "dashboard.client.methodsActive": "You have active payment options.",
     "dashboard.client.steps": "Next steps",
     "dashboard.client.step1": "Book your first appointment",
-    "dashboard.client.step2": "Save a payment method",
+    "dashboard.client.step2": "Pay at the salon or with your balance",
     "dashboard.client.step3": "Receive email confirmations",
     "dashboard.client.noUpcoming": "No upcoming appointments",
     "dashboard.client.noUpcomingDesc": "Book an appointment to see your calendar.",
@@ -400,6 +416,12 @@ const translations: Record<Language, Record<string, string>> = {
     "salons.noAvailable": "No salons available",
     "salons.noAvailableDesc": "Come back later to see new booking options.",
     "salons.verified": "Verified",
+    "salons.noSchedule": "No schedule yet",
+    "module.status": "Module status",
+    "module.fallback": "Module",
+    "module.maintenance": "This module is temporarily under maintenance.",
+    "module.disabled": "This module has been disabled by the administrators.",
+    "salons.noScheduleDesc": "This salon doesn't have times available to book yet.",
     "salons.viewServices": "View services",
     "salons.welcomeTitle": "Your new beauty experience ✨",
     "salons.welcomeSubtitle": "Explore salons, save your favorites, and book with expert stylists in minutes.",
@@ -523,10 +545,10 @@ const translations: Record<Language, Record<string, string>> = {
     "onboarding.client.step1.desc": "In Salons you can explore verified businesses, save favorites, and open each salon card to see services, stylists, and location.",
     "onboarding.client.step2.title": "Book your appointment",
     "onboarding.client.step2.desc": "From the salon card or from Appointments you choose service, date, and payment method: cash at the salon or wallet balance.",
-    "onboarding.client.step3.title": "Wallet and payments",
-    "onboarding.client.step3.desc": "In Payments you top up balance, save secure cards with Stripe, manage methods, and review wallet transactions.",
+    "onboarding.client.step3.title": "Balance and payments",
+    "onboarding.client.step3.desc": "In Payments you can see your balance and its activity. Online payments are coming soon; for now you pay at the salon or with your balance.",
     "onboarding.client.step4.title": "Manage your account",
-    "onboarding.client.step4.desc": "From Settings you update profile data. Your dashboard shows appointment summary, methods, and recent activity.",
+    "onboarding.client.step4.desc": "From Settings you update profile data. Your dashboard shows your appointment summary and recent activity.",
     "onboarding.business.step1.title": "Set up your business",
     "onboarding.business.step1.desc": "In Settings you complete profile, contact data, and base parameters to operate your salon on the platform.",
     "onboarding.business.step2.title": "Define your offer",
@@ -561,6 +583,11 @@ const translations: Record<Language, Record<string, string>> = {
     "payments.wallet": "Wallet",
     "payments.cardLabel": "Secure card with Stripe",
     "payments.cardDesc": "Number, expiration, and CVC are captured securely to save the card.",
+    "payments.section": "Settings",
+    "payments.secureCardTitle": "Secure card with Stripe",
+    "payments.secureCardDesc": "Number, expiration, and CVC are captured securely here to save the card.",
+    "payments.cardSaved": "Card saved",
+    "payments.cardSavedDesc": "You can now recharge without entering the card again.",
     "payments.holderName": "Cardholder name",
     "payments.optional": "(optional)",
     "payments.cardNumber": "Card number",
@@ -719,11 +746,9 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
-const idiomaGuardado = crearIdiomaGuardado(() => (typeof window === "undefined" ? null : window.localStorage));
-
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // El servidor (y la hidratación) usan el idioma por omisión; después, el guardado en el navegador.
-  const language = useSyncExternalStore(idiomaGuardado.suscribir, idiomaGuardado.leer, () => IDIOMA_POR_OMISION);
+  const language = useIdiomaActual();
 
   const setLanguage = useCallback((lang: Language) => {
     idiomaGuardado.guardar(lang);

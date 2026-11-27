@@ -1,9 +1,21 @@
-/** Textos y código de referencia de las pantallas de error (app/error.tsx y app/global-error.tsx). */
-export const TEXTO_ERROR = {
-  titulo: "Algo salió mal",
-  detalle: "No pudimos cargar esta página. Puede ser un problema momentáneo del servidor; inténtalo de nuevo.",
-  reintentar: "Intentar de nuevo",
-  inicio: "Ir al inicio",
+import type { Language } from "@/lib/idioma-guardado";
+
+/** Textos y código de referencia de las pantallas de error (app/error.tsx y app/global-error.tsx), en ES y EN. */
+export const TEXTO_ERROR: Record<Language, { titulo: string; detalle: string; reintentar: string; inicio: string; codigo: string }> = {
+  es: {
+    titulo: "Algo salió mal",
+    detalle: "No pudimos cargar esta página. Puede ser un problema momentáneo del servidor; inténtalo de nuevo.",
+    reintentar: "Intentar de nuevo",
+    inicio: "Ir al inicio",
+    codigo: "Código",
+  },
+  en: {
+    titulo: "Something went wrong",
+    detalle: "We couldn't load this page. It may be a temporary server problem; please try again.",
+    reintentar: "Try again",
+    inicio: "Go to home",
+    codigo: "Code",
+  },
 };
 
 /**

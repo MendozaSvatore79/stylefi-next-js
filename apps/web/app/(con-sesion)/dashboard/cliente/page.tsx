@@ -5,6 +5,7 @@ import PlatformOnboardingModal from "@/components/platform-onboarding-modal";
 import { colorEstado, etiquetaEstado, fechaHoraCita } from "@stylefi/shared";
 import { useLanguage } from "@/lib/language-context";
 import { api } from "@/lib/api";
+import { AVISO_PAGOS, pagosEnLineaDe } from "@/lib/pagos-en-linea";
 
 type Appointment = {
   id: string;
@@ -24,6 +25,9 @@ export default function ClienteDashboardPage() {
   const { t, language } = useLanguage();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  // Con los pagos en línea apagados (decisión de producto) no se habla de tarjetas ni métodos guardados: aviso de pago
+  // en el salón. null = todavía no se sabe (no se muestra ninguno de los dos).
+  const [pagosEnLinea, setPagosEnLinea] = useState<boolean | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
@@ -40,8 +44,9 @@ export default function ClienteDashboardPage() {
       }
 
       if (methodsResponse.ok) {
-        const payload = (await methodsResponse.json()) as { methods: PaymentMethod[] };
+        const payload = (await methodsResponse.json()) as { methods: PaymentMethod[]; pagosEnLinea?: unknown };
         setMethods(payload.methods ?? []);
+        setPagosEnLinea(pagosEnLineaDe(payload));
       }
 
       if (onboardingResponse.ok) {
@@ -84,11 +89,13 @@ export default function ClienteDashboardPage() {
         <p className="mt-2 text-slate-600">{t("dashboard.client.subtitle")}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className={`grid gap-4 sm:grid-cols-2 ${pagosEnLinea ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
         <StatCard title={t("dashboard.client.totalAppointments")} value={String(totals.appointments)} tone="from-indigo-500 to-indigo-700" />
         <StatCard title={t("dashboard.client.pending")} value={String(totals.pending)} tone="from-amber-500 to-orange-600" />
         <StatCard title={t("dashboard.client.confirmed")} value={String(totals.confirmed)} tone="from-emerald-500 to-teal-600" />
-        <StatCard title={t("dashboard.client.methods")} value={String(totals.methods)} tone="from-cyan-500 to-sky-600" />
+        {pagosEnLinea ? (
+          <StatCard title={t("dashboard.client.methods")} value={String(totals.methods)} tone="from-cyan-500 to-sky-600" />
+        ) : null}
         <StatCard title={t("dashboard.client.spent")} value={`$${totals.spent.toFixed(2)}`} tone="from-fuchsia-500 to-purple-700" />
       </div>
 
@@ -155,29 +162,38 @@ export default function ClienteDashboardPage() {
         </div>
 
         <div className="space-y-6">
-          <article className="rounded-3xl bg-linear-to-br from-indigo-600 to-purple-700 p-8 text-white shadow-lg">
-            <p className="text-sm font-semibold uppercase tracking-wider opacity-90">{t("dashboard.client.activeMethod")}</p>
-            <h3 className="mt-2 text-xl font-black">{t("dashboard.client.fastPay")}</h3>
+          {pagosEnLinea === false ? (
+            <article role="status" className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 shadow-sm">
+              {AVISO_PAGOS[language === "en" ? "en" : "es"]}
+            </article>
+          ) : null}
+          {pagosEnLinea ? (
+            <>
+            <article className="rounded-3xl bg-linear-to-br from-indigo-600 to-purple-700 p-8 text-white shadow-lg">
+              <p className="text-sm font-semibold uppercase tracking-wider opacity-90">{t("dashboard.client.activeMethod")}</p>
+              <h3 className="mt-2 text-xl font-black">{t("dashboard.client.fastPay")}</h3>
 
-            {methods.find((item) => item.is_default) ? (
-              <div className="mt-6 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm p-4">
-                  <p className="text-sm opacity-90">{t("dashboard.client.methodType")}</p>
-                <p className="mt-2 text-lg font-bold uppercase">
-                  {methods.find((item) => item.is_default)?.provider}
-                </p>
-              </div>
-            ) : (
-              <div className="mt-6 rounded-2xl bg-white/10 border-2 border-dashed border-white/40 p-6 text-center">
-                  <p className="text-sm">{t("dashboard.client.noMethod")}</p>
-              </div>
-            )}
-          </article>
+              {methods.find((item) => item.is_default) ? (
+                <div className="mt-6 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm p-4">
+                    <p className="text-sm opacity-90">{t("dashboard.client.methodType")}</p>
+                  <p className="mt-2 text-lg font-bold uppercase">
+                    {methods.find((item) => item.is_default)?.provider}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-6 rounded-2xl bg-white/10 border-2 border-dashed border-white/40 p-6 text-center">
+                    <p className="text-sm">{t("dashboard.client.noMethod")}</p>
+                </div>
+              )}
+            </article>
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md transition-shadow">
-            <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">{t("dashboard.client.savedMethods")}</p>
-            <h3 className="mt-2 text-3xl font-black text-[#151138]">{totals.methods}</h3>
-            <p className="mt-3 text-sm text-slate-600">{totals.methods > 0 ? t("dashboard.client.methodsActive") : t("dashboard.client.noMethodDesc")}</p>
-          </article>
+            <article className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">{t("dashboard.client.savedMethods")}</p>
+              <h3 className="mt-2 text-3xl font-black text-[#151138]">{totals.methods}</h3>
+              <p className="mt-3 text-sm text-slate-600">{totals.methods > 0 ? t("dashboard.client.methodsActive") : t("dashboard.client.noMethodDesc")}</p>
+            </article>
+            </>
+          ) : null}
 
           <article className="rounded-3xl border-2 border-dashed border-indigo-300 bg-indigo-50 p-6">
             <p className="text-sm font-bold text-indigo-900">🎯 {t("dashboard.client.steps")}</p>

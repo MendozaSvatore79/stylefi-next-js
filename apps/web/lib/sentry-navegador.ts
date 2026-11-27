@@ -1,9 +1,11 @@
-import type { BrowserOptions, ErrorEvent } from "@sentry/browser";
+import type { BrowserOptions } from "@sentry/browser";
+
+import { limpiarEvento, SIN_DATOS_PERSONALES } from "./sentry-limpieza";
 
 /**
  * Errores del navegador a Sentry. Sin NEXT_PUBLIC_SENTRY_DSN queda apagado (local, pruebas y CI).
- * Solo errores: sin trazas de rendimiento ni grabación de sesiones. Nada de datos personales: sin usuario, sin
- * cookies ni cabeceras, y las URL sin query ni fragmento (pueden traer tokens, como el `__clerk_ticket`).
+ * Solo errores: sin trazas de rendimiento ni grabación de sesiones. La limpieza de datos personales es la común
+ * (lib/sentry-limpieza.ts).
  */
 export type EnvSentry = { NEXT_PUBLIC_SENTRY_DSN?: string; NODE_ENV?: string };
 
@@ -21,42 +23,14 @@ export function origenDeSentry(dsn: string | undefined) {
   }
 }
 
-export function sinQuery(url: string) {
-  return url.replace(/[?#].*$/, "");
-}
-
-export function limpiarEventoNavegador(evento: ErrorEvent): ErrorEvent {
-  delete evento.user;
-  if (evento.request) {
-    delete evento.request.cookies;
-    delete evento.request.headers;
-    delete evento.request.query_string;
-    if (evento.request.url) evento.request.url = sinQuery(evento.request.url);
-  }
-  for (const miga of evento.breadcrumbs ?? []) {
-    const datos = miga.data as Record<string, unknown> | undefined;
-    for (const campo of ["url", "from", "to"]) {
-      if (typeof datos?.[campo] === "string") datos[campo] = sinQuery(datos[campo]);
-    }
-  }
-  return evento;
-}
-
 export function opcionesSentryNavegador(env: EnvSentry): BrowserOptions {
   const dsn = dsnDeSentry(env);
   return {
     dsn,
     enabled: Boolean(dsn),
     environment: env.NODE_ENV ?? "development",
-    // Sentry 11 (`dataCollection` reemplaza a sendDefaultPii): nada de usuario, cookies, cabeceras, cuerpos ni query
-    dataCollection: {
-      userInfo: false,
-      cookies: false,
-      httpHeaders: false,
-      httpBodies: [],
-      urlQueryParams: false,
-    },
+    dataCollection: { ...SIN_DATOS_PERSONALES, httpBodies: [] },
     tracesSampleRate: 0,
-    beforeSend: (evento) => limpiarEventoNavegador(evento),
+    beforeSend: (evento) => limpiarEvento(evento),
   };
 }

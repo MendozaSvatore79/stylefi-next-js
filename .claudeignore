@@ -1,0 +1,14 @@
+# Nota: Claude Code no lee este archivo; lo que bloquea la lectura es permissions.deny en .claude/settings.json.
+# node_modules/ no va en deny a propósito: apps/web/AGENTS.md pide leer node_modules/next/dist/docs/ (la búsqueda ya lo omite por .gitignore).
+# Se mantiene como referencia para otras herramientas. Mantener ambos con los mismos patrones (salvo node_modules).
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.lock
+pnpm-lock.yaml
+package-lock.json
+*.tsbuildinfo
+next-env.d.ts

@@ -65,6 +65,13 @@ describe("politicaDeContenido", () => {
     expect(directiva("frame-src")).toContain("https://js.stripe.com");
   });
 
+  it("permite incrustar solo el mapa de Google (www.google.com), sin comodines", () => {
+    const frames = directiva("frame-src").split(/\s+/);
+    expect(frames).toContain("https://www.google.com");
+    expect(frames.some((f) => f.includes("*"))).toBe(false);
+    expect(frames).not.toContain("https:");
+  });
+
   it("Clerk Protect: su script y sus sondeos en cualquier puerto (visto en producción el 2026-11-19)", () => {
     expect(directiva("script-src")).toContain("https://cdn.protect.clerk.com");
     expect(directiva("connect-src")).toContain("https://*.protect.clerk.com:*");
