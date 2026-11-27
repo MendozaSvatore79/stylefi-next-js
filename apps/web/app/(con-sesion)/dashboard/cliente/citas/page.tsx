@@ -11,6 +11,7 @@ import Campo from "@/components/campo";
 
 type Business = {
   id: string;
+  branch_id?: string | null;
   business_name: string | null;
   first_name: string | null;
   last_name: string | null;
@@ -531,8 +532,9 @@ export default function ClienteCitasPage() {
             >
               <option value="">{t("appointments.selectBusiness")}</option>
               {businesses.map((business) => (
-                <option key={business.id} value={business.id}>
-                  {business.business_name ||
+                <option key={business.branch_id ?? business.id} value={business.id}>
+                  {business.salon_name ||
+                    business.business_name ||
                     `${business.first_name ?? ""} ${business.last_name ?? ""}`.trim() ||
                     (language === "en" ? "Business" : "Negocio")}
                 </option>

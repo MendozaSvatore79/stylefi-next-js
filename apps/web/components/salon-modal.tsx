@@ -74,9 +74,11 @@ type PaymentMethod = {
 
 export default function SalonModal({
   businessId,
+  initialBranchId = null,
   onClose,
 }: {
   businessId: string;
+  initialBranchId?: string | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -139,8 +141,13 @@ export default function SalonModal({
           setStylists(data.stylists ?? []);
           setBranches(data.branches ?? []);
 
-          // choose default selected branch: primary first, else first branch
-          const defaultBranch = (data.branches ?? []).find((b) => b.is_primary) ?? (data.branches && data.branches[0]) ?? null;
+          // choose default selected branch: requested initialBranchId first, else primary, else first branch
+          const br = data.branches ?? [];
+          const defaultBranch =
+            (initialBranchId ? br.find((b) => b.id === initialBranchId) : null) ??
+            br.find((b) => b.is_primary) ??
+            br[0] ??
+            null;
           setSelectedBranchId(defaultBranch ? defaultBranch.id : null);
         }
 
@@ -162,7 +169,7 @@ export default function SalonModal({
     };
 
     fetchDetails();
-  }, [businessId, status, t]);
+  }, [businessId, initialBranchId, status, t]);
 
   const selectedService = services.find((service) => service.id === bookingForm.serviceId) ?? null;
   const servicesForBranch = selectedBranchId

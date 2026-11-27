@@ -7,6 +7,8 @@ import { api, urlArchivo } from "@/lib/api";
 
 type Business = {
   id: string;
+  branch_id?: string | null;
+  is_primary?: boolean;
   business_name: string;
   first_name: string;
   last_name: string;
@@ -36,6 +38,7 @@ export default function SalonesPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [favorites, setFavorites] = useState<FavoriteBusiness[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null);
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [favoriteLoadingId, setFavoriteLoadingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -189,7 +192,10 @@ export default function SalonesPage() {
             {favorites.slice(0, 3).map((favorite, index) => (
               <button
                 key={favorite.business_user_id}
-                onClick={() => setSelectedBusiness(favorite.business_user_id)}
+                onClick={() => {
+                  setSelectedBranchId(null);
+                  setSelectedBusiness(favorite.business_user_id);
+                }}
                 className="stagger-enter rounded-2xl border border-rose-200 bg-linear-to-r from-rose-50 to-white p-4 text-left shadow-sm transition hover:shadow-md"
                 style={{ animationDelay: `${220 + index * 80}ms` }}
               >
@@ -223,7 +229,7 @@ export default function SalonesPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {businesses.map((business, index) => (
             <article
-              key={business.id}
+              key={business.branch_id ?? business.id}
               className="stagger-enter group relative overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-indigo-200/40"
               style={{ animationDelay: `${260 + index * 90}ms` }}
             >
@@ -244,7 +250,10 @@ export default function SalonesPage() {
 
               <button
                 type="button"
-                onClick={() => setSelectedBusiness(business.id)}
+                onClick={() => {
+                  setSelectedBranchId(business.branch_id ?? null);
+                  setSelectedBusiness(business.id);
+                }}
                 className="block w-full"
               >
               <div className="relative h-48 overflow-hidden bg-linear-to-br from-indigo-100 to-purple-100">
@@ -290,7 +299,14 @@ export default function SalonesPage() {
       )}
 
       {selectedBusiness && (
-        <SalonModal businessId={selectedBusiness} onClose={() => setSelectedBusiness(null)} />
+        <SalonModal
+          businessId={selectedBusiness}
+          initialBranchId={selectedBranchId}
+          onClose={() => {
+            setSelectedBusiness(null);
+            setSelectedBranchId(null);
+          }}
+        />
       )}
 
       {showOnboarding ? (

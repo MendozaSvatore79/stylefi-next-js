@@ -12,10 +12,11 @@ export function politicaDeContenido(urlBackend: string, origenSentry: string | n
   const clerk = "https://clerk.stylehub.synovasystems.com https://*.clerk.accounts.dev";
   // Clerk Protect (protección contra bots): su script y sondeos a *.client.protect.clerk.com en varios puertos
   const clerkProtect = { script: "https://cdn.protect.clerk.com", conexion: "https://*.protect.clerk.com:*" };
+  const evalDesarrollo = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
   return [
     "default-src 'self'",
     // Next mete scripts en línea (sin nonce); Clerk y Stripe cargan los suyos
-    `script-src 'self' 'unsafe-inline' ${clerk} ${clerkProtect.script} https://js.stripe.com https://challenges.cloudflare.com`,
+    `script-src 'self' 'unsafe-inline'${evalDesarrollo} ${clerk} ${clerkProtect.script} https://js.stripe.com https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://img.clerk.com " + backend,
     "font-src 'self' data:",
