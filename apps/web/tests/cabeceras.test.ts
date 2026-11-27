@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { CACHE_DE_IMAGENES, cabecerasDeSeguridad, politicaDeContenido } from "@/lib/cabeceras";
 
@@ -43,16 +43,15 @@ describe("politicaDeContenido", () => {
   const directiva = (nombre: string) => csp.split("; ").find((d) => d.startsWith(`${nombre} `)) ?? "";
 
   it("permite unsafe-eval solo en desarrollo", () => {
-    const modoOriginal = process.env.NODE_ENV;
     try {
-      process.env.NODE_ENV = "development";
+      vi.stubEnv("NODE_ENV", "development");
       const desarrollo = politicaDeContenido(BACKEND);
       expect(desarrollo).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval'");
 
-      process.env.NODE_ENV = "production";
+      vi.stubEnv("NODE_ENV", "production");
       expect(politicaDeContenido(BACKEND)).not.toContain("'unsafe-eval'");
     } finally {
-      process.env.NODE_ENV = modoOriginal;
+      vi.unstubAllEnvs();
     }
   });
 
