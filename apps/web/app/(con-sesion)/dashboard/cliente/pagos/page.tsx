@@ -84,12 +84,11 @@ export default function ClientePagosPage() {
         throw new Error(payload.error ?? "No se pudieron cargar los métodos de pago.");
       }
 
-      setMethods(payload.methods ?? []);
+      const cardMethods = (payload.methods ?? []).filter((m) => m.provider === "card");
+      setMethods(cardMethods);
       setWallet(payload.wallet ?? null);
       const enLinea = pagosEnLineaDe(payload);
       setPagosEnLinea(enLinea);
-      // Sin pagos en línea no hay tarjetas: el formulario empieza en efectivo
-      if (!enLinea) setForm((current) => (current.provider === "card" ? { ...current, provider: "cash" } : current));
       setTransactions(payload.transactions ?? []);
     } catch (error) {
       showToast({
@@ -412,114 +411,67 @@ export default function ClientePagosPage() {
   return (
     <section className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
       <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t("payments.section")}</p>
-        <h2 className="mt-2 text-2xl font-black text-[#151138]">{t("payments.title")}</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          {language === "en" ? "Stripe Payment Gateway" : "Pasarela de pago Stripe"}
+        </p>
+        <h2 className="mt-2 text-2xl font-black text-[#151138]">
+          {language === "en" ? "Link Card with Stripe" : "Vincular tarjeta con Stripe"}
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          {language === "en"
+            ? "Save your credit or debit card securely with Stripe to recharge your account balance."
+            : "Registra tu tarjeta de crédito o débito de forma segura con Stripe para hacer recargas a tu cuenta."}
+        </p>
 
         <div className="mt-5 space-y-4">
-          <div>
-            <label htmlFor="metodo-tipo" className="mb-2 block text-sm font-semibold text-slate-700">{t("payments.type")}</label>
-            <select id="metodo-tipo"
-              value={form.provider}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  provider: event.target.value as "card" | "paypal" | "transfer" | "cash" | "wallet",
-                }))
-              }
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-            >
-              {pagosEnLinea ? <option value="card">{t("payments.card")}</option> : null}
-              <option value="paypal">{t("payments.paypal")}</option>
-              <option value="transfer">{t("payments.transfer")}</option>
-              <option value="cash">{t("payments.cash")}</option>
-              <option value="wallet">{t("payments.wallet")}</option>
-            </select>
+          <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
+            <p className="text-sm font-semibold text-[#151138]">{t("payments.secureCardTitle")}</p>
+            <p className="text-xs text-slate-600">{t("payments.secureCardDesc")}</p>
+            <StripeCardSetupForm
+              onSuccess={async () => {
+                showToast({
+                  type: "success",
+                  title: t("payments.cardSaved"),
+                  message: t("payments.cardSavedDesc"),
+                });
+                await loadMethods();
+              }}
+            />
           </div>
 
-          {pagosEnLinea === false ? (
-            <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              {language === "en" ? AVISO_PAGOS.en : AVISO_PAGOS.es}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+            <p className="font-semibold text-slate-800">
+              {language === "en" ? "Defined payment methods in StyleHub:" : "Modalidades de pago definidas en StyleHub:"}
             </p>
-          ) : null}
-
-          {form.provider === "card" && pagosEnLinea ? (
-            <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
-              <p className="text-sm font-semibold text-[#151138]">{t("payments.secureCardTitle")}</p>
-              <p className="text-xs text-slate-600">{t("payments.secureCardDesc")}</p>
-              <StripeCardSetupForm
-                onSuccess={async () => {
-                  showToast({
-                    type: "success",
-                    title: t("payments.cardSaved"),
-                    message: t("payments.cardSavedDesc"),
-                  });
-                  await loadMethods();
-                }}
-              />
-            </div>
-          ) : null}
-
-          {form.provider !== "card" ? (
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              {form.provider === "paypal" ? (
-                <Campo etiqueta="Correo PayPal">
-                  <input
-                    value={form.paypalEmail}
-                    onChange={(event) => setForm((current) => ({ ...current, paypalEmail: event.target.value }))}
-                    placeholder="Correo PayPal"
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                  />
-                </Campo>
-              ) : null}
-
-              <Campo etiqueta="Titular">
-                <input
-                  value={form.holderName}
-                  onChange={(event) => setForm((current) => ({ ...current, holderName: event.target.value }))}
-                  placeholder="Titular"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                />
-              </Campo>
-
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={form.isDefault}
-                  onChange={(event) => setForm((current) => ({ ...current, isDefault: event.target.checked }))}
-                />
-                {language === "en" ? "Mark as default payment method" : "Marcar como método predeterminado"}
-              </label>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#130b3a] px-5 text-sm font-semibold text-white transition hover:bg-[#231365] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? (language === "en" ? "Saving..." : "Guardando...") : (language === "en" ? "Save method" : "Guardar método")}
-              </button>
-            </form>
-          ) : null}
+            <ul className="mt-2 list-disc space-y-1 pl-4">
+              <li>
+                <strong>{language === "en" ? "Online payment with Stripe (Account balance):" : "Pago en línea con Stripe (Recargas a la cuenta):"}</strong>{" "}
+                {language === "en"
+                  ? "Recharge your wallet with your saved Stripe card or Stripe Checkout and pay for your appointments online."
+                  : "Recarga saldo a tu cuenta con tu tarjeta vinculada en Stripe o mediante Stripe Checkout para pagar tus citas en línea (disponible en salones con RFC fiscal registrado)."}
+              </li>
+              <li>
+                <strong>{language === "en" ? "Cash payment at branch:" : "Pago en efectivo en la sucursal:"}</strong>{" "}
+                {language === "en"
+                  ? "Pay directly in cash at the establishment when your appointment ends."
+                  : "Liquida el importe directamente en efectivo en la sucursal al concluir tu cita."}
+              </li>
+            </ul>
+          </div>
         </div>
       </article>
 
       <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Wallet" : "Wallet"}</p>
-        <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Balance and recharges" : "Saldo y recargas"}</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Account Balance (Stripe)" : "Saldo de la cuenta (Stripe)"}</p>
+        <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Balance and Stripe recharges" : "Saldo y recargas con Stripe"}</h2>
         <p className="mt-2 text-sm text-slate-600">
           {language === "en" ? "Current balance: " : "Saldo actual: "}<span className="font-black text-emerald-700">${Number(wallet?.balance ?? 0).toFixed(2)} {wallet?.currency ?? "MXN"}</span>
         </p>
-        {pagosEnLinea === false ? (
-          <p role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            {language === "en" ? AVISO_PAGOS.en : AVISO_PAGOS.es}
-          </p>
-        ) : null}
 
-        {pagosEnLinea ? (
-        <>
-        <p className="mt-1 text-xs text-slate-500">{language === "en" ? "The recharge is credited when Stripe confirms the payment." : "La recarga se acredita cuando Stripe confirma el pago."}</p>
+        <p className="mt-1 text-xs text-slate-500">{language === "en" ? "The recharge is credited when Stripe confirms the payment." : "La recarga se acredita en cuanto Stripe confirma el pago."}</p>
 
         <form className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4" onSubmit={handleRecharge}>
-          <Campo etiqueta={language === "en" ? "Amount to recharge (min. $10)" : "Monto a recargar (mín. $10)"}>
+          <Campo etiqueta={language === "en" ? "Amount to recharge (min. $10)" : "Monto a recargar en MXN (mín. $10)"}>
             <input
               type="number"
               min={10}
@@ -532,7 +484,7 @@ export default function ClientePagosPage() {
             />
           </Campo>
 
-          <Campo etiqueta={language === "en" ? "Payment method" : "Método de pago"}>
+          <Campo etiqueta={language === "en" ? "Stripe card" : "Tarjeta Stripe"}>
             <select
               value={recharge.paymentMethodId}
               onChange={(event) => setRecharge((current) => ({ ...current, paymentMethodId: event.target.value }))}
@@ -552,11 +504,11 @@ export default function ClientePagosPage() {
 
           {recharge.paymentMethodId && methods.find((m) => m.id === recharge.paymentMethodId)?.provider === "card" ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-              {language === "en" ? "✓ Will be charged directly without requesting card details." : "✓ Se cobrará directamente sin pedir datos de tarjeta."}
+              {language === "en" ? "✓ Will be charged directly via Stripe without requesting card details." : "✓ Se cobrará directamente con Stripe sin volver a pedir datos de tarjeta."}
             </div>
           ) : recharge.paymentMethodId ? null : (
             <div className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-              {language === "en" ? "Stripe Checkout will open to enter a new card." : "Se abrirá Stripe Checkout para ingresar una tarjeta nueva."}
+              {language === "en" ? "Stripe Checkout will open to enter a new card." : "Se abrirá Stripe Checkout para recargar con una tarjeta nueva."}
             </div>
           )}
 
@@ -572,21 +524,21 @@ export default function ClientePagosPage() {
                 : (language === "en" ? "Open Stripe Checkout" : "Abrir Stripe Checkout")}
           </button>
         </form>
-        </>
-        ) : null}
 
         <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Your methods" : "Tus métodos"}</p>
-        <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Current list" : "Listado actual"}</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{language === "en" ? "Saved Stripe cards" : "Tarjetas guardadas (Stripe)"}</p>
+        <h2 className="mt-2 text-2xl font-black text-[#151138]">{language === "en" ? "Linked cards" : "Tarjetas vinculadas"}</h2>
 
         <div className="mt-5 space-y-3">
           {methods.map((method) => (
             <div key={method.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-slate-800">{method.provider.toUpperCase()}</p>
+                <p className="font-semibold text-slate-800">
+                  {`${(method.card_brand || "TARJETA").toUpperCase()} •••• ${method.card_last4 || "0000"}`}
+                </p>
                 <div className="flex items-center gap-2">
                   {method.is_default ? (
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">{language === "en" ? "Default" : "Predeterminado"}</span>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">{language === "en" ? "Default" : "Predeterminada"}</span>
                   ) : null}
                   <button
                     type="button"
@@ -606,11 +558,7 @@ export default function ClientePagosPage() {
                 </div>
               </div>
               <p className="mt-2 text-sm text-slate-600">
-                {method.provider === "card"
-                  ? `${(method.card_brand || "tarjeta").toUpperCase()} •••• ${method.card_last4 || "0000"}`
-                  : method.provider === "paypal"
-                    ? `PayPal: ${method.paypal_email || "sin correo"}`
-                    : method.holder_name || "Método guardado"}
+                {method.holder_name || (language === "en" ? "Card linked with Stripe" : "Tarjeta vinculada con Stripe")}
               </p>
 
               {editingMethodId === method.id ? (
@@ -619,27 +567,17 @@ export default function ClientePagosPage() {
                     <input
                       value={editHolderName}
                       onChange={(event) => setEditHolderName(event.target.value)}
-                      placeholder="Titular"
+                      placeholder="Titular de la tarjeta"
                       className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
                     />
                   </Campo>
-                  {method.provider === "paypal" ? (
-                    <Campo etiqueta="Correo PayPal">
-                      <input
-                        value={editPaypalEmail}
-                        onChange={(event) => setEditPaypalEmail(event.target.value)}
-                        placeholder="Correo PayPal"
-                        className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none ring-indigo-300 focus:ring"
-                      />
-                    </Campo>
-                  ) : null}
                   <label className="flex items-center gap-2 text-xs text-slate-700">
                     <input
                       type="checkbox"
                       checked={editIsDefault}
                       onChange={(event) => setEditIsDefault(event.target.checked)}
                     />
-                    Marcar como predeterminado
+                    Marcar como tarjeta predeterminada
                   </label>
                   <div className="flex items-center gap-2">
                     <button
@@ -665,7 +603,9 @@ export default function ClientePagosPage() {
 
           {methods.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
-              No tienes métodos guardados todavía.
+              {language === "en"
+                ? "You have no saved Stripe cards yet. Link a card on the left or use Stripe Checkout when recharging."
+                : "No tienes tarjetas guardadas todavía. Vincula una tarjeta con Stripe a la izquierda o usa Stripe Checkout al recargar."}
             </p>
           ) : null}
         </div>

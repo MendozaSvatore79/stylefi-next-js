@@ -18,6 +18,8 @@ type Summary = {
   approvedBranches: number;
   /** Ya pasaron (hace 7 días o menos) y siguen abiertas; un backend anterior no lo manda. */
   citasPorCerrar?: number;
+  hasRfc?: boolean;
+  rfc?: string | null;
 };
 
 export default function NegocioDashboardPage() {
@@ -98,6 +100,24 @@ export default function NegocioDashboardPage() {
             {avisoPorCerrar}{" "}
             <Link href="/dashboard/negocio/citas" className="font-semibold underline">
               {language === "en" ? "Go to Appointments" : "Ir a Citas"}
+            </Link>
+          </p>
+        </div>
+      ) : null}
+
+      {cargado && summary.hasRfc === false ? (
+        <div role="status" data-aviso-rfc className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <p className="font-bold">
+            {language === "en"
+              ? "⚠️ Online Stripe payments and bank withdrawals disabled (Missing RFC)"
+              : "⚠️ Pagos en línea con Stripe y retiros bancarios bloqueados (Sin RFC)"}
+          </p>
+          <p className="mt-1">
+            {language === "en"
+              ? "For legal and tax compliance with SAT, until you register your valid RFC in your business profile, your clients can only pay in cash at the branch (online Stripe payments disabled) and you cannot withdraw earnings via CLABE."
+              : "Por cumplimiento legal y fiscal ante el SAT, mientras no registres tu RFC válido en el perfil de tu negocio, a tus clientes se les inhabilita el pago en línea con Stripe (solo efectivo en sucursal) y no podrás retirar ganancias por CLABE bancaria."}{" "}
+            <Link href="/dashboard/negocio/configuracion" className="font-bold underline">
+              {language === "en" ? "Register my RFC in Settings →" : "Registrar mi RFC en Configuración →"}
             </Link>
           </p>
         </div>

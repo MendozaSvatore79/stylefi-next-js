@@ -8,9 +8,12 @@ export const AVISO_PAGOS = {
 };
 
 /**
- * Lo que dice el backend en GET /client/payment-methods. Si la respuesta no trae el campo (un backend anterior),
- * se conserva lo de antes: pagos en línea disponibles.
+ * Lo que dice el backend en GET /client/payment-methods. Con la llave pública de Stripe configurada, los pagos en
+ * línea y recargas con Stripe están habilitados.
  */
 export function pagosEnLineaDe(respuesta: { pagosEnLinea?: unknown }): boolean {
+  if (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim()) {
+    return true;
+  }
   return respuesta.pagosEnLinea !== false;
 }

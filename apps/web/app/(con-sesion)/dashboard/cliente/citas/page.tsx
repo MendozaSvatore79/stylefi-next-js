@@ -20,6 +20,7 @@ type Business = {
   last_name: string | null;
   salon_name: string | null;
   reservable?: boolean;
+  has_rfc?: boolean;
 };
 
 type Wallet = {
@@ -591,39 +592,58 @@ export default function ClienteCitasPage() {
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">{t("appointments.payment")}</label>
             {pagosEnLinea ? (
-              <>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setForm((current) => ({ ...current, paymentProvider: "cash" }))}
-                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                      form.paymentProvider === "cash"
-                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    {t("appointments.cashLocal")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm((current) => ({ ...current, paymentProvider: "wallet" }))}
-                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                      form.paymentProvider === "wallet"
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    {t("appointments.walletBalance")}
-                  </button>
-                </div>
-                {form.paymentProvider === "wallet" ? (
-                  <p className="mt-2 text-xs text-slate-600">
-                    {wallet ? (language === "en" ? `Available balance: $${Number(wallet.balance).toFixed(2)}` : `Saldo disponible: $${Number(wallet.balance).toFixed(2)}`) : (language === "en" ? "We couldn't load your balance." : "No pudimos cargar tu saldo.")}
-                  </p>
-                ) : (
-                  <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en el local al finalizar la cita."}</p>
-                )}
-              </>
+              (() => {
+                const selectedBiz = businesses.find((b) => b.id === form.businessUserId);
+                const sinRfc = selectedBiz?.has_rfc === false;
+                return (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setForm((current) => ({ ...current, paymentProvider: "cash" }))}
+                        className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                          form.paymentProvider === "cash"
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                            : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {language === "en" ? "Cash payment at branch" : "Pago en efectivo en sucursal"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={sinRfc}
+                        onClick={() => {
+                          if (sinRfc) return;
+                          setForm((current) => ({ ...current, paymentProvider: "wallet" }));
+                        }}
+                        className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                          sinRfc
+                            ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                            : form.paymentProvider === "wallet"
+                              ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {language === "en" ? "Online payment (Stripe Balance)" : "Pago en línea (Saldo Stripe)"}
+                      </button>
+                    </div>
+                    {sinRfc ? (
+                      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        <strong>{language === "en" ? "Legal Notice (SAT):" : "Aviso legal (SAT):"}</strong>{" "}
+                        {language === "en"
+                          ? "This business has not registered its tax ID (RFC) yet. For legal compliance, online/card payments are disabled for this salon; only cash payment at the branch is allowed."
+                          : "Este negocio aún no ha registrado su RFC fiscal en StyleHub. Por cumplimiento legal ante el SAT, el pago en línea con Stripe está inhabilitado para este establecimiento; solo se acepta pago en efectivo en la sucursal."}
+                      </div>
+                    ) : form.paymentProvider === "wallet" ? (
+                      <p className="mt-2 text-xs text-slate-600">
+                        {wallet ? (language === "en" ? `Available Stripe balance: $${Number(wallet.balance).toFixed(2)} MXN` : `Saldo disponible (recargado con Stripe): $${Number(wallet.balance).toFixed(2)} MXN`) : (language === "en" ? "We couldn't load your balance." : "No pudimos cargar tu saldo.")}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs text-slate-600">{language === "en" ? "You will pay directly at the salon when the appointment ends." : "Pagarás directamente en efectivo en la sucursal al finalizar la cita."}</p>
+                    )}
+                  </>
+                );
+              })()
             ) : (
               <>
                 <p className="rounded-xl border border-indigo-600 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">

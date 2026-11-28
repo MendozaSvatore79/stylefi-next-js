@@ -158,8 +158,11 @@ export default function CompletarRegistro({
                   <input id={`${id}-negocio`} className={campo} placeholder={t.nombreNegocio} value={datos.businessName} onChange={cambiar("businessName")} required maxLength={LIMITES.nombreLegal} autoComplete="organization" />
                 </div>
                 <div>
-                  <label htmlFor={`${id}-rfc`} className={etiqueta}>{t.rfc}</label>
-                  <input id={`${id}-rfc`} className={campo} placeholder={t.rfc} value={datos.rfc} onChange={cambiar("rfc")} required maxLength={13} />
+                  <label htmlFor={`${id}-rfc`} className={etiqueta}>{t.rfc} (opcional al registrarte)</label>
+                  <input id={`${id}-rfc`} className={campo} placeholder="Ej. ABC210514XY9 (Opcional)" value={datos.rfc} onChange={cambiar("rfc")} maxLength={13} />
+                  <p className="mt-1.5 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+                    <strong>Aviso legal (SAT):</strong> Si no registras tu RFC ahora, tus clientes solo podrán pagarte en efectivo en sucursal (el pago en línea con Stripe estará inhabilitado) y no podrás retirar ganancias por CLABE bancaria hasta que registres tu RFC en Configuración.
+                  </p>
                 </div>
                 {/* Decisión de producto (2026-11-20): una sola zona horaria por ahora */}
                 <p role="note" data-aviso-zona-horaria className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">

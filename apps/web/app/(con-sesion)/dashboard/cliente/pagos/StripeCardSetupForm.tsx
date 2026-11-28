@@ -4,10 +4,13 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { api } from "@/lib/api";
 
-/** Llave pública de Stripe, o null si falta (sin ella, loadStripe falla y la página lanzaba un error de JavaScript). */
+const DEFAULT_STRIPE_PUBLISHABLE_KEY =
+  "pk_test_51RQaiD032ZFJ94enyPhBECafgfVnMy0Sq8dRQyFpSLduZSrW75rZ7cpsQtQxXUb5rco6fZmTW40wvdE76v2UDgbT00D6CchAzN";
+
+/** Llave pública de Stripe, o el respaldo de pruebas del proyecto si falta en el entorno. */
 export function llavePublicaDeStripe(valor: string | undefined) {
   const llave = valor?.trim();
-  return llave ? llave : null;
+  return llave ? llave : DEFAULT_STRIPE_PUBLISHABLE_KEY;
 }
 
 const LLAVE_PUBLICA = llavePublicaDeStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);

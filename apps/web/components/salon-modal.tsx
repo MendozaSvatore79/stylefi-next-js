@@ -24,6 +24,7 @@ type BusinessDetail = {
   longitude: number | string | null;
   phone: string;
   image_url: string;
+  has_rfc?: boolean;
 };
 
 type Branch = {
@@ -744,24 +745,37 @@ export default function SalonModal({
                                   : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                               }`}
                             >
-                              {t("modal.cashLocal")}
+                              {language === "en" ? "Cash at branch" : "Pago en efectivo en sucursal"}
                             </button>
                             <button
                               type="button"
-                              onClick={() => setBookingForm((current) => ({ ...current, paymentProvider: "wallet" }))}
+                              disabled={business.has_rfc === false}
+                              onClick={() => {
+                                if (business.has_rfc === false) return;
+                                setBookingForm((current) => ({ ...current, paymentProvider: "wallet" }));
+                              }}
                               className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                                bookingForm.paymentProvider === "wallet"
-                                  ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                                business.has_rfc === false
+                                  ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                                  : bookingForm.paymentProvider === "wallet"
+                                    ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                               }`}
                             >
-                              {TEXTOS_MODAL.saldo[language]}
+                              {language === "en" ? "Online payment (Stripe Balance)" : "Pago en línea (Saldo Stripe)"}
                             </button>
                           </div>
-                          {bookingForm.paymentProvider === "wallet" ? (
+                          {business.has_rfc === false ? (
+                            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                              <strong>{language === "en" ? "Legal Notice (SAT):" : "Aviso legal (SAT):"}</strong>{" "}
+                              {language === "en"
+                                ? "This business has not registered its tax ID (RFC) yet. For legal compliance, online/card payments are disabled for this salon; only cash payment at the branch is allowed."
+                                : "Este negocio aún no ha registrado su RFC fiscal en StyleHub. Por cumplimiento legal ante el SAT, el pago en línea con Stripe está inhabilitado para este establecimiento; solo se acepta pago en efectivo en la sucursal."}
+                            </div>
+                          ) : bookingForm.paymentProvider === "wallet" ? (
                             <p className="mt-2 text-xs text-slate-600">
                               {walletBalance !== null
-                                ? `${t("modal.availableBalance")} $${walletBalance.toFixed(2)}`
+                                ? `${t("modal.availableBalance")} $${walletBalance.toFixed(2)} MXN (recargado con Stripe)`
                                 : t("modal.noBalance")}
                             </p>
                           ) : (
